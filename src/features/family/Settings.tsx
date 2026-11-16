@@ -6,6 +6,7 @@ import {
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
 import { friendlyError, toAppError } from '../../lib/errors';
+import { useFeatures } from '../../lib/features';
 import { money, timeAgo } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { Evidence, Family, FamilySettings } from '../../lib/types';
@@ -82,6 +83,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
   family: Family; isOwner: boolean; refresh: () => Promise<unknown>; signOut: () => Promise<void>;
 }) {
   const toast = useToast();
+  const features = useFeatures();
   const base = useMemo(() => draftFrom(family), [family]);
   const [d, setD] = useState<Draft>(base);
   const [busy, setBusy] = useState(false);
@@ -152,12 +154,29 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
 
   const example = money(1000, d.currency);
   const exampleGain = money(Math.round(1000 * (interestErr ? 0 : interest) / 100), d.currency);
+  // Rules for parts of the app that are switched off (Family → Features) are hidden.
+  const showInterest = features.on('interest');
+  const showSaverRules = features.on('saver_rules');
+  const showChallengeCap = features.on('challenges');
+  const showEmergency = features.on('emergency');
+  const someHidden = !(showInterest && showSaverRules && showChallengeCap && showEmergency);
 
   return (
     <>
       <PageHeader title="Family rules" subtitle={family.name} back="/family" />
 
       <div className="space-y-4">
+        {someHidden && (
+          <Card padded={false} className="overflow-hidden">
+            <ListRow
+              to="/family/features"
+              left={<span className="grid size-10 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">🌱</span>}
+              title="Some rules are hidden"
+              subtitle="They belong to parts of the app that are switched off. Change that in Features."
+            />
+          </Card>
+        )}
+
         <SettingsCard title="Family" emoji="🏠">
           <Input
             label="Family name"
@@ -187,44 +206,52 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
           />
         </SettingsCard>
 
-        <SettingsCard title="Money" emoji="💶">
-          <Input
-            label="Savings interest per month (%)"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={20}
-            step={0.1}
-            value={d.interest}
-            onChange={(e) => set({ interest: e.target.value })}
-            hint={`Savings grow by this much each month. Paid every week. ${example} saved at ${interestErr ? 0 : interest}% grows ${exampleGain} a month.`}
-            error={interestErr ?? serverErr.interest_pct_month}
-          />
-          <Input
-            label="Saver bonus (points)"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={1000}
-            step={1}
-            value={d.saverBonus}
-            onChange={(e) => set({ saverBonus: e.target.value })}
-            hint="Bonus points when savings grew this week."
-            error={saverErr ?? serverErr.saver_bonus_points}
-          />
-          <Input
-            label="No-savings penalty (points)"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={1000}
-            step={1}
-            value={d.noSavingsPenalty}
-            onChange={(e) => set({ noSavingsPenalty: e.target.value })}
-            hint="Points lost if money was earned but none saved and none left (0 = off)."
-            error={penaltyErr ?? serverErr.no_savings_penalty_points}
-          />
-        </SettingsCard>
+        {(showInterest || showSaverRules) && (
+          <SettingsCard title="Money" emoji="💶">
+            {showInterest && (
+              <Input
+                label="Savings interest per month (%)"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={20}
+                step={0.1}
+                value={d.interest}
+                onChange={(e) => set({ interest: e.target.value })}
+                hint={`Savings grow by this much each month. Paid every week. ${example} saved at ${interestErr ? 0 : interest}% grows ${exampleGain} a month.`}
+                error={interestErr ?? serverErr.interest_pct_month}
+              />
+            )}
+            {showSaverRules && (
+              <>
+                <Input
+                  label="Saver bonus (points)"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={d.saverBonus}
+                  onChange={(e) => set({ saverBonus: e.target.value })}
+                  hint="Bonus points when savings grew this week."
+                  error={saverErr ?? serverErr.saver_bonus_points}
+                />
+                <Input
+                  label="No-savings penalty (points)"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={d.noSavingsPenalty}
+                  onChange={(e) => set({ noSavingsPenalty: e.target.value })}
+                  hint="Points lost if money was earned but none saved and none left (0 = off)."
+                  error={penaltyErr ?? serverErr.no_savings_penalty_points}
+                />
+              </>
+            )}
+          </SettingsCard>
+        )}
 
         <SettingsCard title="Tasks" emoji="✅">
           <Select
@@ -237,18 +264,20 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
             hint="Extra time before a missed task costs anything."
             error={serverErr.late_grace_minutes}
           />
-          <Input
-            label="Challenge points cap"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={1000}
-            step={1}
-            value={d.challengeCap}
-            onChange={(e) => set({ challengeCap: e.target.value })}
-            hint="Most points a kid or grandparent can promise in a challenge."
-            error={capErr ?? serverErr.challenge_points_cap}
-          />
+          {showChallengeCap && (
+            <Input
+              label="Challenge points cap"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={1000}
+              step={1}
+              value={d.challengeCap}
+              onChange={(e) => set({ challengeCap: e.target.value })}
+              hint="Most points a kid or grandparent can promise in a challenge."
+              error={capErr ?? serverErr.challenge_points_cap}
+            />
+          )}
           <div>
             <Segmented<Evidence>
               label="Proof for new tasks"
@@ -295,18 +324,20 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
             onChange={(v) => set({ gpMoney: v })}
             label="Grandparents can see the kids’ money"
           />
-          <div>
-            <Segmented<FamilySettings['emergency_visibility']>
-              label="Who sees the emergency card"
-              value={d.emergency}
-              onChange={(v) => set({ emergency: v })}
-              options={[
-                { value: 'family', label: 'Family' },
-                { value: 'adults', label: 'Adults only' },
-              ]}
-            />
-            <p className="mt-1 text-sm text-muted">Who can see blood type, allergies and medication.</p>
-          </div>
+          {showEmergency && (
+            <div>
+              <Segmented<FamilySettings['emergency_visibility']>
+                label="Who sees the emergency card"
+                value={d.emergency}
+                onChange={(v) => set({ emergency: v })}
+                options={[
+                  { value: 'family', label: 'Family' },
+                  { value: 'adults', label: 'Adults only' },
+                ]}
+              />
+              <p className="mt-1 text-sm text-muted">Who can see blood type, allergies and medication.</p>
+            </div>
+          )}
         </SettingsCard>
 
         <Card padded={false} className="overflow-hidden">

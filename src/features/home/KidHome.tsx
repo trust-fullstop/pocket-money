@@ -1,12 +1,13 @@
 import { Link } from 'react-router';
-import { Card, EmptyState, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
+import { Avatar, Card, EmptyState, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures, type FeatureApi } from '../../lib/features';
 import { minutes, money, plural, points } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
-import type { Balances, Member, TaskInstance, Wallet } from '../../lib/types';
+import type { Balances, EventOccurrence, Member, TaskInstance, Wallet } from '../../lib/types';
 import { ComingUp, HomeSection, KidTaskRow, Loaded, SectionError, Skeleton } from './shared';
-import { byStatusThenDue, countsForProgress, eventsWindow, rewardParts, sumRewards, weekRange } from './lib';
+import { byStatusThenDue, countsForProgress, eventsWindow, gridCols, rewardParts, sumRewards, weekRange } from './lib';
 
 export default function KidHome() {
   const { me, family, state } = useApp();
@@ -16,26 +17,33 @@ export default function KidHome() {
 
 function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz: string; stamp: string }) {
   const { state, family } = useApp();
+  const features = useFeatures();
+  const calendarOn = features.on('calendar');
+  const challengesOn = features.on('challenges');
   const week = weekRange(today);
   const [from, to] = eventsWindow(today, tz);
   const insts = useLoad(() => api.listInstances(week.start, week.end, me.id), [me.id, week.start, stamp]);
   const wallet = useLoad(() => api.wallet(me.id, 0), [me.id, stamp]);
-  const events = useLoad(() => api.listEvents(from, to), [from, to, stamp]);
-  const approvals = state?.counts.approvals ?? 0;
+  const events = useLoad(
+    () => (calendarOn ? api.listEvents(from, to) : Promise.resolve([] as EventOccurrence[])),
+    [from, to, stamp, calendarOn],
+  );
+  // A kid only has something to check when they challenged someone.
+  const approvals = challengesOn ? state?.counts.approvals ?? 0 : 0;
   const checks = useLoad(() => (approvals > 0 ? api.listApprovals() : Promise.resolve([] as TaskInstance[])), [approvals, stamp]);
   const balances = state?.balances[me.id];
   const cur = family?.currency ?? 'EUR';
-  const myRequests = state?.counts.my_requests ?? 0;
+  const myRequests = features.on('requests') ? state?.counts.my_requests ?? 0 : 0;
 
   const todays = (insts.data ?? []).filter((i) => i.occurs_on === today && i.assignee_id === me.id && countsForProgress(i)).sort(byStatusThenDue);
   const doneToday = todays.filter((i) => i.status === 'approved').length;
 
   return (
     <>
-      <CharacterCard me={me} balances={balances} />
+      <CharacterCard me={me} balances={balances} withLevel={features.on('points')} />
 
       <div className="mt-3">
-        {balances ? <BalanceTiles meId={me.id} b={balances} currency={cur} /> : <NoBalances />}
+        {balances ? <BalanceTiles meId={me.id} b={balances} currency={cur} features={features} /> : <NoBalances />}
       </div>
 
       {approvals > 0 && checks.data && checks.data.length > 0 && <ChallengeToCheck list={checks.data} />}
@@ -51,8 +59,8 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
                 className="!py-4"
                 emoji="🎈"
                 title="No tasks today"
-                message="Enjoy it — or make a challenge."
-                action={<LinkButton to="/tasks/new" variant="secondary" icon="plus">Make a challenge</LinkButton>}
+                message={challengesOn ? 'Enjoy it — or make a challenge.' : 'Enjoy your free time!'}
+                action={challengesOn ? <LinkButton to="/tasks/new" variant="secondary" icon="plus">Make a challenge</LinkButton> : undefined}
               />
             </Card>
           ) : (
@@ -70,9 +78,9 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
         </Loaded>
       </HomeSection>
 
-      <CouldEarn insts={insts.data} wallet={wallet.data} currency={cur} />
+      <CouldEarn insts={insts.data} wallet={wallet.data} currency={cur} features={features} />
 
-      <GoalCard wallet={wallet} meId={me.id} currency={cur} />
+      {features.on('goals') && <GoalCard wallet={wallet} meId={me.id} currency={cur} />}
 
       {myRequests > 0 && (
         <Card padded={false} className="mt-6 overflow-hidden">
@@ -89,24 +97,30 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
   );
 }
 
-function CharacterCard({ me, balances }: { me: Member; balances?: Balances }) {
-  const char = characterOf(me.theme);
-  const level = balances ? levelFromPoints(balances.points, char?.key) : null;
+function CharacterCard({ me, balances, withLevel }: { me: Member; balances?: Balances; withLevel: boolean }) {
+  const char = withLevel ? characterOf(me.theme) : null;
+  const level = balances && withLevel ? levelFromPoints(balances.points, char?.key) : null;
   return (
     <Link
       to="/me"
       className="block rounded-3xl border border-line bg-linear-to-br from-accent-soft to-surface p-4 text-accent-ink shadow-sm transition active:scale-[0.99]"
     >
       <div className="flex items-center gap-4">
-        <span className="grid size-20 shrink-0 place-items-center rounded-full bg-surface text-5xl shadow-sm" aria-hidden="true">
-          {char?.emoji ?? me.avatar ?? '🙂'}
-        </span>
+        {withLevel ? (
+          <span className="grid size-20 shrink-0 place-items-center rounded-full bg-surface text-5xl shadow-sm" aria-hidden="true">
+            {char?.emoji ?? me.avatar ?? '🙂'}
+          </span>
+        ) : (
+          <Avatar member={me} size="lg" name="" className="shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-extrabold">Hi {me.display_name}! <span aria-hidden="true">👋</span></h1>
           {level ? (
             <p className="font-semibold">Level {level.level} · {level.title}</p>
-          ) : (
+          ) : withLevel ? (
             <p className="text-[15px]">Tap to pick your character</p>
+          ) : (
+            <p className="text-[15px]">Tap to change your look</p>
           )}
         </div>
       </div>
@@ -122,11 +136,13 @@ function CharacterCard({ me, balances }: { me: Member; balances?: Balances }) {
   );
 }
 
-function BalanceTiles({ meId, b, currency }: { meId: string; b: Balances; currency: string }) {
+function BalanceTiles({ meId, b, currency, features }: { meId: string; b: Balances; currency: string; features: FeatureApi }) {
   const owes = b.spending < 0;
+  const savings = features.on('savings');
+  const time = features.on('time');
   const tile = 'block rounded-2xl border border-line bg-surface p-3 shadow-sm transition active:scale-[0.98]';
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className={cx('grid gap-2', gridCols(1 + Number(savings) + Number(time)))}>
       <Link to={`/money/${meId}`} className={cx(tile, owes && 'border-warn/50 bg-warn-soft')}>
         <Stat
           label={<><span aria-hidden="true">👛</span> {owes ? 'Owes' : 'Spending'}</>}
@@ -135,17 +151,21 @@ function BalanceTiles({ meId, b, currency }: { meId: string; b: Balances; curren
           className="[&_.text-2xl]:text-xl"
         />
       </Link>
-      <Link to={`/money/${meId}`} className={tile}>
-        <Stat label={<><span aria-hidden="true">🐷</span> Savings</>} value={money(b.savings, currency)} className="[&_.text-2xl]:text-xl" />
-      </Link>
-      <Link to={`/money/${meId}`} className={tile}>
-        <Stat
-          label={<><span aria-hidden="true">⏱️</span> Time</>}
-          value={minutes(b.time)}
-          tone={b.time < 0 ? 'warn' : undefined}
-          className="[&_.text-2xl]:text-xl"
-        />
-      </Link>
+      {savings && (
+        <Link to={`/money/${meId}`} className={tile}>
+          <Stat label={<><span aria-hidden="true">🐷</span> Savings</>} value={money(b.savings, currency)} className="[&_.text-2xl]:text-xl" />
+        </Link>
+      )}
+      {time && (
+        <Link to={`/money/${meId}`} className={tile}>
+          <Stat
+            label={<><span aria-hidden="true">⏱️</span> Time</>}
+            value={minutes(b.time)}
+            tone={b.time < 0 ? 'warn' : undefined}
+            className="[&_.text-2xl]:text-xl"
+          />
+        </Link>
+      )}
     </div>
   );
 }
@@ -171,15 +191,19 @@ function ChallengeToCheck({ list }: { list: TaskInstance[] }) {
   );
 }
 
-function CouldEarn({ insts, wallet, currency }: { insts?: TaskInstance[] | null; wallet?: Wallet | null; currency: string }) {
+function CouldEarn({ insts, wallet, currency, features }: {
+  insts?: TaskInstance[] | null; wallet?: Wallet | null; currency: string; features: FeatureApi;
+}) {
+  // Time and points only count when those currencies are switched on.
+  const show = { time: features.on('time'), points: features.on('points') };
   let still: string[] = [];
   let waiting: string[] = [];
   let anyThisWeek = false;
   if (insts) {
     const counted = insts.filter(countsForProgress);
     anyThisWeek = counted.length > 0;
-    still = rewardParts(sumRewards(counted.filter((i) => i.status === 'open')), currency);
-    waiting = rewardParts(sumRewards(counted.filter((i) => i.status === 'submitted')), currency);
+    still = rewardParts(sumRewards(counted.filter((i) => i.status === 'open')), currency, show);
+    waiting = rewardParts(sumRewards(counted.filter((i) => i.status === 'submitted')), currency, show);
   } else if (wallet) {
     const w = wallet.tallies.week;
     anyThisWeek = w.tasks_open + w.tasks_done + w.tasks_missed > 0;
@@ -188,7 +212,7 @@ function CouldEarn({ insts, wallet, currency }: { insts?: TaskInstance[] | null;
         reward_cents: Math.max(0, w.possible_cents - w.money_earned),
         reward_minutes: Math.max(0, w.possible_minutes - w.time_earned),
         reward_points: Math.max(0, w.possible_points - w.points_earned),
-      }, currency);
+      }, currency, show);
     }
   } else {
     return null;

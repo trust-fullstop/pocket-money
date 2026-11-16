@@ -1,5 +1,6 @@
 import { minutes, money, points, roleLabel } from '../../lib/format';
-import type { Member } from '../../lib/types';
+import type { FeatureKey, Member } from '../../lib/types';
+import { FEATURE_INFO } from './featureList';
 
 export interface AuditEntry { id: number; actor: string | null; action: string; details: Record<string, unknown>; created_at: string }
 export interface AuditText { emoji: string; text: string; known: boolean }
@@ -14,9 +15,11 @@ export const SETTING_LABEL: Record<string, string> = {
   late_grace_minutes: 'late grace time',
   challenge_points_cap: 'challenge points cap',
   grandparents_see_money: 'grandparents see money',
+  managers_add_adults: 'who can add adults',
   emergency_visibility: 'emergency card visibility',
   catchup_days: 'catch-up days',
   default_evidence: 'default proof',
+  features: 'features',
 };
 
 const MEMBER_FIELD: Record<string, string> = {
@@ -53,10 +56,21 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
   switch (e.action) {
     case 'family.create': return k('🏠', `Started the family${str(d.name) ? ` “${str(d.name)}”` : ''}`);
     case 'family.update': {
+      const settings = d.settings && typeof d.settings === 'object' ? (d.settings as Record<string, unknown>) : {};
+      const feats = settings.features && typeof settings.features === 'object' ? (settings.features as Record<string, unknown>) : null;
       const keys = Object.keys(d).flatMap((key) =>
-        key === 'settings' && d.settings && typeof d.settings === 'object' ? Object.keys(d.settings as object) : [key]);
-      const names = keys.map((x) => SETTING_LABEL[x] ?? x);
-      return k('⚙️', names.length ? `Changed the family ${list(names)}` : 'Changed family settings');
+        key === 'settings' ? Object.keys(settings).filter((x) => !(x === 'features' && feats)) : [key]);
+      const parts: string[] = [];
+      if (keys.length) parts.push(`Changed the family ${list(keys.map((x) => SETTING_LABEL[x] ?? x))}`);
+      if (feats) {
+        const named = (want: boolean) => Object.keys(feats).filter((x) => feats[x] === want)
+          .map((x) => FEATURE_INFO[x as FeatureKey]?.label ?? x);
+        const on = named(true);
+        const off = named(false);
+        if (on.length) parts.push(`${parts.length ? 'switched' : 'Switched'} on ${list(on)}`);
+        if (off.length) parts.push(`${parts.length ? 'switched' : 'Switched'} off ${list(off)}`);
+      }
+      return k('⚙️', parts.length ? parts.join('; ') : 'Changed family settings');
     }
     case 'invite.create': return k('🔗', `Made a join code for ${who()}`);
     case 'invite.redeem': return k('📲', `${who()} joined on a device`);

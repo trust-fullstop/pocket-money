@@ -3,13 +3,14 @@ import { Link } from 'react-router';
 import {
   Avatar, Badge, Button, Card, Icon, LinkButton, ListRow, ProgressBar, Section, Stat, cx,
 } from '../../components/ui';
+import { useFeatures } from '../../lib/features';
 import { formatTime, minutes, money, plural } from '../../lib/format';
 import { useApp, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { Balances, EventOccurrence, Member, TaskInstance } from '../../lib/types';
 import { EventRow } from '../calendar/EventRow';
 import { isForMember } from '../calendar/events';
-import { EVENTS_DAYS, rewardParts, spokenAmount, upcomingOnly, type DayProgress } from './lib';
+import { EVENTS_DAYS, gridCols, rewardParts, spokenAmount, upcomingOnly, type DayProgress } from './lib';
 
 /** Page greeting (the h1 of Home for adults). */
 export function Greeting({ name, sub, hello = 'Hi' }: { name: string; sub?: ReactNode; hello?: string }) {
@@ -77,7 +78,8 @@ export function Loaded<T>({ load, rows, height, children }: {
 
 export function RewardChips({ inst, className }: { inst: TaskInstance; className?: string }) {
   const { family } = useApp();
-  const parts = rewardParts(inst, family?.currency ?? 'EUR', { signed: true });
+  const features = useFeatures();
+  const parts = rewardParts(inst, family?.currency ?? 'EUR', { signed: true, time: features.on('time'), points: features.on('points') });
   if (!parts.length) return null;
   return (
     <span className={cx('flex flex-wrap gap-1', className)}>
@@ -175,11 +177,13 @@ export function FamilyTaskRow({ inst }: { inst: TaskInstance }) {
   );
 }
 
-/** "Coming up" — next calendar items (optionally only those for one member). */
+/** "Coming up" — next calendar items (optionally only those for one member). Hidden when the calendar is switched off. */
 export function ComingUp({ events, max, forMember, title = 'Coming up' }: {
   events: LoadResult<EventOccurrence[]>; max: number; forMember?: string; title?: string;
 }) {
   const { now } = useApp();
+  const features = useFeatures();
+  if (!features.on('calendar')) return null;
   return (
     <HomeSection title={title} link={{ to: '/calendar', label: 'Calendar' }}>
       <Loaded load={events} rows={2}>
@@ -206,21 +210,24 @@ export function ComingUp({ events, max, forMember, title = 'Coming up' }: {
   );
 }
 
-/** Spending / Savings / Time in a row. Negative spending shows "Owes" in orange. */
+/** Spending / Savings / Time in a row (Savings and Time only when switched on). Negative spending shows "Owes" in orange. */
 export function MiniBalances({ b, size = 'md' }: { b: Balances; size?: 'sm' | 'md' }) {
   const { family } = useApp();
+  const features = useFeatures();
   const cur = family?.currency ?? 'EUR';
   const owes = b.spending < 0;
+  const savings = features.on('savings');
+  const time = features.on('time');
   const cls = size === 'sm' ? '[&_.text-2xl]:text-lg' : '';
   return (
-    <div className={cx('grid grid-cols-3 gap-2', cls)}>
+    <div className={cx('grid gap-2', gridCols(1 + Number(savings) + Number(time)), cls)}>
       <Stat
         label={owes ? 'Owes' : 'Spending'}
         value={<>{money(owes ? -b.spending : b.spending, cur)}{owes && <span aria-hidden="true"> ⚠️</span>}</>}
         tone={owes ? 'warn' : undefined}
       />
-      <Stat label="Savings" value={money(b.savings, cur)} />
-      <Stat label="Time" value={minutes(b.time)} tone={b.time < 0 ? 'warn' : undefined} />
+      {savings && <Stat label="Savings" value={money(b.savings, cur)} />}
+      {time && <Stat label="Time" value={minutes(b.time)} tone={b.time < 0 ? 'warn' : undefined} />}
     </div>
   );
 }
@@ -233,8 +240,10 @@ export function KidGlanceCard({ kid, balances, progress, mode }: {
   progress?: DayProgress | null;
   mode: 'manager' | 'grandparent';
 }) {
+  const features = useFeatures();
   const char = characterOf(kid.theme);
-  const level = balances ? levelFromPoints(balances.points, char?.key) : null;
+  const level = balances && features.on('points') ? levelFromPoints(balances.points, char?.key) : null;
+  const canGift = mode === 'grandparent' && features.on('spotted');
   const header = (
     <div className="flex items-center gap-3">
       <Avatar member={kid} size="lg" name="" />
@@ -282,18 +291,20 @@ export function KidGlanceCard({ kid, balances, progress, mode }: {
         </>
       )}
       {progressLine}
-      <div className="flex flex-wrap gap-2">
-        {mode === 'manager' ? (
-          <>
-            <LinkButton to={`/tasks?person=${kid.id}`} variant="secondary" size="sm" icon="tasks">Tasks</LinkButton>
-            <LinkButton to={`/tasks/new?person=${kid.id}`} variant="ghost" size="sm" icon="plus">New task</LinkButton>
-          </>
-        ) : (
-          <LinkButton to={`/money/spot?member=${kid.id}`} variant="primary" size="sm" icon="gift">
-            Send {kid.display_name} a gift
-          </LinkButton>
-        )}
-      </div>
+      {(mode === 'manager' || canGift) && (
+        <div className="flex flex-wrap gap-2">
+          {mode === 'manager' ? (
+            <>
+              <LinkButton to={`/tasks?person=${kid.id}`} variant="secondary" size="sm" icon="tasks">Tasks</LinkButton>
+              <LinkButton to={`/tasks/new?person=${kid.id}`} variant="ghost" size="sm" icon="plus">New task</LinkButton>
+            </>
+          ) : (
+            <LinkButton to={`/money/spot?member=${kid.id}`} variant="primary" size="sm" icon="gift">
+              Send {kid.display_name} a gift
+            </LinkButton>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

@@ -28,13 +28,16 @@ type Rewardish = Pick<TaskInstance, 'reward_cents' | 'reward_minutes' | 'reward_
 /**
  * Only the non-zero parts. Prose: ["€0.50", "10 min", "5 points", "ice cream"].
  * Chips (`signed`): ["+€0.50", "+10 min", "+5 XP", "ice cream"].
+ * `time: false` / `points: false` leave out currencies that are switched off (Family → Features).
  */
-export function rewardParts(r: Rewardish, currency: string, opts: { signed?: boolean } = {}): string[] {
+export function rewardParts(
+  r: Rewardish, currency: string, opts: { signed?: boolean; time?: boolean; points?: boolean } = {},
+): string[] {
   const sign = !!opts.signed;
   const out: string[] = [];
   if (r.reward_cents) out.push(money(r.reward_cents, currency, { sign }));
-  if (r.reward_minutes) out.push(minutes(r.reward_minutes, { sign }));
-  if (r.reward_points) out.push(sign ? points(r.reward_points, { sign }) : plural(r.reward_points, 'point'));
+  if (r.reward_minutes && opts.time !== false) out.push(minutes(r.reward_minutes, { sign }));
+  if (r.reward_points && opts.points !== false) out.push(sign ? points(r.reward_points, { sign }) : plural(r.reward_points, 'point'));
   if (r.reward_text) out.push(r.reward_text);
   return out;
 }
@@ -55,6 +58,10 @@ export function sumRewards(list: TaskInstance[]): { reward_cents: number; reward
 
 /** Instances that count for "x of y done" (cancelled / excused ones don't). */
 export const countsForProgress = (i: TaskInstance) => i.status !== 'cancelled' && i.status !== 'excused';
+
+const GRID_COLS = ['grid-cols-1', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3'];
+/** Tailwind grid class for 1–3 tiles in a row (some tiles disappear when their feature is switched off). */
+export const gridCols = (n: number) => GRID_COLS[Math.min(Math.max(n, 1), 3)];
 
 export interface DayProgress { done: number; total: number; waiting: number; open: number }
 

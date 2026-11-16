@@ -1,13 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
-  Avatar, Badge, Card, EmptyState, Icon, LinkButton, ListRow, PageHeader, Section, buttonClass, cx, type IconName,
+  Avatar, Badge, Button, Card, EmptyState, Icon, LinkButton, ListRow, PageHeader, Section, Spinner, buttonClass, cx,
+  type IconName,
 } from '../../components/ui';
 import { api } from '../../lib/api';
-import { formatDate, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
-import { useApp, useLoad } from '../../lib/session';
+import { useFeatures } from '../../lib/features';
+import { formatDate, formatWhen, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
+import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
-import type { Member, Profile } from '../../lib/types';
+import type { AskEntry, Member, Profile } from '../../lib/types';
 import { InviteScreen } from './InviteScreen';
 import { AllowanceSheet, CredentialsSheet, IdentitySheet, LoginsSheet, RemoveSheet, RoleSheet } from './MemberSheets';
 import {
@@ -28,10 +30,16 @@ export default function MemberDetail() {
   const m: Member | undefined = membersById[memberId];
   const opts = { managersAddAdults: !!family?.settings.managers_add_adults };
   const manageLogin = !!(me && m && m.id !== me.id && canManageLogin(me, m, opts));
+  const features = useFeatures();
+  const showAsks = isManager && features.on('ask') && !!m;
 
   const logins = useLoad(
     () => (manageLogin ? api.listLogins(memberId) : Promise.resolve(null)),
     [memberId, manageLogin, state?.now],
+  );
+  const asks = useLoad(
+    () => (showAsks ? api.listAsks(memberId, 20) : Promise.resolve(null)),
+    [memberId, showAsks, state?.now],
   );
 
   if (!me || !family) return null;
@@ -56,7 +64,7 @@ export default function MemberDetail() {
   const canEdit = canEditMember(me, m);
   const balances = state?.balances[m.id];
   const char = characterOf(m.theme);
-  const level = m.role === 'kid' && balances ? levelFromPoints(balances.points, char?.key) : null;
+  const level = m.role === 'kid' && balances && features.on('points') ? levelFromPoints(balances.points, char?.key) : null;
   const deviceCount = logins.data?.length;
   const owner = members.find((x) => x.role === 'owner');
   const showBankNote = self || isManager;
@@ -87,7 +95,7 @@ export default function MemberDetail() {
         <ListRow key="role" onClick={() => setSheet('role')} left={<RowIcon icon="swap" />} title="Change role" subtitle={roleLabel(m.role)} />,
       );
     }
-    if (m.role === 'kid' && canSetAllowance(me, m)) {
+    if (m.role === 'kid' && features.on('allowance') && canSetAllowance(me, m)) {
       manageRows.push(
         <ListRow
           key="allowance" onClick={() => setSheet('allowance')} left={<RowIcon icon="money" />}
@@ -148,7 +156,9 @@ export default function MemberDetail() {
             to={`/money/${m.id}`}
             left={<RowIcon icon="money" />}
             title="Money & history"
-            subtitle={`Spending ${money(balances.spending, family.currency)} · Savings ${money(balances.savings, family.currency)}`}
+            subtitle={features.on('savings')
+              ? `Spending ${money(balances.spending, family.currency)} · Savings ${money(balances.savings, family.currency)}`
+              : `Spending ${money(balances.spending, family.currency)}`}
           />
         </Card>
       )}
@@ -161,15 +171,19 @@ export default function MemberDetail() {
         )}
       </Section>
 
-      <Section
-        title="Emergency card"
-        className="mt-6"
-        action={canEdit && m.profile !== null ? (
-          <LinkButton to={`/family/${m.id}/edit`} variant="ghost" size="sm" icon="edit">Edit</LinkButton>
-        ) : undefined}
-      >
-        {m.profile === null ? <LockedCard /> : <EmergencyCard m={m} profile={m.profile} showBankNote={showBankNote} />}
-      </Section>
+      {features.on('emergency') && (
+        <Section
+          title="Emergency card"
+          className="mt-6"
+          action={canEdit && m.profile !== null ? (
+            <LinkButton to={`/family/${m.id}/edit`} variant="ghost" size="sm" icon="edit">Edit</LinkButton>
+          ) : undefined}
+        >
+          {m.profile === null ? <LockedCard /> : <EmergencyCard m={m} profile={m.profile} showBankNote={showBankNote} />}
+        </Section>
+      )}
+
+      {showAsks && <QuestionsAsked asks={asks} name={self ? 'You' : m.display_name} />}
 
       {manageRows.length > 0 && (
         <Section title="Manage" className="mt-6">
@@ -221,6 +235,80 @@ function LockedCard() {
       <span className="text-2xl" aria-hidden="true">🔒</span>
       <p>Emergency info is only shared with adults.</p>
     </Card>
+  );
+}
+
+const ASK_LIMIT = 20;
+
+/** Managers: what this person asked the "Ask Pocket" helper (newest first). */
+function QuestionsAsked({ asks, name }: { asks: LoadResult<AskEntry[] | null>; name: string }) {
+  const { family, now } = useApp();
+  const tz = family?.timezone ?? 'UTC';
+  const list = asks.data ?? null;
+  return (
+    <Section title="Questions asked" className="mt-6">
+      {asks.error && !list ? (
+        <Card className="flex items-center gap-3">
+          <Icon name="alert" className="shrink-0 text-warn" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">We couldn’t load the questions.</p>
+            <p className="truncate text-[14px] text-muted">{asks.error}</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => void asks.reload()}>Try again</Button>
+        </Card>
+      ) : !list ? (
+        <Card className="grid place-items-center py-6"><Spinner label="Loading questions" /></Card>
+      ) : list.length === 0 ? (
+        <Card>
+          <EmptyState
+            className="!py-4"
+            emoji="💬"
+            title={name === 'You' ? 'You haven’t asked anything yet' : `${name} hasn’t asked anything yet`}
+            message="Questions to Ask Pocket about how the app works show up here."
+          />
+        </Card>
+      ) : (
+        <>
+          <Card padded={false} className="overflow-hidden">
+            <ul className="divide-y divide-line">
+              {list.map((e) => <AskItem key={e.id} e={e} when={formatWhen(e.created_at, tz, now())} />)}
+            </ul>
+          </Card>
+          {list.length >= ASK_LIMIT && <p className="px-1 text-[14px] text-muted">Showing the latest {ASK_LIMIT} questions.</p>}
+        </>
+      )}
+    </Section>
+  );
+}
+
+function AskItem({ e, when }: { e: AskEntry; when: string }) {
+  const [open, setOpen] = useState(false);
+  const answer = e.answer?.trim() || null;
+  const long = !!answer && answer.length > 180;
+  return (
+    <li className="p-4">
+      <p className="whitespace-pre-line break-words font-semibold"><span aria-hidden="true">❓ </span>{e.question}</p>
+      {answer ? (
+        <p className={cx('mt-1 whitespace-pre-line break-words text-[15px]', long && !open && 'line-clamp-3')}>{answer}</p>
+      ) : (
+        <p className="mt-1 text-[15px] text-muted">
+          {e.status === 'failed' ? 'No answer — something went wrong.' : 'Still waiting for an answer…'}
+        </p>
+      )}
+      <div className="mt-1 flex min-h-8 items-center justify-between gap-2 text-[13px] text-muted">
+        <time dateTime={e.created_at}>{when}</time>
+        {long && (
+          <button
+            type="button"
+            className="-my-1.5 min-h-11 rounded-lg px-2 font-semibold text-accent-ink hover:bg-surface-2"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? 'Show less' : 'Show all'}
+          </button>
+        )}
+      </div>
+    </li>
   );
 }
 

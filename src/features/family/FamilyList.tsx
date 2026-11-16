@@ -3,14 +3,17 @@ import {
   Avatar, Badge, Button, Card, EmptyState, Icon, LinkButton, ListRow, PageHeader, Section, cx, type IconName,
 } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { memberRoleLabel, plural, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { Member } from '../../lib/types';
+import { FEATURE_TOTAL, countOn } from './featureList';
 import { InviteScreen } from './InviteScreen';
 import { ROLE_GROUPS, ageFrom, canManageLogin } from './perms';
 
 export default function FamilyList() {
   const { me, members, isManager, family, now, state } = useApp();
+  const features = useFeatures();
   const [qrFor, setQrFor] = useState<Member | null>(null);
   const tz = family?.timezone ?? 'UTC';
   const today = todayISO(tz, now());
@@ -103,10 +106,10 @@ export default function FamilyList() {
         <Section title={isManager ? 'Manage' : undefined}>
           <Card padded={false} className="divide-y divide-line overflow-hidden">
             <ListRow
-              to="/family/devices"
-              left={<RowIcon icon="device" />}
-              title={isManager ? 'Devices' : 'My devices'}
-              subtitle={isManager ? 'Phones, tablets and consoles in the family' : 'Phones and gadgets that are yours'}
+              to="/family/features"
+              left={<RowIcon icon="sparkles" />}
+              title={isManager ? 'Features' : 'What’s switched on'}
+              subtitle={`${countOn(features.raw)} of ${FEATURE_TOTAL} on`}
             />
             {isManager && (
               <ListRow
@@ -114,6 +117,14 @@ export default function FamilyList() {
                 left={<RowIcon icon="settings" />}
                 title="Family rules"
                 subtitle="Money, tasks, privacy and the activity log"
+              />
+            )}
+            {features.on('devices') && (
+              <ListRow
+                to="/family/devices"
+                left={<RowIcon icon="device" />}
+                title={isManager ? 'Devices' : 'My devices'}
+                subtitle={isManager ? 'Phones, tablets and consoles in the family' : 'Phones and gadgets that are yours'}
               />
             )}
           </Card>

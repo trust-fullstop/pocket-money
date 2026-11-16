@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Badge, Button, Card, EmptyState, Icon, LinkButton } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Icon, LinkButton, cx } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { formatDate, plural } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
-import type { Member, TaskInstance } from '../../lib/types';
+import type { EventOccurrence, Member, TaskInstance } from '../../lib/types';
 import { EventEditSheet } from '../calendar/EventSheets';
 import { ComingUp, FamilyTaskRow, Greeting, HomeSection, KidGlanceCard, Loaded } from './shared';
 import { eventsWindow, progressByMember } from './lib';
@@ -16,9 +17,14 @@ export default function ManagerHome() {
 
 function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz: string; stamp: string }) {
   const { state, members, refresh } = useApp();
+  const features = useFeatures();
+  const calendarOn = features.on('calendar');
   const [from, to] = eventsWindow(today, tz);
   const insts = useLoad(() => api.listInstances(today, today), [today, stamp]);
-  const events = useLoad(() => api.listEvents(from, to), [from, to, stamp]);
+  const events = useLoad(
+    () => (calendarOn ? api.listEvents(from, to) : Promise.resolve([] as EventOccurrence[])),
+    [from, to, stamp, calendarOn],
+  );
   const [addReminder, setAddReminder] = useState(false);
   const kids = members.filter((m) => m.role === 'kid');
   const progress = insts.data ? progressByMember(insts.data) : null;
@@ -27,7 +33,10 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
     <>
       <Greeting name={me.display_name} sub={formatDate(today, { long: true })} />
 
-      <WaitingBanner approvals={state?.counts.approvals ?? 0} requests={state?.counts.requests ?? 0} />
+      <WaitingBanner
+        approvals={state?.counts.approvals ?? 0}
+        requests={features.on('requests') ? state?.counts.requests ?? 0 : 0}
+      />
 
       <HomeSection title="Kids at a glance">
         {kids.length === 0 ? (
@@ -63,12 +72,14 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
 
       <ComingUp events={events} max={5} />
 
-      <div className="mt-6 grid grid-cols-2 gap-2">
+      <div className={cx('mt-6 grid gap-2', calendarOn ? 'grid-cols-2' : 'grid-cols-1')}>
         <LinkButton to="/tasks/new" icon="plus" size="lg" block>New task</LinkButton>
-        <Button variant="secondary" icon="bell" size="lg" block onClick={() => setAddReminder(true)}>Add reminder</Button>
+        {calendarOn && (
+          <Button variant="secondary" icon="bell" size="lg" block onClick={() => setAddReminder(true)}>Add reminder</Button>
+        )}
       </div>
 
-      {addReminder && (
+      {addReminder && calendarOn && (
         <EventEditSheet
           occurrence={null}
           initialKind="reminder"

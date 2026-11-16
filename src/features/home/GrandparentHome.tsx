@@ -1,9 +1,10 @@
 import { Card, ListRow } from '../../components/ui';
 import { api } from '../../lib/api';
 import { toAppError } from '../../lib/errors';
+import { useFeatures } from '../../lib/features';
 import { formatDate } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
-import type { Member, TaskInstance } from '../../lib/types';
+import type { EventOccurrence, Member, TaskInstance } from '../../lib/types';
 import { ComingUp, Greeting, HomeSection, KidGlanceCard } from './shared';
 import { eventsWindow, progressByMember } from './lib';
 
@@ -15,8 +16,10 @@ export default function GrandparentHome() {
 
 function GrandparentHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz: string; stamp: string }) {
   const { state, members } = useApp();
+  const features = useFeatures();
+  const calendarOn = features.on('calendar');
   const [from, to] = eventsWindow(today, tz);
-  // `list: null` = not allowed to see tasks → hide the tasks line but keep the gift buttons.
+  // `list: null` = not allowed to see tasks → hide the tasks line but keep the gift buttons (when Spotted is on).
   const insts = useLoad(
     () => api.listInstances(today, today).then(
       (list): { list: TaskInstance[] | null } => ({ list }),
@@ -27,7 +30,10 @@ function GrandparentHomeInner({ me, today, tz, stamp }: { me: Member; today: str
     ),
     [today, stamp],
   );
-  const events = useLoad(() => api.listEvents(from, to), [from, to, stamp]);
+  const events = useLoad(
+    () => (calendarOn ? api.listEvents(from, to) : Promise.resolve([] as EventOccurrence[])),
+    [from, to, stamp, calendarOn],
+  );
   const kids = members.filter((m) => m.role === 'kid');
   const progress = insts.data?.list ? progressByMember(insts.data.list) : null;
 
@@ -62,14 +68,16 @@ function GrandparentHomeInner({ me, today, tz, stamp }: { me: Member; today: str
 
       <ComingUp events={events} max={5} />
 
-      <Card padded={false} className="mt-6 overflow-hidden">
-        <ListRow
-          to="/tasks/new"
-          left={<span className="grid size-11 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">🏆</span>}
-          title="Make a fun challenge"
-          subtitle="Promise a reward for something special"
-        />
-      </Card>
+      {features.on('challenges') && (
+        <Card padded={false} className="mt-6 overflow-hidden">
+          <ListRow
+            to="/tasks/new"
+            left={<span className="grid size-11 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">🏆</span>}
+            title="Make a fun challenge"
+            subtitle="Promise a reward for something special"
+          />
+        </Card>
+      )}
     </>
   );
 }
