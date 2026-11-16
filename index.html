@@ -1,13 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="system">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Pocket Money</title>
+    <meta name="description" content="Pocket Money — earn it, save it, share family life. A private family app." />
+    <meta name="theme-color" content="#f4f5f7" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pocket-money</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Pocket Money" />
+    <style>
+      /* Boot splash, replaced as soon as React renders. */
+      .boot { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+        font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif; color: #5b6472; background: #f4f5f7; }
+      .boot img { width: 72px; height: 72px; }
+      @media (prefers-color-scheme: dark) { .boot { background: #0b0f14; color: #9aa5b4; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot"><img src="/icon.svg" alt="" /><span>Pocket Money</span></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
