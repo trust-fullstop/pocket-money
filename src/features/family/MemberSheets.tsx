@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import {
-  AVATAR_EMOJIS, AmountInput, Avatar, Badge, Button, EmojiGrid, Icon, Input, ListRow, PhotoCapture, Select, Sheet, Spinner,
+  AVATAR_EMOJIS, Avatar, Badge, Button, EmojiGrid, Icon, Input, ListRow, PhotoCapture, Select, Sheet, Spinner,
   cx, useConfirm, useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError, toAppError } from '../../lib/errors';
-import { money, roleLabel, timeAgo } from '../../lib/format';
+import { roleLabel, timeAgo } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp, type LoadResult } from '../../lib/session';
 import { ACCENTS, CHARACTERS, type AccentKey } from '../../lib/theme';
@@ -250,47 +250,6 @@ export function RoleSheet({ member, onClose }: SheetBase) {
           <li><strong className="text-ink">Grandparent:</strong> cheers, gifts and small challenges.</li>
           <li><strong className="text-ink">Kid:</strong> does tasks and earns.</li>
         </ul>
-      </div>
-    </Sheet>
-  );
-}
-
-// ------------------------------------------------------------------ weekly pocket money
-
-export function AllowanceSheet({ member, onClose }: SheetBase) {
-  const { refresh, family } = useApp();
-  const toast = useToast();
-  const [cents, setCents] = useState<number | null>(member.allowance_cents || null);
-  const [busy, setBusy] = useState(false);
-  const cur = family?.currency ?? 'EUR';
-
-  const save = async () => {
-    setBusy(true);
-    try {
-      await api.updateMember(member.id, { allowance_cents: Math.max(0, cents ?? 0) });
-      toast.show(cents ? `${money(cents, cur)} every week ✓` : 'Weekly pocket money stopped', 'success');
-      void refresh();
-      onClose();
-    } catch (e) {
-      toast.show(friendlyError(e), 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title="Weekly pocket money"
-      description={`Paid to ${member.display_name} automatically at the start of every week.`}
-      footer={<Button block size="lg" icon="check" loading={busy} onClick={save}>Save</Button>}
-    >
-      <div className="space-y-2 pt-1">
-        <AmountInput
-          kind="money" label="Amount per week" value={cents} onChange={setCents}
-          chips={[200, 500, 1000]} max={100_000} hint="Leave empty or 0 to stop it."
-        />
       </div>
     </Sheet>
   );

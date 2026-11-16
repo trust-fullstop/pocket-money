@@ -1,4 +1,4 @@
-// Wallet action sheets: Move money, Ask to spend, Ask to take out savings, Use time, Weekly pocket money.
+// Wallet action sheets: Move money, Ask to spend, Ask to take out savings, Use time (pocket money: AllowanceEditor.tsx).
 import { useState } from 'react';
 import { AmountInput, Button, Chip, Input, Segmented, Sheet, Textarea, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -278,50 +278,6 @@ export function UseTimeSheet({ balances, onClose, onChanged }: BaseProps) {
           options={(Object.keys(TIME_LABELS) as TimeLabel[]).map((k) => ({ value: k, label: `${TIME_LABELS[k].emoji} ${TIME_LABELS[k].label}` }))}
         />
         <Textarea label="Note" optional rows={2} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-        <ErrorLine error={error} />
-      </div>
-    </Sheet>
-  );
-}
-
-/** Managers: weekly pocket money for a kid (paid by the weekly tick on the first day of the week). */
-export function AllowanceSheet({ memberId, name, cur, current, onClose, onChanged }: Omit<BaseProps, 'balances' | 'self'> & { current: number }) {
-  const toast = useToast();
-  const [cents, setCents] = useState<number | null>(current || null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const run = async () => {
-    setBusy(true);
-    setError(null);
-    const v = cents ?? 0;
-    try {
-      await api.updateMember(memberId, { allowance_cents: v });
-      toast.show(v > 0 ? `${name} gets ${money(v, cur)} every week 💰` : `Weekly pocket money for ${name} is off`, 'success');
-      await onChanged();
-      onClose();
-    } catch (e) {
-      if (await closedIfOff(e, toast, onClose, onChanged)) return;
-      setError(moneyError(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Sheet
-      open onClose={onClose} title={`${name}’s pocket money 💰`} description="Paid automatically at the start of each week."
-      footer={
-        <SheetActions onCancel={onClose}>
-          <Button size="lg" icon="check" loading={busy} onClick={run}>Save</Button>
-        </SheetActions>
-      }
-    >
-      <div className="space-y-4">
-        <AmountInput kind="money" label="Every week" value={cents} onChange={setCents} max={100_000} chips={[200, 500, 1000]} hint="Leave empty for no pocket money." />
-        <p className="text-[15px]">
-          {cents ? <>Every Monday {name} gets <strong className="text-good">+{money(cents, cur)}</strong> in Spending, marked “Pocket money”.</> : `${name} gets no weekly pocket money.`}
-        </p>
         <ErrorLine error={error} />
       </div>
     </Sheet>

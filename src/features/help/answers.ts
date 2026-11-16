@@ -128,6 +128,7 @@ export const FAQ: FaqEntry[] = [
     keys: [
       '*buy', '*spend', '*kopen', '*uitgeven', 'request', 'requests', 'verzoek', 'can i buy', 'mag ik', 'pay out', 'paid out',
       'uitbetalen', 'real money', 'echt geld', 'cash', 'contant', 'bank', 'shop', 'winkel', 'want to buy', 'wil kopen',
+      'bank transfer', 'overmaken', 'to my bank', 'naar mijn bank', 'naar mijn rekening',
     ],
     feature: 'requests',
   },
@@ -173,10 +174,24 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'allowance',
     q: 'When do I get pocket money?',
-    en: 'If your family uses weekly pocket money, it goes into your Spending automatically every week — for example €5. 💰 You don’t have to do anything for it. Plan it well: spend some, save some.',
-    nl: 'Gebruikt jullie gezin wekelijks zakgeld? Dan komt het elke week vanzelf in je Spending — bijvoorbeeld €5. 💰 Je hoeft er niks voor te doen. Plan het goed: een deel uitgeven, een deel sparen.',
-    keys: ['*allowance', '*zakgeld', 'weekly money', 'every week', 'elke week', 'weekgeld', 'when do i get', 'wanneer krijg', 'get paid', 'pocket money'],
+    en: 'Your parents can set pocket money for you: every week on a set day (say €5 every Monday) or every month on a set date (say €20 on the 1st). 💰 It goes into your Spending automatically at midnight — you don’t have to do anything for it. Money shows how much you get and when. Plan it well: spend some, save some.',
+    nl: 'Je ouders kunnen zakgeld voor je instellen: elke week op een vaste dag (bijvoorbeeld €5 elke maandag) of elke maand op een vaste datum (bijvoorbeeld €20 op de 1e). 💰 Het komt om middernacht vanzelf in je Spending — je hoeft er niks voor te doen. In Money zie je hoeveel je krijgt en wanneer. Plan het goed: een deel uitgeven, een deel sparen.',
+    keys: [
+      '*allowance', '*zakgeld', 'weekly money', 'every week', 'elke week', 'weekgeld', 'when do i get', 'wanneer krijg', 'get paid',
+      'pocket money', 'every month', 'elke maand', 'per month', 'per maand', 'monthly', 'maandelijks', 'maandgeld', 'weekly', 'wekelijks',
+    ],
     feature: 'allowance',
+  },
+  {
+    id: 'bank',
+    q: 'What is the real bank balance?',
+    en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”. It’s only for looking: it doesn’t change the money in your Pocket Money wallet, and the app never touches your bank.',
+    nl: 'Sommige kinderen hebben ook een echte bankrekening, zoals Revolut. 🏦 Jij (of een ouder) kunt invullen wat de bank-app zegt: open Money, zoek “Real bank account” en tik op Update balance. Sta je rood? Zet dan “Overdrawn (negative)” aan. Het is alleen om te kijken: het verandert het geld in je Pocket Money-portemonnee niet, en de app komt nooit aan je bank.',
+    keys: [
+      '*bank', '*banks', '*revolut', '*rekening', '*bankrekening', '*saldo', 'banksaldo', 'banking', 'bank account', 'bank balance',
+      'bank app', 'banking app', 'real bank', 'echte bank', 'echte rekening', 'overdrawn', 'rood staan', 'sta ik rood', 'bunq', 'rabobank',
+    ],
+    feature: 'bank',
   },
   {
     id: 'earn',

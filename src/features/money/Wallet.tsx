@@ -1,5 +1,5 @@
-// /money/:memberId — one wallet: balances, level, owed banner, actions, waiting requests, tallies, goals,
-// targets and the history ("What happened").
+// /money/:memberId — one wallet: balances, level, owed banner, actions, waiting requests, real bank balance, tallies,
+// goals, targets and the history ("What happened").
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
@@ -7,9 +7,11 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
-import { money } from '../../lib/format';
+import { allowanceSchedule, money } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Member } from '../../lib/types';
+import { AllowanceSheet } from './AllowanceEditor';
+import { BankCard } from './Bank';
 import { GoalsSection } from './Goals';
 import { HISTORY_PAGE, HistorySection } from './History';
 import { useData, useDelayed } from './moneyUtils';
@@ -18,7 +20,7 @@ import { RequestCard } from './Requests';
 import { TalliesCard } from './Tallies';
 import { TargetsSection } from './Targets';
 import { WalletTiles } from './WalletTiles';
-import { AllowanceSheet, AskSpendSheet, MoveSheet, UseTimeSheet, WithdrawSheet } from './WalletSheets';
+import { AskSpendSheet, MoveSheet, UseTimeSheet, WithdrawSheet } from './WalletSheets';
 
 type SheetKind = 'move' | 'spend' | 'withdraw' | 'time' | 'allowance' | 'menu';
 
@@ -37,6 +39,7 @@ export function WalletPage() {
   const on = {
     savings: features.on('savings'), requests: features.on('requests'), time: features.on('time'), points: features.on('points'),
     spotted: features.on('spotted'), allowance: features.on('allowance'), goals: features.on('goals'), targets: features.on('targets'),
+    bank: features.on('bank'),
   };
 
   const member: Member | undefined = w.data?.member ?? membersById[memberId];
@@ -129,7 +132,7 @@ export function WalletPage() {
   const menuAll: Action[] = managerOfKid ? [
     { key: 'spot', emoji: '📸', label: `Spotted for ${name}`, to: spotHref, when: on.spotted },
     { key: 'move', emoji: '🔄', label: 'Move money', onClick: moveSheet, when: on.savings },
-    { key: 'allowance', emoji: '💰', label: 'Weekly pocket money', onClick: () => setSheet('allowance'), when: on.allowance },
+    { key: 'allowance', emoji: '💰', label: 'Pocket money', onClick: () => setSheet('allowance'), when: on.allowance },
     { key: 'goals', emoji: '🎯', label: 'Goals', to: `/money/${memberId}/goals`, when: on.goals },
     { key: 'targets', emoji: '🏆', label: 'Targets', to: `/money/${memberId}/targets`, when: on.targets },
     { key: 'requests', emoji: '📨', label: 'All requests', to: '/money/requests', when: on.requests },
@@ -157,7 +160,9 @@ export function WalletPage() {
       {kidWallet && on.allowance && (allowance > 0 || managerOfKid) && (
         <p className="flex items-center gap-2 px-1 text-[15px] text-muted">
           <span aria-hidden="true">💰</span>
-          {allowance > 0 ? <span>Pocket money: <strong className="text-ink">{money(allowance, cur)}</strong> every week</span> : <span>No weekly pocket money yet.</span>}
+          {allowance > 0
+            ? <span>Pocket money: <strong className="text-ink">{money(allowance, cur)}</strong> {allowanceSchedule(member.allowance_period, member.allowance_day)}</span>
+            : <span>No pocket money yet.</span>}
           {managerOfKid && <button type="button" onClick={() => setSheet('allowance')} className="min-h-11 font-semibold text-accent-ink underline underline-offset-2">{allowance > 0 ? 'Change' : 'Set it'}</button>}
         </p>
       )}
@@ -196,6 +201,10 @@ export function WalletPage() {
         </LinkButton>
       ) : null}
 
+      {on.bank && (kidWallet || self) && (
+        <BankCard memberId={memberId} self={self} name={name} canEdit={self || managerOfKid} cur={cur} onFeatureOff={changed} />
+      )}
+
       <TalliesCard wallet={wallet} self={self} name={name} cur={cur} />
 
       {on.goals && (
@@ -224,7 +233,7 @@ export function WalletPage() {
         <UseTimeSheet memberId={memberId} name={name} self={self} balances={b} cur={cur} onClose={close} onChanged={changed} />
       )}
       {sheet === 'allowance' && managerOfKid && on.allowance && (
-        <AllowanceSheet memberId={memberId} name={name} cur={cur} current={allowance} onClose={close} onChanged={changed} />
+        <AllowanceSheet member={member} onClose={close} onSaved={changed} />
       )}
       {sheet === 'menu' && menu.length > 0 && (
         <Sheet open onClose={close} title={`${name}’s wallet`}>

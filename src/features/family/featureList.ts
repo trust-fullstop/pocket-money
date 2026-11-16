@@ -12,7 +12,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
   },
   {
     key: 'money', title: 'Money', emoji: '💶', items: [
-      { key: 'allowance', emoji: '📅', label: 'Weekly pocket money', line: 'A set amount is paid automatically every week.' },
+      { key: 'allowance', emoji: '📅', label: 'Pocket money', line: 'A set amount is paid automatically every week or every month.' },
       { key: 'requests', emoji: '🙋', label: 'Requests', line: 'Kids ask before they spend money or use time, and a parent says yes or no.' },
       { key: 'spotted', emoji: '📸', label: 'Spotted', line: 'An on-the-spot reward or consequence with a photo. Grandparents can send gifts.' },
       { key: 'savings', emoji: '🐷', label: 'Savings', line: 'A savings pot next to spending money, so kids learn to put some aside.' },
@@ -20,6 +20,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { key: 'saver_rules', emoji: '⭐', label: 'Saver rules', line: 'Bonus points for saving, and an optional penalty for saving nothing.' },
       { key: 'goals', emoji: '🎯', label: 'Savings goals', line: 'Save up for something and see how many weeks are left.' },
       { key: 'targets', emoji: '🏁', label: 'Targets', line: 'Weekly or monthly targets with a prize when they are reached.' },
+      { key: 'bank', emoji: '🏦', label: 'Real bank balance', line: 'Type in the balance of a kid’s real bank account (e.g. Revolut) to see it next to the app.' },
     ],
   },
   {
@@ -46,7 +47,7 @@ export const FEATURE_INFO = Object.fromEntries(
   FEATURE_GROUPS.flatMap((g) => g.items).map((i) => [i.key, i]),
 ) as Record<FeatureKey, FeatureInfo>;
 
-/** All 15 switches, in the order they appear on the Features page. */
+/** All 16 switches, in the order they appear on the Features page. */
 export const FEATURE_KEYS: FeatureKey[] = FEATURE_GROUPS.flatMap((g) => g.items.map((i) => i.key));
 export const FEATURE_TOTAL = FEATURE_KEYS.length;
 

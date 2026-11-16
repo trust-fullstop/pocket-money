@@ -110,7 +110,7 @@ export default function HelpHome() {
       <Card className="space-y-3">
         <ul className="space-y-3">
           <Tip emoji="🌱">
-            <b>Start small.</b> Begin with tasks{on('allowance') ? ', weekly pocket money' : ''}{on('spotted') ? ' and Spotted' : ''}.
+            <b>Start small.</b> Begin with tasks{on('allowance') ? ', pocket money' : ''}{on('spotted') ? ' and Spotted' : ''}.
             Switch on savings, time or targets once the basics work.
           </Tip>
           <Tip emoji="⚙️"><b>Family → Features</b> switches parts of the app on or off for everyone.</Tip>

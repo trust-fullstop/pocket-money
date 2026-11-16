@@ -28,7 +28,9 @@ const MEMBER_FIELD: Record<string, string> = {
   photo_path: 'photo',
   theme: 'look',
   profile: 'emergency card',
-  allowance_cents: 'weekly pocket money',
+  allowance_cents: 'pocket money',
+  allowance_period: 'pocket money schedule',
+  allowance_day: 'pocket money schedule',
 };
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined);
@@ -76,7 +78,9 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'invite.redeem': return k('📲', `${who()} joined on a device`);
     case 'member.add': return k('➕', `Added ${who()}${str(d.role) ? ` as ${roleLabel(str(d.role)).toLowerCase()}` : ''}`);
     case 'member.update': {
-      const fields = Array.isArray(d.fields) ? (d.fields as unknown[]).map((f) => MEMBER_FIELD[String(f)] ?? String(f)) : [];
+      const fields = Array.isArray(d.fields)
+        ? [...new Set((d.fields as unknown[]).map((f) => MEMBER_FIELD[String(f)] ?? String(f)))]
+        : [];
       return k('✏️', `Changed ${who()}’s ${fields.length ? list(fields) : 'details'}`);
     }
     case 'member.role': return k('🔁', `Made ${who()} ${roleLabel(str(d.role)).toLowerCase() || 'a new role'}`);
@@ -98,6 +102,8 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'tx.reverse': return k('↩️', `Undid a ${str(d.kind) ?? 'transaction'} for ${who()}${str(d.reason) ? ` — ${str(d.reason)}` : ''}`);
     case 'money.transfer':
       return k('🐷', `Moved ${money(num(d.amount), currency)} to ${str(d.to) === 'spending' ? 'spending' : 'savings'} for ${who()}`);
+    case 'bank.set': return k('🏦', `Updated ${who()}’s real bank balance${str(d.label) ? ` (${str(d.label)})` : ''}`);
+    case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'request.create': return k('🙋', 'Made a request');
     case 'request.approve': return k('✅', `Said yes to ${who()}’s request`);
     case 'request.decline': return k('❌', `Said no to ${who()}’s request`);

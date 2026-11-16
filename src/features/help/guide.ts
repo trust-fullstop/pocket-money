@@ -32,10 +32,12 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
       example: `Dishes done by 19:00: +${m(200)}${pts ? ' and +10 points' : ''}. Not done in time: −${m(50)}.`,
     },
     on('allowance') && {
-      key: 'allowance', emoji: '💰', title: 'Weekly pocket money',
-      what: 'A set amount lands in your Spending every week, all by itself.',
+      key: 'allowance', emoji: '💰', title: 'Pocket money',
+      what: 'A set amount lands in your Spending all by itself: every week on a set day, or every month on a set date.',
       why: 'A fixed amount teaches you to plan ahead.',
-      example: on('savings') ? `${m(500)} a week: spend ${m(300)}, save ${m(200)}.` : `${m(500)} a week: spend some now, keep some for later.`,
+      example: on('savings')
+        ? `${m(500)} every Monday: spend ${m(300)}, save ${m(200)}. Or ${m(2000)} on the 1st of every month.`
+        : `${m(500)} every Monday, or ${m(2000)} on the 1st of every month: spend some now, keep some for later.`,
     },
     on('requests') && {
       key: 'requests', emoji: '🙋', title: 'Asking to spend',
@@ -73,6 +75,12 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
       what: 'A weekly or monthly aim, with a prize when you make it.',
       why: 'Extra effort gets an extra reward.',
       example: `Do 80% of your tasks this week: +${m(200)} prize.`,
+    },
+    on('bank') && {
+      key: 'bank', emoji: '🏦', title: 'Real bank balance',
+      what: 'Type in what your real bank account (e.g. Revolut) says, so you see it next to the app.',
+      why: 'The app and the bank are two different things. Seeing both helps you keep track.',
+      example: `Revolut says ${m(12345)}: Money → Update balance → ${m(12345)}. It doesn’t change your Pocket Money wallet.`,
     },
     on('challenges') && {
       key: 'challenges', emoji: '🤝', title: 'Challenges',

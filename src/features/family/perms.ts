@@ -22,7 +22,7 @@ export function canEditMember(me: Who, m: Pick<Member, 'id' | 'role'>): boolean 
   return isManager(me.role) && CARED_FOR.includes(m.role);
 }
 
-/** Weekly pocket money: managers only (and only where they may edit the member). */
+/** Pocket money (amount and schedule): managers only (and only where they may edit the member). */
 export function canSetAllowance(me: Who, m: Pick<Member, 'id' | 'role'>): boolean {
   return isManager(me.role) && canEditMember(me, m);
 }

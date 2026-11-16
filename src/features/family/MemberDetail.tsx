@@ -6,12 +6,13 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
-import { formatDate, formatWhen, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
+import { allowanceText, formatDate, formatWhen, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { AskEntry, Member, Profile } from '../../lib/types';
+import { AllowanceSheet } from '../money/AllowanceEditor';
 import { InviteScreen } from './InviteScreen';
-import { AllowanceSheet, CredentialsSheet, IdentitySheet, LoginsSheet, RemoveSheet, RoleSheet } from './MemberSheets';
+import { CredentialsSheet, IdentitySheet, LoginsSheet, RemoveSheet, RoleSheet } from './MemberSheets';
 import {
   ageFrom, canChangeRole, canEditMember, canManageLogin, canRemoveMember, canSetAllowance,
 } from './perms';
@@ -99,8 +100,8 @@ export default function MemberDetail() {
       manageRows.push(
         <ListRow
           key="allowance" onClick={() => setSheet('allowance')} left={<RowIcon icon="money" />}
-          title="Weekly pocket money"
-          subtitle={(m.allowance_cents ?? 0) > 0 ? `${money(m.allowance_cents ?? 0, family.currency)} every week` : 'Not set'}
+          title="Pocket money"
+          subtitle={allowanceText(m, family.currency) ?? 'Not set'}
         />,
       );
     }
@@ -206,7 +207,7 @@ export default function MemberDetail() {
       {sheet === 'logins' && <LoginsSheet member={m} logins={logins} onClose={() => setSheet(null)} />}
       {sheet === 'credentials' && <CredentialsSheet member={m} onClose={() => setSheet(null)} />}
       {sheet === 'role' && <RoleSheet member={m} onClose={() => setSheet(null)} />}
-      {sheet === 'allowance' && <AllowanceSheet member={m} onClose={() => setSheet(null)} />}
+      {sheet === 'allowance' && <AllowanceSheet member={m} onClose={() => setSheet(null)} onSaved={() => refresh()} />}
       {sheet === 'identity' && (
         <IdentitySheet member={m} familyId={family.id} withLook={m.role === 'kid'} onClose={() => setSheet(null)} />
       )}

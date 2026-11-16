@@ -178,7 +178,8 @@ export const memberRoleLabel = (m: { role: Role | string; relation?: string | nu
 export const KID_MAX_AGE = 21;
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+/** 1 → "1st", 2 → "2nd", 11 → "11th", 22 → "22nd". */
+export const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
 /** "every Monday" / "every month on the 1st". */
 export function allowanceSchedule(period: 'week' | 'month' | null | undefined, day: number | null | undefined): string {
   const d = day ?? 1;
