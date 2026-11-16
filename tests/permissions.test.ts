@@ -166,13 +166,16 @@ describe('database perimeter', () => {
     expect(anonFns).toEqual([]);
   });
 
-  it('authenticated can execute exactly the RPCs in api.ts plus the photo checks', async () => {
+  it('authenticated can execute exactly the RPCs in api.ts plus the photo checks and ask_begin', async () => {
     const src = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8');
     const apiNames = new Set([...src.matchAll(/\brpc\b(?:<[^(]*?>)?\(\s*'([a-z_]+)'/g)].map((m) => m[1]));
     expect(apiNames.size).toBeGreaterThan(40);
     const granted = await q<{ proname: string }>(db, `select distinct p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')`);
-    expect(granted.map((g) => g.proname).sort()).toEqual([...apiNames, 'can_read_photo', 'can_write_photo'].sort());
+    // Exceptions: the photo checks are called by the Storage policies, and ask_begin by the Edge Function `ask`
+    // (api.ask) with the member's own JWT. ask_finish is service_role only, never authenticated.
+    expect(granted.map((g) => g.proname).sort()).toEqual([...apiNames, 'can_read_photo', 'can_write_photo', 'ask_begin'].sort());
+    expect(granted.map((g) => g.proname)).not.toContain('ask_finish');
   });
 
   it('an unlinked signed-in user only gets not_member / not_signed_in', async () => {

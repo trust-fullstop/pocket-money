@@ -118,10 +118,12 @@ language sql stable as $$
 
 -- Validate a task patch over a base row. Non-managers (kids, grandparents) may never add or raise
 -- money/time rewards or any penalty; their points are capped by challenge_points_cap.
+-- Feature switches: challenges need 'challenges'; adding/raising minutes needs 'time', points needs 'points'.
 create or replace function app.apply_task_patch(b public.tasks, p jsonb, me public.members, s jsonb) returns public.tasks
 language plpgsql stable as $$
 declare t public.tasks := b; v text; cap int := coalesce((s->>'challenge_points_cap')::int, 50);
 begin
+  if t.kind = 'challenge' then perform app.require_feature(s, 'challenges'); end if;
   if p ? 'title' then
     t.title := app.text_in(p, 'title', 80);
     if t.title is null then raise exception 'invalid' using detail = 'title'; end if;
@@ -158,6 +160,13 @@ begin
     end if;
   end if;
   if t.end_on is not null and t.end_on < t.start_on then raise exception 'invalid' using detail = 'end_on'; end if;
+  -- switched-off currencies: no new or higher minutes / points (existing values may stay or go down)
+  if t.reward_minutes > coalesce(b.reward_minutes, 0) or t.penalty_minutes > coalesce(b.penalty_minutes, 0) then
+    perform app.require_feature(s, 'time');
+  end if;
+  if t.reward_points > coalesce(b.reward_points, 0) or t.penalty_points > coalesce(b.penalty_points, 0) then
+    perform app.require_feature(s, 'points');
+  end if;
   if not app.is_manager(me.role) then
     if t.reward_cents > coalesce(b.reward_cents, 0) or t.reward_minutes > coalesce(b.reward_minutes, 0)
        or t.penalty_cents > coalesce(b.penalty_cents, 0) or t.penalty_minutes > coalesce(b.penalty_minutes, 0)
@@ -319,14 +328,18 @@ begin
      and (see_all or i.assignee_id = me.id or t.created_by = me.id)), '[]'::jsonb);
 end $$;
 
+-- Submitted work the caller may decide. Challenges are left out while the 'challenges' feature is off
+-- (same as counts.approvals in get_state); deciding one directly still works.
 create or replace function public.list_approvals() returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare me public.members;
+declare me public.members; v_challenges boolean;
 begin
   me := app.me();
+  v_challenges := app.feature_on(me.family_id, 'challenges');
   return coalesce((select jsonb_agg(app.instance_json(i, t, me) order by i.submitted_at, i.id)
     from public.task_instances i join public.tasks t on t.id = i.task_id
-   where i.family_id = me.family_id and i.status = 'submitted' and app.can_decide(i, t, me)), '[]'::jsonb);
+   where i.family_id = me.family_id and i.status = 'submitted' and (t.kind <> 'challenge' or v_challenges)
+     and app.can_decide(i, t, me)), '[]'::jsonb);
 end $$;
 
 -- One instance (same visibility as list_instances; cancelled ones are visible here for deep links).
@@ -398,10 +411,15 @@ begin
      where id = i.id;
     perform app.post(i.family_id, i.assignee_id, 'money', 'spending', t.reward_cents, 'task_reward', 'reward', t.title, me.id,
                      'task_instance', i.id, 'reward:money');
-    perform app.post(i.family_id, i.assignee_id, 'time', 'time', t.reward_minutes, 'task_reward', t.time_label, t.title, me.id,
-                     'task_instance', i.id, 'reward:time');
-    perform app.post(i.family_id, i.assignee_id, 'points', 'points', t.reward_points, 'task_reward', null, t.title, me.id,
-                     'task_instance', i.id, 'reward:points');
+    -- minutes / points are only paid while that currency is switched on
+    if app.feature_on(i.family_id, 'time') then
+      perform app.post(i.family_id, i.assignee_id, 'time', 'time', t.reward_minutes, 'task_reward', t.time_label, t.title, me.id,
+                       'task_instance', i.id, 'reward:time');
+    end if;
+    if app.feature_on(i.family_id, 'points') then
+      perform app.post(i.family_id, i.assignee_id, 'points', 'points', t.reward_points, 'task_reward', null, t.title, me.id,
+                       'task_instance', i.id, 'reward:points');
+    end if;
   else
     if v_note is null then raise exception 'invalid' using detail = 'note'; end if;
     -- Sent back after the deadline: the doer gets 24 hours to try again before tick marks it missed.

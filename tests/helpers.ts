@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { expect } from 'vitest';
 import { orderSqlFiles, pgRpc } from '../src/lib/backend/pgcall';
 import { AppError } from '../src/lib/errors';
+import { EVERYTHING, type Features } from '../src/lib/types';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (...p: string[]) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -79,12 +80,16 @@ export type Fam = { familyId: string; owner: Person } & Record<string, Person>;
 /**
  * Create a family whose owner is "Owner" and add extra members, each with its own login.
  * people: { name: role }
+ * New families "start small" (START_SMALL); test families switch every feature on (EVERYTHING, so `ask` stays
+ * off) right after create_family, so the domain tests keep their meaning. Pass `features` to override.
  */
-export async function makeFamily(db: PGlite, people: Record<string, string>, familyName = 'Test Family', tz = 'Europe/Amsterdam'): Promise<Fam> {
+export async function makeFamily(db: PGlite, people: Record<string, string>, familyName = 'Test Family', tz = 'Europe/Amsterdam',
+  features: Partial<Features> = EVERYTHING): Promise<Fam> {
   const ownerUid = uid();
   const ownerRpc = as(db, ownerUid);
   const r = await ownerRpc<{ family_id: string; member_id: string }>('create_family',
     { p_family_name: familyName, p_my_name: 'Owner', p_avatar: '👨', p_timezone: tz, p_currency: 'EUR' });
+  if (Object.keys(features).length) await ownerRpc('update_family', { p_patch: { settings: { features } } });
   const fam = { familyId: r.family_id, owner: { uid: ownerUid, id: r.member_id, rpc: ownerRpc } } as unknown as Fam;
   for (const [name, role] of Object.entries(people)) {
     const added = await ownerRpc<{ member_id: string; invite: { token: string } }>('add_member', { p_name: name, p_role: role });

@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { as, clock, makeDb, q } from './helpers';
+import { EVERYTHING } from '../src/lib/types';
 
 const DEMO = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
 const NAMES = ['Dad', 'Mum', 'Anna', 'Oma', 'Sam', 'Mia', 'Leo'];
@@ -29,6 +30,11 @@ describe('demo seed', () => {
       expect(st.family.name).toBe('The Demo Family');
       expect(st.members).toHaveLength(7);
     }
+  });
+
+  it('switches every feature on, Ask included (the demo answers locally)', async () => {
+    const st = await as(db, DEMO(5))<any>('get_state');
+    expect(st.family.settings.features).toEqual({ ...EVERYTHING, ask: true });
   });
 
   it('Mum has things to approve, including Dad\'s challenge from Mia', async () => {

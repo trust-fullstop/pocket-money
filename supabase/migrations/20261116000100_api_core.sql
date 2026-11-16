@@ -13,13 +13,60 @@ create or replace function app.role_rank(r text) returns int language sql immuta
   select case r when 'owner' then 1 when 'parent' then 2 when 'step_parent' then 3 when 'guardian' then 4
                 when 'grandparent' then 5 else 6 end $$;
 
+-- ---------- feature switches (src/lib/types.ts: FeatureKey, START_SMALL, FEATURE_NEEDS) ----------
+create or replace function app.feature_keys() returns text[] language sql immutable as $$
+  select array['challenges','spotted','allowance','requests','savings','interest','saver_rules','goals','targets',
+               'time','points','calendar','emergency','devices','ask'] $$;
+
+-- New families "start small"; a parent switches more on in Family → Features.
+create or replace function app.default_features() returns jsonb language sql immutable as $$
+  select '{"challenges":false,"spotted":true,"allowance":true,"requests":true,"savings":false,"interest":false,
+           "saver_rules":false,"goals":false,"targets":false,"time":false,"points":true,"calendar":true,
+           "emergency":true,"devices":false,"ask":false}'::jsonb $$;
+
+create or replace function app.feature_need(p_key text) returns text language sql immutable as $$
+  select case when p_key in ('interest','saver_rules','goals') then 'savings' end $$;
+
 create or replace function app.default_settings() returns jsonb language sql immutable as $$
   select '{"interest_pct_month":2,"saver_bonus_points":10,"no_savings_penalty_points":10,"late_grace_minutes":60,
            "challenge_points_cap":50,"grandparents_see_money":true,"emergency_visibility":"family",
-           "catchup_days":7,"default_evidence":"photo","managers_add_adults":false}'::jsonb $$;
+           "catchup_days":7,"default_evidence":"photo","managers_add_adults":false}'::jsonb
+         || jsonb_build_object('features', app.default_features()) $$;
 
+-- Stored settings over the defaults; features are merged key by key (a family that stored a few
+-- switches still gets the defaults for the rest).
 create or replace function app.settings(f public.families) returns jsonb language sql stable as $$
-  select app.default_settings() || coalesce(f.settings, '{}'::jsonb) $$;
+  select app.default_settings() || coalesce(f.settings, '{}'::jsonb)
+         || jsonb_build_object('features', app.default_features()
+              || case when jsonb_typeof(f.settings->'features') = 'object' then f.settings->'features' else '{}'::jsonb end) $$;
+
+create or replace function app.family_settings(p_family uuid) returns jsonb language sql stable as $$
+  select app.settings(f) from public.families f where f.id = p_family $$;
+
+-- Is a feature effectively on, given merged settings (app.settings)? Honours FEATURE_NEEDS (one level deep).
+create or replace function app.feature_on_s(s jsonb, p_key text) returns boolean language sql immutable as $$
+  select coalesce((s->'features'->>p_key)::boolean, true)
+     and (app.feature_need(p_key) is null or coalesce((s->'features'->>app.feature_need(p_key))::boolean, true)) $$;
+
+create or replace function app.feature_on(p_family uuid, p_key text) returns boolean language sql stable as $$
+  select coalesce(app.feature_on_s(app.family_settings(p_family), p_key), false) $$;
+
+create or replace function app.effective_features(s jsonb) returns jsonb language sql immutable as $$
+  select jsonb_object_agg(k, app.feature_on_s(s, k)) from unnest(app.feature_keys()) k $$;
+
+-- Raise feature_off (detail = the first key that is off) unless all keys are on.
+create or replace function app.require_feature(s jsonb, variadic p_keys text[]) returns void language plpgsql immutable as $$
+declare k text;
+begin
+  foreach k in array p_keys loop
+    if not app.feature_on_s(s, k) then raise exception 'feature_off' using detail = k; end if;
+  end loop;
+end $$;
+
+-- Local date a feature was last switched on (null = on from the start; written by update_family).
+-- Timed rules never pay for periods that ended before it, so switching a feature on never back-pays.
+create or replace function app.feature_since(p_family uuid, p_key text) returns date language sql stable as $$
+  select max(period_start) from public.period_runs where family_id = p_family and period = 'feature_on:' || p_key $$;
 
 create or replace function app.today(f public.families) returns date language sql stable as $$
   select (app.now() at time zone f.timezone)::date $$;
@@ -188,8 +235,10 @@ begin
     'balances', coalesce((select jsonb_object_agg(m.id, app.balances(m.id)) from public.members m
                            where m.family_id = f.id and m.active and app.can_see_money(me, m, s)), '{}'::jsonb),
     'counts', jsonb_build_object(
+      -- challenges are hidden in the app while that feature is off, so they don't count either
       'approvals', (select count(*) from public.task_instances i join public.tasks t on t.id = i.task_id
                      where i.family_id = f.id and i.status = 'submitted'
+                       and (t.kind <> 'challenge' or app.feature_on_s(s, 'challenges'))
                        and i.assignee_id <> me.id and (mgr or (t.created_by = me.id and t.reward_cents = 0 and t.reward_minutes = 0))),
       'requests', case when mgr then (select count(*) from public.requests r
                      where r.family_id = f.id and r.status = 'pending' and r.member_id <> me.id) else 0 end,
@@ -200,14 +249,28 @@ end $$;
 
 create or replace function public.update_family(p_patch jsonb) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare me public.members; f public.families; k text; v jsonb; new_settings jsonb;
+declare me public.members; f public.families; f2 public.families; k text; v jsonb; fk text; fv jsonb; new_settings jsonb;
+  v_before jsonb; v_after jsonb;
 begin
   me := app.me();
   if not app.is_manager(me.role) then raise exception 'not_allowed'; end if;
   select * into f from public.families where id = me.family_id for update;
   new_settings := coalesce(f.settings, '{}'::jsonb);
   if p_patch ? 'settings' then
+    if jsonb_typeof(p_patch->'settings') <> 'object' then raise exception 'invalid' using detail = 'settings'; end if;
     for k, v in select * from jsonb_each(p_patch->'settings') loop
+      -- features: only known keys with boolean values, merged into the stored switches
+      if k = 'features' then
+        if jsonb_typeof(v) <> 'object' then raise exception 'invalid' using detail = 'setting:features'; end if;
+        for fk, fv in select * from jsonb_each(v) loop
+          if not (fk = any(app.feature_keys())) or jsonb_typeof(fv) <> 'boolean' then
+            raise exception 'invalid' using detail = 'setting:features';
+          end if;
+        end loop;
+        new_settings := new_settings || jsonb_build_object('features',
+          case when jsonb_typeof(new_settings->'features') = 'object' then new_settings->'features' else '{}'::jsonb end || v);
+        continue;
+      end if;
       if k = 'interest_pct_month' and jsonb_typeof(v) = 'number' and (v::text)::numeric between 0 and 20 then null;
       elsif k in ('saver_bonus_points','no_savings_penalty_points','challenge_points_cap') and jsonb_typeof(v) = 'number' and (v::text)::numeric between 0 and 1000 then null;
       elsif k = 'late_grace_minutes' and jsonb_typeof(v) = 'number' and (v::text)::numeric between 0 and 1440 then null;
@@ -222,6 +285,14 @@ begin
       new_settings := new_settings || jsonb_build_object(k, v);
     end loop;
   end if;
+  -- remember the day each feature was (effectively) switched on, so timed rules don't back-pay
+  v_before := app.effective_features(app.settings(f));
+  f2 := f; f2.settings := new_settings;
+  v_after := app.effective_features(app.settings(f2));
+  insert into public.period_runs(family_id, period, period_start)
+    select f.id, 'feature_on:' || a.key, app.today(f) from jsonb_each(v_after) a
+     where a.value = 'true'::jsonb and v_before->a.key = 'false'::jsonb
+  on conflict do nothing;
   if p_patch ? 'timezone' then perform app.check_tz(p_patch->>'timezone'); end if;
   if p_patch ? 'currency' and (p_patch->>'currency') !~ '^[A-Z]{3}$' then raise exception 'invalid' using detail = 'currency'; end if;
   update public.families set

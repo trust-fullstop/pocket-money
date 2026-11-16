@@ -154,10 +154,12 @@ end $$;
 -- ---------- Spotted: bonus / fine / gift ----------
 create or replace function public.spot(p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare me public.members; m public.members; v_dir text; v_kind text; v_sign int; v_c int; v_min int; v_pts int;
+declare me public.members; m public.members; v_dir text; v_kind text; v_sign int; v_c int; v_min int; v_pts int; s jsonb;
   v_reason text; v_photo text; v_mlabel text; v_tlabel text; v_src uuid := gen_random_uuid(); v_ids uuid[] := '{}'; v_id uuid;
 begin
   me := app.me();
+  s := app.family_settings(me.family_id);
+  perform app.require_feature(s, 'spotted');
   if me.role = 'kid' then raise exception 'not_allowed'; end if;
   if p is null or jsonb_typeof(p) <> 'object' then raise exception 'invalid' using detail = 'spot'; end if;
   v_dir := p->>'direction';
@@ -169,6 +171,8 @@ begin
   v_min := app.int_in(p, 'minutes', 0, 1440);
   v_pts := app.int_in(p, 'points', 0, 10000);
   if v_c + v_min + v_pts = 0 then raise exception 'invalid' using detail = 'amount'; end if;
+  if v_min > 0 then perform app.require_feature(s, 'time'); end if;
+  if v_pts > 0 then perform app.require_feature(s, 'points'); end if;
   v_reason := app.text_in(p, 'reason', 200);
   if v_reason is null then raise exception 'invalid' using detail = 'reason'; end if;
   v_photo := app.text_in(p, 'photo_path', 300);
@@ -221,6 +225,7 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare me public.members; m public.members; v_src uuid := gen_random_uuid(); v_from text;
 begin
   me := app.me();
+  perform app.require_feature(app.family_settings(me.family_id), 'savings');
   m := app.get_member(me.family_id, p_member);
   if p_amount is null or p_amount <= 0 or p_amount > 10000000 then raise exception 'invalid' using detail = 'amount'; end if;
   if p_to = 'savings' then
@@ -250,6 +255,8 @@ declare me public.members; v_label text := nullif(trim(p_label), ''); v_note tex
 begin
   me := app.me();
   if p_kind is null or p_kind not in ('spend','withdraw','time') then raise exception 'invalid' using detail = 'kind'; end if;
+  perform app.require_feature(app.family_settings(me.family_id), variadic case p_kind
+    when 'spend' then array['requests'] when 'withdraw' then array['requests','savings'] else array['requests','time'] end);
   if p_amount is null or p_amount <= 0 or p_amount > (case when p_kind = 'time' then 1440 else 10000000 end) then
     raise exception 'invalid' using detail = 'amount';
   end if;
@@ -343,6 +350,7 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare me public.members; m public.members; g public.goals; v_id uuid; v_title text; v_target int; v_emoji text;
 begin
   me := app.me();
+  perform app.require_feature(app.family_settings(me.family_id), 'goals');
   if p is null or jsonb_typeof(p) <> 'object' then raise exception 'invalid' using detail = 'goal'; end if;
   v_id := app.to_uuid(p->>'id', 'id');
   if v_id is not null then
@@ -393,6 +401,7 @@ declare me public.members; f public.families; m public.members; tg public.target
   v_title text; v_period text; v_metric text; v_threshold int; v_pc int; v_pm int; v_pp int; v_text text; v_tl text;
 begin
   me := app.me();
+  perform app.require_feature(app.family_settings(me.family_id), 'targets');
   if not app.is_manager(me.role) then raise exception 'not_allowed'; end if;
   if p is null or jsonb_typeof(p) <> 'object' then raise exception 'invalid' using detail = 'target'; end if;
   select * into f from public.families where id = me.family_id;

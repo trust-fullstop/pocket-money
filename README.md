@@ -34,6 +34,8 @@ The demo keeps its data in your browser (IndexedDB) only.
 | Money | Spending and savings pots, time bank (Wi-Fi, game, fun), points and character levels, weekly pocket money, interest on savings, saver bonus, no-savings rule, requests (spend, take out savings, use time), goals, targets and prizes, week / month / year-to-date tallies, history with reasons, reversals |
 | Spotted | A parent photographs something good or bad, picks the child and gives a ➕ reward or ➖ consequence (money, time or points) with a reason. Grandparents can give gifts |
 | Family life | Calendar, reminders and birthdays, emergency card (blood type, allergies, medication, contacts, Life360 link), device list, themes, characters and avatars |
+| Start small | **Family → Features**: parents switch each part on or off, with "Start small" and "Everything" presets. Switched-off parts disappear for everyone, and the server refuses them too |
+| Help | "How Pocket Money works" (purpose, start here, a card per feature, FAQ), plus the **Ask Pocket** helper (Claude). Parents can read all questions |
 
 **Not yet** (honest list): push notifications, automatic Wi-Fi device scanning (a browser cannot do it; a small home-PC helper is planned), the Revolut connection (Revolut has no personal API), and one person belonging to two families.
 
@@ -45,7 +47,7 @@ You need a free **Supabase** project (database, login and photos) and **Cloudfla
 
 1. Go to https://supabase.com, choose **New project**, pick the **Free** plan and the **EU (Frankfurt)** region, and save the database password somewhere safe.
 2. Load the database:
-   - **Option A (no tools):** open **SQL Editor** and run **every** file in `supabase/migrations/` **in filename order**, from `…000000_schema.sql` to the last one (currently `…001100_relation.sql`). Skip none: later files replace earlier functions.
+   - **Option A (no tools):** open **SQL Editor** and run **every** file in `supabase/migrations/` **in filename order**, from `…000000_schema.sql` to the last one (currently `…001200_ask.sql`). Skip none: later files replace earlier functions.
    - **Option B (CLI):** run `npx supabase init` (once; this creates `supabase/config.toml`), then `npx supabase login`, then `npx supabase link --project-ref <your-ref>`, then `npx supabase db push`.
 3. Go to **Authentication → Sign In / Providers** and turn on:
    - **Allow anonymous sign-ins**, which the QR join needs
@@ -58,7 +60,19 @@ You need a free **Supabase** project (database, login and photos) and **Cloudfla
 6. **Recommended — bot protection:** in Cloudflare, create a free **Turnstile** widget and paste its secret into **Authentication → Attack Protection → CAPTCHA**. This stops bots creating anonymous accounts. *(Note: the app doesn't send a CAPTCHA token yet, so enabling this needs a small code change first. It's on the phase-5 list.)*
 7. Copy the **Project URL** and the **anon / publishable key** from **Project Settings → API**.
 
-> The `…000950_supabase_only.sql` file creates the private `photos` bucket and its access rules, and schedules the timed rules (missed tasks, interest, prizes) every 15 minutes with `pg_cron`. If cron isn't available, the app still runs the timed rules every time someone opens it.
+> The `…000950_supabase_only.sql` file creates the private `photos` bucket and its access rules, and schedules the timed rules (missed tasks, interest, prizes) every 15 minutes with `pg_cron`. If cron isn't available, the app still runs the timed rules every time someone opens it. It also limits the deployment to **one family**: after you create yours, nobody else can create a family. Others can only join yours with a QR code.
+
+### 1b. "Ask Pocket" helper (optional, uses Claude)
+
+Kids can ask the helper how the app works. Parents can read every question. It's off until a parent switches it on in **Family → Features**, and it needs an Anthropic API key kept server-side as a Supabase secret, never in the app.
+
+```powershell
+npx supabase functions deploy ask --project-ref <your-ref>
+npx supabase secrets set ANTHROPIC_API_KEY=<your key> --project-ref <your-ref>
+# optional: npx supabase secrets set ASK_MODEL=claude-haiku-4-5 ALLOWED_ORIGINS=https://pocketmoney.example.com
+```
+
+Limits: 20 questions per person per day and 150 per family per day.
 
 ### 2. Cloudflare Pages (the website)
 

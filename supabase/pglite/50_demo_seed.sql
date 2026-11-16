@@ -44,6 +44,11 @@ begin
                             p_timezone => tz, p_currency => 'EUR');
   fam := (r->>'family_id')::uuid; dad := (r->>'member_id')::uuid;
   update public.member_logins set label = 'Demo' where user_id = u_dad;
+  -- the demo shows everything (new families "start small"); Ask answers locally in the demo, no AI call
+  perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('features',
+    jsonb_build_object('challenges', true, 'spotted', true, 'allowance', true, 'requests', true, 'savings', true,
+      'interest', true, 'saver_rules', true, 'goals', true, 'targets', true, 'time', true, 'points', true,
+      'calendar', true, 'emergency', true, 'devices', true, 'ask', true))));
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
   anna := (public.add_member(p_name => 'Anna', p_role => 'step_parent', p_avatar => '👩‍🦰', p_relation => 'Bonus mum')->>'member_id')::uuid;

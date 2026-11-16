@@ -73,6 +73,7 @@ declare me public.members; f public.families; e public.events; v_id uuid; v_titl
 begin
   me := app.me();
   select * into f from public.families where id = me.family_id;
+  perform app.require_feature(app.settings(f), 'calendar');
   if p is null or jsonb_typeof(p) <> 'object' then raise exception 'invalid' using detail = 'event'; end if;
   v_id := app.to_uuid(p->>'id', 'id');
   if v_id is not null then
@@ -154,6 +155,7 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare me public.members; d public.devices; v_id uuid; v_owner uuid; v_name text; v_type text;
 begin
   me := app.me();
+  perform app.require_feature(app.family_settings(me.family_id), 'devices');
   if not app.is_manager(me.role) then raise exception 'not_allowed'; end if;
   if p is null or jsonb_typeof(p) <> 'object' then raise exception 'invalid' using detail = 'device'; end if;
   v_id := app.to_uuid(p->>'id', 'id');
