@@ -31,14 +31,16 @@ function paidDays(history: Transaction[] | undefined, tz: string): Paid[] {
 }
 
 /**
- * The first pay day on/after `from` that will really pay. Mirrors app.pay_allowances: a pay day is skipped when the
- * same kind of schedule already paid within the period before it (no double pay after moving the day).
+ * The first pay day on/after `from` that will really pay. Mirrors app.pay_allowances: a pay day is skipped when any
+ * pocket money was paid in the 7 days before it, or the same kind of schedule already paid within its own period
+ * (no double pay after moving the day or switching between weekly and monthly).
  */
 function firstPayDay(period: Period, day: number, from: string, paid: Paid[]): string {
   let d = nextPayDate(period, day, from);
   for (let i = 0; i < 3; i++) {
-    const start = period === 'week' ? addDays(d, -7) : monthBefore(d);
-    if (!paid.some((p) => p.period === period && p.date > start && p.date <= d)) return d;
+    const week = addDays(d, -7);
+    const own = period === 'week' ? week : monthBefore(d);
+    if (!paid.some((p) => p.date <= d && (p.date > week || (p.period === period && p.date > own)))) return d;
     d = nextPayDate(period, day, addDays(d, 1));
   }
   return d;

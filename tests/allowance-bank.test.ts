@@ -95,3 +95,45 @@ describe('real bank balance', () => {
     expect(st.family.settings.features.bank).toBe(true);
   });
 });
+
+describe('vera gate 4: allowance guards', () => {
+  it('switching weekly -> monthly on the same day never pays twice', async () => {
+    clock.now = '2026-11-02T08:00:00Z'; // Monday
+    const f = await makeFamily(db, { Kid: 'kid' });
+    await f.owner.rpc('update_member', { p_member: f.Kid.id, p_patch: { allowance_cents: 500, allowance_period: 'week', allowance_day: 1 } });
+    await f.owner.rpc('tick');
+    await f.owner.rpc('update_member', { p_member: f.Kid.id, p_patch: { allowance_cents: 2000, allowance_period: 'month', allowance_day: 2 } });
+    clock.now = '2026-11-02T09:00:00Z';
+    await f.owner.rpc('tick');
+    expect((await paid(f.Kid.id)).map((r) => r.source_key)).toEqual(['allowance:2026-11-02']);
+    clock.now = '2026-12-02T08:00:00Z';
+    await f.owner.rpc('tick');
+    expect((await paid(f.Kid.id)).map((r) => r.source_key)).toEqual(['allowance:2026-11-02', 'allowance-m:2026-12-02']);
+  });
+
+  it('switching monthly -> weekly does not pay a week right after the monthly payment', async () => {
+    clock.now = '2026-11-01T08:00:00Z'; // Sunday
+    const f = await makeFamily(db, { Kid: 'kid' });
+    await f.owner.rpc('update_member', { p_member: f.Kid.id, p_patch: { allowance_cents: 2000, allowance_period: 'month', allowance_day: 1 } });
+    await f.owner.rpc('tick');
+    await f.owner.rpc('update_member', { p_member: f.Kid.id, p_patch: { allowance_cents: 500, allowance_period: 'week', allowance_day: 1 } });
+    clock.now = '2026-11-02T08:00:00Z'; // Monday, 1 day after the monthly payment
+    await f.owner.rpc('tick');
+    clock.now = '2026-11-09T08:00:00Z';
+    await f.owner.rpc('tick');
+    expect((await paid(f.Kid.id)).map((r) => r.source_key)).toEqual(['allowance-m:2026-11-01', 'allowance:2026-11-09']);
+  });
+
+  it('catch-up after a long pause pays at most 12 weekly allowances', async () => {
+    clock.now = '2026-08-03T08:00:00Z'; // Monday
+    const f = await makeFamily(db, { Kid: 'kid' });
+    await f.owner.rpc('update_member', { p_member: f.Kid.id, p_patch: { allowance_cents: 100, allowance_period: 'week', allowance_day: 1 } });
+    await f.owner.rpc('tick');
+    clock.now = '2026-11-16T08:00:00Z'; // Monday, 15 weeks later
+    await f.owner.rpc('tick');
+    const keys = (await paid(f.Kid.id)).map((r) => r.source_key);
+    expect(keys[0]).toBe('allowance:2026-08-03');
+    expect(keys.length - 1).toBe(12); // 12 catch-up payments, ending today
+    expect(keys.at(-1)).toBe('allowance:2026-11-16');
+  });
+});
