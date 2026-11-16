@@ -5,20 +5,33 @@ import { useNavigate } from 'react-router';
 import { useConfirm, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
 import { AppError, friendlyError, toAppError } from '../../lib/errors';
+import { useFeatures } from '../../lib/features';
 import { todayISO } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { TaskInstance } from '../../lib/types';
-import { joinWords, penaltyParts, rewardParts } from './lib';
+import { joinWords, penaltyParts, rewardParts, type PenaltyFields, type RewardFields, type Shown } from './lib';
+
+/** Feature switches the Tasks screens care about. */
+export function useTaskFeatures() {
+  const { on } = useFeatures();
+  return { challenges: on('challenges'), time: on('time'), points: on('points') };
+}
 
 /** Session values every task screen needs. */
 export function useTaskCtx() {
   const { state, me, family, members, membersById, isManager, now, refresh } = useApp();
+  const feat = useTaskFeatures();
   const tz = family?.timezone ?? 'UTC';
   const currency = family?.currency ?? 'EUR';
   const today = state?.today ?? todayISO(tz, now());
   const nameOf = useCallback((id: string | null | undefined) => (id && membersById[id]?.display_name) || 'Someone', [membersById]);
+  const shown: Shown = { time: feat.time, points: feat.points };
   return {
-    state, me, family, members, membersById, isManager, now, refresh, tz, currency, today, nameOf,
+    state, me, family, members, membersById, isManager, now, refresh, tz, currency, today, nameOf, feat, shown,
+    /** Reward pieces without switched-off kinds (time, points). */
+    rewardsOf: (t: RewardFields) => rewardParts(t, currency, shown),
+    /** Consequence pieces without switched-off kinds (time, points). */
+    penaltiesOf: (t: PenaltyFields) => penaltyParts(t, currency, shown),
     isKid: me?.role === 'kid',
     isGrandparent: me?.role === 'grandparent',
     approvalsCount: state?.counts.approvals ?? 0,
@@ -176,15 +189,16 @@ export function useLeaveGuard(active: boolean) {
 }
 
 // ---------------------------------------------------------------- actions
-/** "Sam earned +€0.50, +10 points and “Pizza night”" — exactly what approving pays. */
-export function earnedSentence(i: TaskInstance, name: string, currency: string): string {
-  const parts = rewardParts(i, currency).map((p) => p.prose);
+/** "Sam earned +€0.50, +10 points and “Pizza night”" — exactly what approving pays (switched-off kinds left out). */
+export function earnedSentence(i: TaskInstance, name: string, currency: string, shown?: Shown): string {
+  const parts = rewardParts(i, currency, shown).map((p) => p.prose);
   return parts.length ? `${name} earned ${joinWords(parts)}` : `Nice work, ${name}`;
 }
 
 /** Approve, send back and excuse with the toasts, refresh and stale-handling the UX spec asks for. */
 export function useTaskActions(onChanged: () => void) {
   const { refresh, me, membersById, family, isManager } = useApp();
+  const { time, points } = useTaskFeatures();
   const toast = useToast();
   const changedRef = useRef(onChanged);
   useEffect(() => { changedRef.current = onChanged; });
@@ -192,6 +206,7 @@ export function useTaskActions(onChanged: () => void) {
   const kidCopy = me?.role === 'kid';
 
   return useMemo(() => {
+    const shown: Shown = { time, points };
     const nameOf = (id: string) => membersById[id]?.display_name ?? 'them';
     const after = async () => {
       await refresh().catch(() => undefined);
@@ -199,12 +214,9 @@ export function useTaskActions(onChanged: () => void) {
     };
     const fail = async (e: unknown, stale: string) => {
       const err = toAppError(e);
-      if (err.code === 'wrong_status') {
-        toast.show(stale, 'error');
-        await after();
-      } else {
-        toast.show(friendlyError(e), 'error');
-      }
+      toast.show(err.code === 'wrong_status' ? stale : friendlyError(e), 'error');
+      // Stale task, or a parent just switched this part off: re-load so the screen catches up.
+      if (err.code === 'wrong_status' || err.code === 'feature_off') await after();
     };
     return {
       async approve(i: TaskInstance, note?: string | null): Promise<boolean> {
@@ -214,7 +226,7 @@ export function useTaskActions(onChanged: () => void) {
           await fail(e, 'Someone already checked this.');
           return false;
         }
-        const earned = earnedSentence(i, nameOf(i.assignee_id), currency);
+        const earned = earnedSentence(i, nameOf(i.assignee_id), currency, shown);
         toast.show(kidCopy ? `Great! ${earned} ✨` : `Approved. ${earned} ✨`, 'success');
         await after();
         return true;
@@ -238,7 +250,7 @@ export function useTaskActions(onChanged: () => void) {
           await fail(e, 'Someone already did this.');
           return false;
         }
-        const back = i.status === 'missed' ? penaltyParts(i, currency).map((p) => p.prose.replace(/^−/, '')) : [];
+        const back = i.status === 'missed' ? penaltyParts(i, currency, shown).map((p) => p.prose.replace(/^−/, '')) : [];
         toast.show(back.length
           ? `Excused. ${joinWords(back)} given back to ${nameOf(i.assignee_id)}`
           : `Excused for ${nameOf(i.assignee_id)}`, 'success');
@@ -246,5 +258,5 @@ export function useTaskActions(onChanged: () => void) {
         return true;
       },
     };
-  }, [refresh, membersById, currency, kidCopy, toast, isManager]);
+  }, [refresh, membersById, currency, kidCopy, toast, isManager, time, points]);
 }

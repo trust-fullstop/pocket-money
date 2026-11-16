@@ -1,5 +1,5 @@
 // /tasks/new (chore or challenge) and /tasks/edit/:groupId (also /tasks/new?edit=:id).
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   AmountInput, Badge, Button, Card, Chip, EmojiGrid, EmptyState, Input, LinkButton, MemberPicker, Segmented, Sheet,
@@ -11,9 +11,11 @@ import { addDays, formatTime } from '../../lib/format';
 import type { Evidence, Member, Repeat, Task, TaskInput, TaskKind, TimeLabel } from '../../lib/types';
 import { useDelayed, useFetch, useLeaveGuard, useOnline, useTaskCtx } from './hooks';
 import {
-  DAY_SHORT, EVIDENCE, TASK_EMOJIS, TIME_LABELS, dayWord, joinWords, penaltyParts, repeatText, rewardParts,
+  DAY_SHORT, EVIDENCE, TASK_EMOJIS, TIME_LABELS, dayWord, joinWords, nextDueDay, repeatSummary, repeatText, type RepeatRule,
 } from './lib';
-import { AmountPill, BackHeader, Disclosure, LoadError, NotForYou, OfflineNote, SkeletonRows, StickyBar } from './parts';
+import {
+  AmountPill, BackHeader, ChallengesOff, Disclosure, LoadError, NotForYou, OfflineNote, SkeletonRows, StickyBar,
+} from './parts';
 
 const TITLE_MAX = 60;
 const DETAILS_MAX = 500;
@@ -48,32 +50,46 @@ type FieldKey = 'who' | 'title' | 'points' | 'days' | 'start' | 'end' | 'due';
 const FIELD_ID: Record<FieldKey, string> = {
   who: 'tf-who', title: 'tf-title', points: 'tf-points', days: 'tf-days', start: 'tf-start', end: 'tf-end', due: 'tf-due',
 };
-const FIELD_ORDER: FieldKey[] = ['who', 'title', 'points', 'days', 'start', 'due', 'end'];
+/** Order of the fields on screen (Who → What → How often → Reward). */
+const FIELD_ORDER: FieldKey[] = ['who', 'title', 'days', 'start', 'due', 'end', 'points'];
 
-const REPEATS: { value: Repeat; label: string }[] = [
-  { value: 'once', label: 'Once' },
-  { value: 'daily', label: 'Every day' },
-  { value: 'weekdays', label: 'Weekdays' },
-  { value: 'weekly', label: 'Every week' },
-  { value: 'days', label: 'Choose days' },
+const REPEATS: { value: Repeat; label: string; emoji: string }[] = [
+  { value: 'once', label: 'Once', emoji: '☝️' },
+  { value: 'daily', label: 'Every day', emoji: '🔁' },
+  { value: 'weekdays', label: 'Weekdays', emoji: '🏫' },
+  { value: 'weekly', label: 'Every week', emoji: '📅' },
+  { value: 'days', label: 'Choose days', emoji: '🗓️' },
 ];
 const SIMPLE_REPEATS: Repeat[] = ['once', 'daily', 'weekly'];
 
 const defaultEmoji = (kind: TaskKind) => (kind === 'chore' ? '🧹' : '🏆');
+/** Chores usually come back (every day); challenges are usually one-offs. */
+const defaultRepeat = (kind: TaskKind): Repeat => (kind === 'chore' ? 'daily' : 'once');
 const n0 = (v: number | null) => v ?? 0;
+const HHMM = /^\d{2}:\d{2}$/;
 
 // ---------------------------------------------------------------- routes
 /** Picks create or edit mode from the URL. */
 export default function TaskFormPage() {
   const { groupId } = useParams();
   const [params] = useSearchParams();
+  const { isManager, feat } = useTaskCtx();
   const editId = groupId ?? params.get('edit');
   if (editId) return <EditLoader key={editId} id={editId} />;
+  // Kids and grandparents can only make challenges.
+  if (!isManager && !feat.challenges) {
+    return (
+      <div className="space-y-4">
+        <BackHeader title="New challenge" />
+        <ChallengesOff action={<LinkButton to="/tasks" icon="tasks">My tasks</LinkButton>} />
+      </div>
+    );
+  }
   return <TaskForm preset={params.get('person')} />;
 }
 
 function EditLoader({ id }: { id: string }) {
-  const { me, isManager } = useTaskCtx();
+  const { me, isManager, feat } = useTaskCtx();
   const q = useFetch(() => api.listTasks(), ['tasks-for-edit', id]);
   const skeleton = useDelayed(q.loading);
   if (q.error && !q.data) {
@@ -113,12 +129,20 @@ function EditLoader({ id }: { id: string }) {
       </div>
     );
   }
+  if (first.kind === 'challenge' && !feat.challenges) {
+    return (
+      <div className="space-y-4">
+        <BackHeader title="Edit challenge" />
+        <ChallengesOff action={<LinkButton to="/tasks" icon="tasks">All tasks</LinkButton>} />
+      </div>
+    );
+  }
   return <TaskForm edit={rows} />;
 }
 
 // ---------------------------------------------------------------- form
 function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
-  const { me, family, members, membersById, isManager, isKid, today, tz, now, refresh } = useTaskCtx();
+  const { me, family, members, membersById, isManager, isKid, today, tz, now, refresh, feat, penaltiesOf } = useTaskCtx();
   const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
@@ -146,18 +170,20 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       };
     }
     const presetMember = preset ? membersById[preset] : undefined;
-    const kind: TaskKind = simple || (presetMember && presetMember.role !== 'kid') ? 'challenge' : 'chore';
-    const assignees = presetMember && (!simple || presetMember.id !== meId) ? [presetMember.id] : [];
+    const kind: TaskKind = simple || (feat.challenges && presetMember && presetMember.role !== 'kid') ? 'challenge' : 'chore';
+    const presetOk = presetMember && (!simple || presetMember.id !== meId) && (kind === 'challenge' || presetMember.role === 'kid');
     return {
-      kind, assignees, meToo: false, emoji: defaultEmoji(kind), title: '', details: '',
-      reward_cents: null, reward_minutes: null, time_label: 'game', reward_points: Math.min(10, simple ? cap : 10) || null, reward_text: '',
+      kind, assignees: presetOk ? [presetMember.id] : [], meToo: false, emoji: defaultEmoji(kind), title: '', details: '',
+      reward_cents: null, reward_minutes: null, time_label: 'game',
+      reward_points: feat.points ? Math.min(10, simple ? cap : 10) || null : null, reward_text: '',
       penalty_cents: null, penalty_minutes: null, penalty_points: null,
-      repeat: 'once', repeat_days: [], start_on: today, end_on: '', due_time: '19:00',
+      repeat: defaultRepeat(kind), repeat_days: [], start_on: today, end_on: '', due_time: '19:00',
       evidence: family?.settings.default_evidence ?? 'photo',
     };
   });
   const [v, setV] = useState<Values>(initial);
   const [emojiTouched, setEmojiTouched] = useState(editing);
+  const [repeatTouched, setRepeatTouched] = useState(editing);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -180,18 +206,20 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
   const nowHHMM = formatTime(now().toISOString(), tz);
   const isChallenge = simple || v.kind === 'challenge';
   const showEnd = v.repeat !== 'once';
+  const endMin = editing && today > v.start_on ? today : v.start_on || today;
 
   // ------------------------------------------------ validation
   const errors: Partial<Record<FieldKey, ReactNode>> = {};
   if (!editing && v.assignees.length === 0) errors.who = simple ? 'Pick who gets the challenge.' : 'Pick who does it.';
   if (!v.title.trim()) errors.title = 'Give it a name.';
-  if (simple && n0(v.reward_points) > cap) errors.points = `You can promise up to ${cap} points.`;
+  if (simple && feat.points && n0(v.reward_points) > cap) errors.points = `You can promise up to ${cap} points.`;
   if (!editing && v.repeat === 'days' && v.repeat_days.length === 0) errors.days = 'Pick at least one day.';
   if (!editing && (!v.start_on || v.start_on < today)) errors.start = 'Pick today or a later day.';
-  if (!/^\d{2}:\d{2}$/.test(v.due_time)) errors.due = 'Pick a time.';
-  const timePassed = !editing && v.repeat === 'once' && v.start_on === today && /^\d{2}:\d{2}$/.test(v.due_time) && v.due_time <= nowHHMM;
+  if (!HHMM.test(v.due_time)) errors.due = 'Pick a time.';
+  const timePassed = !editing && v.repeat === 'once' && v.start_on === today && HHMM.test(v.due_time) && v.due_time <= nowHHMM;
   if (timePassed) errors.due = 'That time has passed.';
   if (showEnd && v.end_on && v.end_on < v.start_on) errors.end = 'This has to be on or after the start day.';
+  else if (showEnd && editing && v.end_on && v.end_on !== initial.end_on && v.end_on < today) errors.end = 'Pick today or a later day.';
   if (serverErr?.field) errors[serverErr.field] = serverErr.msg;
 
   const firstError = FIELD_ORDER.find((k) => errors[k]);
@@ -208,6 +236,17 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
     : firstError ? 'Fix the marked field first.' : null;
 
   // ------------------------------------------------ submit
+  /** Amount fields the family uses (switched-off kinds are left out, so the server keeps / defaults them). */
+  const amounts = (): Partial<TaskInput> => {
+    const out: Partial<TaskInput> = { reward_text: v.reward_text.trim() || null };
+    if (feat.points) out.reward_points = n0(v.reward_points);
+    if (simple) return out;
+    Object.assign(out, { reward_cents: n0(v.reward_cents), penalty_cents: n0(v.penalty_cents), evidence: v.evidence });
+    if (feat.time) Object.assign(out, { reward_minutes: n0(v.reward_minutes), penalty_minutes: n0(v.penalty_minutes), time_label: v.time_label });
+    if (feat.points) out.penalty_points = n0(v.penalty_points);
+    return out;
+  };
+
   const toInput = (): TaskInput => {
     const input: TaskInput = {
       kind: isChallenge ? 'challenge' : 'chore',
@@ -215,37 +254,21 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       details: v.details.trim() || null,
       emoji: v.emoji,
       assignees: allIds,
-      reward_points: n0(v.reward_points),
-      reward_text: v.reward_text.trim() || null,
       repeat: v.repeat,
       start_on: v.start_on,
       due_time: v.due_time,
+      ...amounts(),
     };
     if (v.repeat === 'days') input.repeat_days = [...v.repeat_days].sort((a, b) => a - b);
     if (showEnd && v.end_on) input.end_on = v.end_on;
-    if (!simple) {
-      Object.assign(input, {
-        reward_cents: n0(v.reward_cents), reward_minutes: n0(v.reward_minutes), time_label: v.time_label,
-        penalty_cents: n0(v.penalty_cents), penalty_minutes: n0(v.penalty_minutes), penalty_points: n0(v.penalty_points),
-        evidence: v.evidence,
-      });
-    }
     return input;
   };
 
   const toPatch = (): Partial<TaskInput> => {
     const patch: Partial<TaskInput> = {
-      title: v.title.trim(), details: v.details.trim() || null, emoji: v.emoji,
-      reward_points: n0(v.reward_points), reward_text: v.reward_text.trim() || null, due_time: v.due_time,
+      title: v.title.trim(), details: v.details.trim() || null, emoji: v.emoji, due_time: v.due_time, ...amounts(),
     };
     if (showEnd) patch.end_on = v.end_on || null;
-    if (!simple) {
-      Object.assign(patch, {
-        reward_cents: n0(v.reward_cents), reward_minutes: n0(v.reward_minutes), time_label: v.time_label,
-        penalty_cents: n0(v.penalty_cents), penalty_minutes: n0(v.penalty_minutes), penalty_points: n0(v.penalty_points),
-        evidence: v.evidence,
-      });
-    }
     return patch;
   };
 
@@ -274,8 +297,12 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
     if ((err.code === 'invalid' || err.code === 'not_allowed') && hit) {
       setServerErr({ field: hit[0], msg: hit[1] });
       if (hit[0]) focusField(hit[0]);
+    } else if (err.code === 'wrong_status' && editing) {
+      setServerErr({ field: null, msg: 'This task has been stopped, so it can’t be changed any more.' });
     } else {
       setServerErr({ field: null, msg: friendlyError(e) });
+      // A part of the app was switched off meanwhile: reload so the form shows what is still on.
+      if (err.code === 'feature_off') void refresh().catch(() => undefined);
     }
   };
 
@@ -292,7 +319,12 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       } else {
         await api.createTask(toInput());
         const names = joinWords(people.map((m) => (m.id === meId ? 'you' : m.display_name)));
-        toast.show(isChallenge ? `Challenge sent to ${names} 🎉` : `Task sent to ${names} 🎉`, 'success');
+        toast.show(
+          isChallenge ? `Challenge sent to ${names} 🎉`
+            : v.repeat !== 'once' ? `Repeating task set up for ${names} 🔁`
+            : `Task sent to ${names} 🎉`,
+          'success',
+        );
       }
       setDone(true);
       await refresh().catch(() => undefined);
@@ -335,7 +367,12 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       ...s, kind: k,
       assignees: k === 'chore' ? s.assignees.filter((id) => membersById[id]?.role === 'kid') : s.assignees,
       emoji: emojiTouched ? s.emoji : defaultEmoji(k),
+      repeat: repeatTouched ? s.repeat : defaultRepeat(k),
     }));
+  };
+  const setRepeat = (r: Repeat) => {
+    set('repeat', r);
+    setRepeatTouched(true);
   };
 
   const big = isKid;
@@ -359,7 +396,9 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       </div>
       <div id={FIELD_ID.who} tabIndex={-1} className="rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-accent" aria-describedby={shown('who') ? `${FIELD_ID.who}-err` : undefined}>
         {!simple && v.kind === 'chore' && kids.length === 0 ? (
-          <p className="text-[15px] text-muted">There are no kids in the family yet. Switch to Challenge, or add a kid in Family first.</p>
+          <p className="text-[15px] text-muted">
+            {feat.challenges ? 'There are no kids in the family yet. Switch to Challenge, or add a kid in Family first.' : 'There are no kids in the family yet. Add a kid in Family first.'}
+          </p>
         ) : simple ? (
           <MemberPicker multiple label="Who gets the challenge?" value={v.assignees} onChange={(ids) => set('assignees', ids)} exclude={[meId]} showRole={false} />
         ) : (
@@ -403,31 +442,34 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
     </section>
   );
 
+  const showMinutes = !simple && feat.time;
   const rewardBlock = (
     <Card className="space-y-4">
       {label(simple ? 'What do they get?' : 'Reward')}
       {!simple && (
-        <>
-          <AmountInput kind="money" label="Money" optional value={v.reward_cents} onChange={(x) => set('reward_cents', x)} max={100000} chips={[50, 100, 200]} />
-          <AmountInput kind="time" label="Screen time" optional value={v.reward_minutes} onChange={(x) => set('reward_minutes', x)} max={1440} />
-        </>
+        <AmountInput kind="money" label="Money" optional value={v.reward_cents} onChange={(x) => set('reward_cents', x)} max={100000} chips={[50, 100, 200]} />
       )}
-      {!simple && (n0(v.reward_minutes) > 0 || n0(v.penalty_minutes) > 0) && <TimeLabelPicker value={v.time_label} onChange={(x) => set('time_label', x)} />}
-      <AmountInput
-        id={FIELD_ID.points} kind="points" label="Points" optional value={v.reward_points}
-        onChange={(x) => set('reward_points', x)} max={simple ? undefined : 10000} chips={simple ? [5, 10, 20].filter((c) => c <= cap) : [5, 10, 20]}
-        hint={simple ? `Up to ${cap} points.` : undefined} error={shown('points')}
-      />
+      {showMinutes && (
+        <AmountInput kind="time" label="Screen time" optional value={v.reward_minutes} onChange={(x) => set('reward_minutes', x)} max={1440} />
+      )}
+      {showMinutes && (n0(v.reward_minutes) > 0 || n0(v.penalty_minutes) > 0) && <TimeLabelPicker value={v.time_label} onChange={(x) => set('time_label', x)} />}
+      {feat.points && (
+        <AmountInput
+          id={FIELD_ID.points} kind="points" label="Points" optional value={v.reward_points}
+          onChange={(x) => set('reward_points', x)} max={simple ? undefined : 10000} chips={simple ? [5, 10, 20].filter((c) => c <= cap) : [5, 10, 20]}
+          hint={simple ? `Up to ${cap} points.` : undefined} error={shown('points')}
+        />
+      )}
       <Input
-        label={simple ? 'A reward in words' : 'Or a reward in words'} optional value={v.reward_text} maxLength={REWARD_TEXT_MAX}
+        label={simple || (!feat.points && !feat.time) ? 'A reward in words' : 'Or a reward in words'} optional value={v.reward_text} maxLength={REWARD_TEXT_MAX}
         placeholder={simple ? 'I’ll make you breakfast' : 'Pizza night'} onChange={(e) => set('reward_text', e.target.value)}
       />
     </Card>
   );
 
-  const penalties = penaltyParts({
+  const penalties = penaltiesOf({
     penalty_cents: n0(v.penalty_cents), penalty_minutes: n0(v.penalty_minutes), penalty_points: n0(v.penalty_points), time_label: v.time_label,
-  }, family?.currency ?? 'EUR');
+  });
 
   const penaltyBlock = simple ? null : (
     <Card>
@@ -438,36 +480,74 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
         <div className="space-y-4">
           <p className="text-sm text-muted">Only counts if it’s still open at {v.due_time || '19:00'} + {grace} min.</p>
           <AmountInput kind="money" label="Take away money" optional value={v.penalty_cents} onChange={(x) => set('penalty_cents', x)} max={100000} chips={[50, 100]} />
-          <AmountInput kind="time" label="Take away screen time" optional value={v.penalty_minutes} onChange={(x) => set('penalty_minutes', x)} max={1440} />
-          <AmountInput kind="points" label="Take away points" optional value={v.penalty_points} onChange={(x) => set('penalty_points', x)} max={10000} chips={[5, 10]} />
+          {feat.time && (
+            <AmountInput kind="time" label="Take away screen time" optional value={v.penalty_minutes} onChange={(x) => set('penalty_minutes', x)} max={1440} />
+          )}
+          {feat.points && (
+            <AmountInput kind="points" label="Take away points" optional value={v.penalty_points} onChange={(x) => set('penalty_points', x)} max={10000} chips={[5, 10]} />
+          )}
         </div>
       </Disclosure>
     </Card>
   );
 
+  // ------------------------------------------------ how often
   const repeatOptions = REPEATS.filter((r) => !simple || SIMPLE_REPEATS.includes(r.value));
-  const whenBlock = (
-    <section className="space-y-4" aria-labelledby={`${formId}-when`}>
-      <h2 id={`${formId}-when`} className={cx('font-bold', big ? 'text-xl' : 'text-lg')}>When?</h2>
+  const rule: RepeatRule = {
+    repeat: v.repeat, repeat_days: v.repeat_days, start_on: v.start_on || today,
+    end_on: showEnd && v.end_on ? v.end_on : null, due_time: HHMM.test(v.due_time) ? v.due_time : '19:00',
+  };
+  const needDays = v.repeat === 'days' && v.repeat_days.length === 0;
+  const next = needDays ? null : nextDueDay(rule, today, nowHHMM);
+  const nextLine = showEnd && !needDays
+    ? next
+      ? `${editing ? 'Next one' : 'First one'}: ${dayWord(next, tz, now())} at ${rule.due_time}`
+      : editing ? 'Nothing coming up — it has reached its stop day.' : 'No days fall between the start and the stop day.'
+    : null;
+
+  const summaryBox = (
+    <div aria-live="polite" className="rounded-2xl bg-accent-soft px-3 py-2.5">
+      <p className="text-[15px] font-semibold">
+        <span aria-hidden="true">{v.repeat === 'once' ? '📌 ' : '🔁 '}</span>
+        {needDays ? 'Pick the days it repeats on.' : repeatSummary(rule, today, tz, now())}
+      </p>
+      {nextLine && <p className="text-sm text-muted">{nextLine}</p>}
+    </div>
+  );
+
+  const stopOn = showEnd && (
+    <div className="space-y-1.5">
+      <Input
+        id={FIELD_ID.end} type="date" label="Stop on" optional value={v.end_on} min={endMin}
+        onChange={(e) => set('end_on', e.target.value)} error={shown('end')}
+        hint={shown('end') ? undefined : 'Leave empty to keep repeating.'}
+      />
+      {v.end_on && (
+        <Button size="sm" variant="ghost" icon="reset" onClick={() => set('end_on', '')}>Keep repeating</Button>
+      )}
+    </div>
+  );
+
+  const howOftenBlock = (
+    <section className="space-y-4" aria-labelledby={`${formId}-often`}>
+      <h2 id={`${formId}-often`} className={cx('font-bold', big ? 'text-xl' : 'text-lg')}>How often?</h2>
       {editing ? (
-        <p className="rounded-2xl bg-surface-2 px-3 py-2.5 text-[15px]">
-          <span aria-hidden="true">🔁 </span>{repeatText(v.repeat, v.repeat_days, v.start_on, tz, now())}
-          {v.repeat !== 'once' && <> · from {dayWord(v.start_on, tz, now(), true)}</>}
-        </p>
+        <>
+          {summaryBox}
+          <div className="grid grid-cols-2 gap-3">
+            <Input id={FIELD_ID.due} type="time" label="Do it by" value={v.due_time} onChange={(e) => set('due_time', e.target.value)} error={shown('due')} />
+            {stopOn}
+          </div>
+        </>
       ) : (
         <>
-          <div className="space-y-2">
-            <span className="block text-[15px] font-semibold" id={`${formId}-repeat`}>Repeat</span>
-            <div role="group" aria-labelledby={`${formId}-repeat`} className="flex flex-wrap gap-2">
-              {repeatOptions.map((r) => (
-                <Chip key={r.value} selected={v.repeat === r.value} onClick={() => set('repeat', r.value)}>{r.label}</Chip>
-              ))}
-            </div>
-            {v.repeat === 'weekly' && <p className="text-sm text-muted">{repeatText('weekly', [], v.start_on || today, tz, now())} (the day it starts).</p>}
-          </div>
+          <RepeatPicker labelledBy={`${formId}-often`} value={v.repeat} options={repeatOptions} onChange={setRepeat} big={big} />
+          {v.repeat === 'weekly' && (
+            <p className="text-sm text-muted">{repeatText('weekly', [], v.start_on || today, tz, now())} — the same weekday as the start day.</p>
+          )}
           {v.repeat === 'days' && (
             <div className="space-y-2">
-              <span className="block text-[15px] font-semibold" id={`${formId}-days`}>Days</span>
+              <span className="block text-[15px] font-semibold" id={`${formId}-days`}>Which days?</span>
               <div
                 id={FIELD_ID.days} tabIndex={-1} role="group" aria-labelledby={`${formId}-days`}
                 aria-describedby={shown('days') ? `${FIELD_ID.days}-err` : undefined}
@@ -502,22 +582,9 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
               <Button size="sm" variant="secondary" onClick={() => set('start_on', addDays(today, 1))}>Start tomorrow instead</Button>
             </div>
           )}
+          {showEnd && <div className="max-w-[14rem]">{stopOn}</div>}
+          {summaryBox}
         </>
-      )}
-      {editing && (
-        <div className="max-w-[12rem]">
-          <Input id={FIELD_ID.due} type="time" label="Do it by" value={v.due_time} onChange={(e) => set('due_time', e.target.value)} error={shown('due')} />
-        </div>
-      )}
-      {showEnd && (
-        <Disclosure title="More" summary={v.end_on ? `Stops after ${dayWord(v.end_on, tz, now(), true)}` : 'Keeps repeating'} defaultOpen={!!v.end_on}>
-          <div className="max-w-[14rem]">
-            <Input
-              id={FIELD_ID.end} type="date" label="Stop repeating on" optional value={v.end_on} min={v.start_on || today}
-              onChange={(e) => set('end_on', e.target.value)} error={shown('end')}
-            />
-          </div>
-        </Disclosure>
       )}
     </section>
   );
@@ -539,7 +606,7 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
     <div className={cx('space-y-6', big && 'text-[17px]')}>
       <BackHeader title={title} onBack={guard} />
       {!online && <OfflineNote />}
-      {!simple && !editing && (
+      {!simple && !editing && feat.challenges && (
         <section className="space-y-2" aria-label="Kind of task">
           <Segmented<TaskKind>
             label="Chore or challenge" value={v.kind} onChange={setKind}
@@ -551,9 +618,9 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
       <form id={formId} noValidate className="space-y-6" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         {whoBlock}
         {whatBlock}
+        {howOftenBlock}
         {rewardBlock}
         {penaltyBlock}
-        {whenBlock}
         {proofBlock}
         <Preview values={v} people={people} meId={meId} />
         {editing && (
@@ -608,16 +675,65 @@ function TimeLabelPicker({ value, onChange }: { value: TimeLabel; onChange: (v: 
   );
 }
 
+/** Big "How often?" choices (a radio group: arrow keys move, Home/End jump). */
+function RepeatPicker({ labelledBy, value, options, onChange, big }: {
+  labelledBy: string;
+  value: Repeat;
+  options: { value: Repeat; label: string; emoji: string }[];
+  onChange: (v: Repeat) => void;
+  big?: boolean;
+}) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const at = Math.max(0, options.findIndex((o) => o.value === value));
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = options.length - 1;
+    const to = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (at === last ? 0 : at + 1)
+      : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (at === 0 ? last : at - 1)
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? last
+      : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    onChange(options[to].value);
+    refs.current[to]?.focus();
+  };
+  return (
+    <div
+      role="radiogroup" aria-labelledby={labelledBy} onKeyDown={onKey}
+      className={cx('grid gap-2', options.length > 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-3')}
+    >
+      {options.map((o, i) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value} ref={(el) => { refs.current[i] = el; }} type="button" role="radio" aria-checked={on}
+            tabIndex={i === at ? 0 : -1} onClick={() => onChange(o.value)}
+            className={cx(
+              'flex min-h-14 items-center gap-2 rounded-2xl border-2 px-3 py-2 text-left font-semibold transition',
+              big ? 'text-[17px]' : 'text-[15px]',
+              options.length <= 3 && 'flex-col justify-center text-center',
+              on ? 'border-accent-strong bg-accent-soft text-ink' : 'border-line bg-surface text-ink hover:bg-surface-2',
+            )}
+          >
+            <span aria-hidden="true" className="text-2xl leading-none">{o.emoji}</span>
+            <span className="min-w-0 leading-tight">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** "What Sam will see" + the live sentence "Sam gets +€1.00 +10 XP when done. If not done by 19:00: −€0.50." */
 function Preview({ values: v, people, meId }: { values: Values; people: Member[]; meId: string }) {
-  const { currency, tz, now } = useTaskCtx();
-  const rewards = rewardParts({
+  const { tz, now, rewardsOf, penaltiesOf } = useTaskCtx();
+  const rewards = rewardsOf({
     reward_cents: n0(v.reward_cents), reward_minutes: n0(v.reward_minutes), reward_points: n0(v.reward_points),
     reward_text: v.reward_text.trim() || null, time_label: v.time_label,
-  }, currency);
-  const penalties = penaltyParts({
+  });
+  const penalties = penaltiesOf({
     penalty_cents: n0(v.penalty_cents), penalty_minutes: n0(v.penalty_minutes), penalty_points: n0(v.penalty_points), time_label: v.time_label,
-  }, currency);
+  });
   const names = people.map((m) => (m.id === meId ? 'you' : m.display_name));
   const subject = names.length ? joinWords(names) : 'They';
   const verb = names.length > 1 ? 'each get' : names.length === 0 || names[0] === 'you' ? 'get' : 'gets';

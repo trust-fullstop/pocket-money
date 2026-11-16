@@ -8,7 +8,7 @@ import { backend } from '../../lib/backend';
 import type { Member, TaskInstance } from '../../lib/types';
 import { useTaskCtx } from './hooks';
 import {
-  dueShort, isLate, isSentBack, penaltyParts, rewardParts, statusOf, type Part,
+  dueShort, isLate, isSentBack, statusOf, type Part, type PenaltyFields, type RewardFields,
 } from './lib';
 
 // ---------------------------------------------------------------- amounts
@@ -28,11 +28,11 @@ export function AmountPill({ part, tone, big }: { part: Part; tone: keyof typeof
   );
 }
 
-/** Reward chips (green) and, when set, consequence chips (orange, ⏰ = "if not done in time"). */
-export function RewardChips({ inst, big, hidePenalty }: { inst: TaskInstance; big?: boolean; hidePenalty?: boolean }) {
-  const { currency } = useTaskCtx();
-  const rewards = rewardParts(inst, currency);
-  const penalties = hidePenalty ? [] : penaltyParts(inst, currency);
+/** Reward chips (green) and, when set, consequence chips (orange, ⏰ = "if not done in time"). Works for tasks and instances. */
+export function RewardChips({ inst, big, hidePenalty }: { inst: RewardFields & PenaltyFields; big?: boolean; hidePenalty?: boolean }) {
+  const { rewardsOf, penaltiesOf } = useTaskCtx();
+  const rewards = rewardsOf(inst);
+  const penalties = hidePenalty ? [] : penaltiesOf(inst);
   if (!rewards.length && !penalties.length) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -51,16 +51,16 @@ export function RewardChips({ inst, big, hidePenalty }: { inst: TaskInstance; bi
 
 /** What a finished task brought: "+€0.50 +10 XP" (done), "−€0.50" (not done), "Excused" (given back). */
 export function OutcomeChips({ inst, big }: { inst: TaskInstance; big?: boolean }) {
-  const { currency } = useTaskCtx();
+  const { rewardsOf, penaltiesOf } = useTaskCtx();
   if (inst.status === 'approved') {
-    const parts = rewardParts(inst, currency);
+    const parts = rewardsOf(inst);
     return parts.length ? <div className="flex flex-wrap gap-1.5">{parts.map((p) => <AmountPill key={p.key} part={p} tone="plus" big={big} />)}</div> : null;
   }
   if (inst.status === 'missed') {
-    const parts = penaltyParts(inst, currency);
+    const parts = penaltiesOf(inst);
     return parts.length ? <div className="flex flex-wrap gap-1.5">{parts.map((p) => <AmountPill key={p.key} part={p} tone="minus" big={big} />)}</div> : null;
   }
-  if (inst.status === 'excused' && penaltyParts(inst, currency).length) {
+  if (inst.status === 'excused' && penaltiesOf(inst).length) {
     return <span className={cx('text-muted', big ? 'text-[15px]' : 'text-sm')}>🤝 Excused — nothing taken away</span>;
   }
   return null;
@@ -76,10 +76,10 @@ export function StatusBadge({ inst, className }: { inst: TaskInstance; className
   );
 }
 
-/** "🏆 Challenge from Mum" / "🏆 Your challenge for Dad" / "🏆 Challenge". */
+/** "🏆 Challenge from Mum" / "🏆 Your challenge for Dad" / "🏆 Challenge" (nothing while challenges are switched off). */
 export function ChallengeTag({ inst }: { inst: TaskInstance }) {
-  const { me, nameOf } = useTaskCtx();
-  if (inst.kind !== 'challenge') return null;
+  const { me, nameOf, feat } = useTaskCtx();
+  if (inst.kind !== 'challenge' || !feat.challenges) return null;
   const mine = inst.created_by === me?.id;
   const text = mine
     ? inst.assignee_id === me?.id ? 'Your challenge' : `Your challenge for ${nameOf(inst.assignee_id)}`
@@ -329,6 +329,20 @@ export function NotForYou() {
     <EmptyState
       emoji="🙈" title="That's not for you" message="This task belongs to someone else."
       action={<LinkButton to="/" icon="home">Go home</LinkButton>}
+    />
+  );
+}
+
+/** Shown where challenges would be while the `challenges` feature is switched off. */
+export function ChallengesOff({ action }: { action?: ReactNode }) {
+  const { isManager } = useTaskCtx();
+  return (
+    <EmptyState
+      emoji="🏆" title="Challenges are switched off"
+      message={isManager
+        ? 'Switch them on in Family → Features to set fun goals for anyone in the family.'
+        : 'A parent can switch them on in Family → Features.'}
+      action={action}
     />
   );
 }

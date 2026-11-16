@@ -8,11 +8,11 @@ import type { TaskInstance } from '../../lib/types';
 import { SendBackSheet } from './decide';
 import { useDelayed, useFetch, useOnline, useTaskActions, useTaskCtx } from './hooks';
 import { byDueAsc, whenText } from './lib';
-import { BackHeader, EvidencePhotos, LoadError, OfflineNote, RewardChips, SkeletonRows } from './parts';
+import { BackHeader, ChallengesOff, EvidencePhotos, LoadError, OfflineNote, RewardChips, SkeletonRows } from './parts';
 
 /** The list of submitted tasks I can check, with one-tap Approve and a Send back sheet. */
 export function ApprovalsList({ big }: { big?: boolean }) {
-  const { state } = useTaskCtx();
+  const { state, feat } = useTaskCtx();
   // Re-loads quietly whenever the app state refreshes (after any change, or when coming back to the app).
   const q = useFetch(() => api.listApprovals(), ['approvals'], state);
   const { reload, setData } = q;
@@ -23,7 +23,11 @@ export function ApprovalsList({ big }: { big?: boolean }) {
   const emptyRef = useRef<HTMLDivElement>(null);
   const focusAfter = useRef<string | null | undefined>(undefined);
 
-  const items = q.data ? [...q.data].sort((a, b) => (a.submitted_at ?? a.due_at).localeCompare(b.submitted_at ?? b.due_at) || byDueAsc(a, b)) : [];
+  const items = q.data
+    ? q.data
+      .filter((i) => feat.challenges || i.kind !== 'challenge')
+      .sort((a, b) => (a.submitted_at ?? a.due_at).localeCompare(b.submitted_at ?? b.due_at) || byDueAsc(a, b))
+    : [];
 
   // Keep keyboard / screen-reader focus on the next card after one disappears.
   useEffect(() => {
@@ -122,19 +126,25 @@ function ApprovalCard({ inst, big, online, onSendBack, onDone, onChanged }: {
 
 /** /tasks/approvals — the queue as its own page (kids' and grandparents' challenges to check; works for everyone). */
 export function ApprovalsPage() {
-  const { isKid, isManager, approvalsCount } = useTaskCtx();
+  const { isKid, isManager, approvalsCount, feat } = useTaskCtx();
+  // Kids and grandparents only ever check challenges they set.
+  const off = !isManager && !feat.challenges;
   return (
     <div className="space-y-4 pb-4">
       <BackHeader
         title={isManager ? 'Approvals' : 'To check'}
-        subtitle={approvalsCount ? `${approvalsCount} waiting for you` : undefined}
+        subtitle={approvalsCount && !off ? `${approvalsCount} waiting for you` : undefined}
       />
-      {!isManager && (
-        <p className={isKid ? 'text-[17px] text-muted' : 'text-[15px] text-muted'}>
-          Someone finished a challenge you set. Did they do it?
-        </p>
+      {off ? <ChallengesOff /> : (
+        <>
+          {!isManager && (
+            <p className={isKid ? 'text-[17px] text-muted' : 'text-[15px] text-muted'}>
+              Someone finished a challenge you set. Did they do it?
+            </p>
+          )}
+          <ApprovalsList big={isKid} />
+        </>
       )}
-      <ApprovalsList big={isKid} />
       <div className="pt-2">
         <LinkButton to="/tasks" variant="ghost" icon="tasks" size={isKid ? 'lg' : 'md'}>All tasks</LinkButton>
       </div>

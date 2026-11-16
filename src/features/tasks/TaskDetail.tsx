@@ -12,16 +12,16 @@ import { isManager as isManagerRole } from '../../lib/types';
 import { ExcuseSheet, SendBackSheet } from './decide';
 import { useDelayed, useFetch, useOnline, useTaskActions, useTaskCtx } from './hooks';
 import {
-  EVIDENCE, dueLong, hasMoneyOrTimeReward, isLate, isSentBack, joinWords, penaltyParts, rewardParts, whenText,
+  EVIDENCE, dueLong, hasMoneyOrTimeReward, isLate, isSentBack, joinWords, whenText,
 } from './lib';
 import {
-  AmountPill, BackHeader, ChallengeTag, EvidencePhotos, LoadError, Note, NotForYou, OfflineNote, Refreshing, SkeletonRows,
-  StatusBadge, StickyBar,
+  AmountPill, BackHeader, ChallengeTag, ChallengesOff, EvidencePhotos, LoadError, Note, NotForYou, OfflineNote, Refreshing,
+  SkeletonRows, StatusBadge, StickyBar,
 } from './parts';
 
 export default function TaskDetail() {
   const { instanceId = '' } = useParams();
-  const { state } = useTaskCtx();
+  const { state, feat } = useTaskCtx();
   const q = useFetch(() => api.getInstance(instanceId), ['instance', instanceId], state);
   const skeleton = useDelayed(q.loading);
 
@@ -50,12 +50,20 @@ export default function TaskDetail() {
   if (!q.data) {
     return <div className="space-y-4"><BackHeader title="Task" />{skeleton && <SkeletonRows rows={3} />}</div>;
   }
+  if (q.data.kind === 'challenge' && !feat.challenges) {
+    return (
+      <div className="space-y-4">
+        <BackHeader title="Challenge" />
+        <ChallengesOff action={<LinkButton to="/tasks" icon="tasks">All tasks</LinkButton>} />
+      </div>
+    );
+  }
   return <Detail key={q.data.id} inst={q.data} reload={q.reload} refreshing={q.refreshing} />;
 }
 
 // ---------------------------------------------------------------- page
 function Detail({ inst, reload, refreshing }: { inst: TaskInstance; reload: () => Promise<void>; refreshing: boolean }) {
-  const { me, membersById, isManager, isKid, tz, now, currency, nameOf, refresh } = useTaskCtx();
+  const { me, membersById, isManager, isKid, tz, now, nameOf, refresh, rewardsOf, penaltiesOf } = useTaskCtx();
   const navigate = useNavigate();
   const online = useOnline();
   const [justSent, setJustSent] = useState(false);
@@ -69,8 +77,8 @@ function Detail({ inst, reload, refreshing }: { inst: TaskInstance; reload: () =
   const assignee = membersById[inst.assignee_id];
   const who = mine ? 'you' : assignee?.display_name ?? 'Someone';
   const nowDate = now();
-  const rewards = rewardParts(inst, currency);
-  const penalties = penaltyParts(inst, currency);
+  const rewards = rewardsOf(inst);
+  const penalties = penaltiesOf(inst);
   const dueTime = dueLong(inst, tz, nowDate).replace(/^(Was due|Due) /, '');
   const canEdit = inst.status !== 'cancelled' && (isManager || inst.created_by === meId);
   const showDecide = inst.can_decide && inst.status === 'submitted';
@@ -231,9 +239,9 @@ function useCheckerText(inst: TaskInstance): string {
 }
 
 function SentCard({ inst, big }: { inst: TaskInstance; big?: boolean }) {
-  const { currency } = useTaskCtx();
+  const { rewardsOf } = useTaskCtx();
   const checker = useCheckerText(inst);
-  const worth = rewardParts(inst, currency);
+  const worth = rewardsOf(inst);
   return (
     <Card tone="good" role="status" className="space-y-2 text-center">
       <p className="text-5xl" aria-hidden="true">🎉</p>
@@ -277,7 +285,7 @@ function Together({ inst, big }: { inst: TaskInstance; big?: boolean }) {
 function DoIt({ inst, big, online, onSent, onStale }: {
   inst: TaskInstance; big?: boolean; online: boolean; onSent: () => Promise<void>; onStale: () => void;
 }) {
-  const { family, me } = useTaskCtx();
+  const { family, me, refresh } = useTaskCtx();
   const [before, setBefore] = useState<Blob | null>(null);
   const [after, setAfter] = useState<Blob | null>(null);
   const [note, setNote] = useState('');
@@ -326,6 +334,9 @@ function DoIt({ inst, big, online, onSent, onStale }: {
       if (err.code === 'wrong_status') {
         setError('This task was already handled.');
         onStale();
+      } else if (err.code === 'feature_off') {
+        setError(friendlyError(e));
+        void refresh().catch(() => undefined);
       } else if (err.code === 'invalid' && err.detail === 'photo_required') {
         setError('Add a photo to finish.');
       } else if (err.code === 'invalid' && err.detail === 'evidence_required') {
@@ -374,7 +385,7 @@ function DoIt({ inst, big, online, onSent, onStale }: {
 interface Step { key: string; emoji: string; text: ReactNode; when?: string | null; note?: string | null; extra?: ReactNode }
 
 function Timeline({ inst, big }: { inst: TaskInstance; big?: boolean }) {
-  const { me, nameOf, tz, now, currency, isKid } = useTaskCtx();
+  const { me, nameOf, tz, now, isKid, rewardsOf, penaltiesOf } = useTaskCtx();
   const nowDate = now();
   const meId = me?.id;
   const person = (id: string | null) => (id === meId ? 'you' : nameOf(id));
@@ -393,19 +404,19 @@ function Timeline({ inst, big }: { inst: TaskInstance; big?: boolean }) {
     });
   }
   if (inst.status === 'approved') {
-    const paid = rewardParts(inst, currency);
+    const paid = rewardsOf(inst);
     steps.push({
       key: 'ok', emoji: '✅', text: isKid ? `Done! Checked by ${person(inst.decided_by)}` : `Approved by ${person(inst.decided_by)}`, when: inst.decided_at, note: inst.decision_note,
       extra: paid.length ? <div className="flex flex-wrap gap-1.5">{paid.map((p) => <AmountPill key={p.key} part={p} tone="plus" />)}</div> : null,
     });
   } else if (inst.status === 'missed') {
-    const lost = penaltyParts(inst, currency);
+    const lost = penaltiesOf(inst);
     steps.push({
       key: 'missed', emoji: '⏰', text: lost.length ? `Not done in time — ${lost.map((p) => p.text).join(' ')}` : 'Not done in time',
       when: inst.due_at,
     });
   } else if (inst.status === 'excused') {
-    const had = penaltyParts(inst, currency).length > 0;
+    const had = penaltiesOf(inst).length > 0;
     steps.push({
       key: 'excused', emoji: '🤝', text: `Excused by ${person(inst.decided_by)}${had ? ' — nothing taken away' : ''}`,
       when: inst.decided_at, note: inst.decision_note,

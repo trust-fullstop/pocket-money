@@ -34,10 +34,14 @@ export const MINUS = '−';
 /** One reward/consequence piece: visible chip text, words for screen readers, and prose for sentences. */
 export interface Part { key: string; emoji: string; text: string; sr: string; prose: string }
 
-type RewardFields = Pick<TaskInstance, 'reward_cents' | 'reward_minutes' | 'reward_points' | 'reward_text' | 'time_label'>;
-type PenaltyFields = Pick<TaskInstance, 'penalty_cents' | 'penalty_minutes' | 'penalty_points' | 'time_label'>;
+export type RewardFields = Pick<TaskInstance, 'reward_cents' | 'reward_minutes' | 'reward_points' | 'reward_text' | 'time_label'>;
+export type PenaltyFields = Pick<TaskInstance, 'penalty_cents' | 'penalty_minutes' | 'penalty_points' | 'time_label'>;
 
-export function rewardParts(t: RewardFields, currency: string): Part[] {
+/** Which amount kinds the family uses (feature switches `time` and `points`; money is always on). */
+export interface Shown { time: boolean; points: boolean }
+const SHOW_ALL: Shown = { time: true, points: true };
+
+export function rewardParts(t: RewardFields, currency: string, shown: Shown = SHOW_ALL): Part[] {
   const out: Part[] = [];
   if (t.reward_cents > 0) {
     out.push({
@@ -45,14 +49,14 @@ export function rewardParts(t: RewardFields, currency: string): Part[] {
       sr: `plus ${money(t.reward_cents, currency)}`, prose: money(t.reward_cents, currency, { sign: true, whole: true }),
     });
   }
-  if (t.reward_minutes > 0) {
+  if (shown.time && t.reward_minutes > 0) {
     const l = timeLabelOf(t.time_label);
     out.push({
       key: 'time', emoji: l.emoji, text: `${fmtMinutes(t.reward_minutes, { sign: true })} ${l.label}`,
       sr: `plus ${fmtMinutes(t.reward_minutes)} ${l.long}`, prose: `${fmtMinutes(t.reward_minutes, { sign: true })} ${l.long}`,
     });
   }
-  if (t.reward_points > 0) {
+  if (shown.points && t.reward_points > 0) {
     out.push({
       key: 'points', emoji: '✨', text: fmtPoints(t.reward_points, { sign: true }),
       sr: `plus ${t.reward_points} points`, prose: `+${t.reward_points} ${t.reward_points === 1 ? 'point' : 'points'}`,
@@ -64,7 +68,7 @@ export function rewardParts(t: RewardFields, currency: string): Part[] {
   return out;
 }
 
-export function penaltyParts(t: PenaltyFields, currency: string): Part[] {
+export function penaltyParts(t: PenaltyFields, currency: string, shown: Shown = SHOW_ALL): Part[] {
   const out: Part[] = [];
   if (t.penalty_cents > 0) {
     out.push({
@@ -72,14 +76,14 @@ export function penaltyParts(t: PenaltyFields, currency: string): Part[] {
       sr: `minus ${money(t.penalty_cents, currency)}`, prose: money(-t.penalty_cents, currency, { sign: true, whole: true }),
     });
   }
-  if (t.penalty_minutes > 0) {
+  if (shown.time && t.penalty_minutes > 0) {
     const l = timeLabelOf(t.time_label);
     out.push({
       key: 'time', emoji: l.emoji, text: `${fmtMinutes(-t.penalty_minutes)} ${l.label}`,
       sr: `minus ${fmtMinutes(t.penalty_minutes)} ${l.long}`, prose: `${fmtMinutes(-t.penalty_minutes)} ${l.long}`,
     });
   }
-  if (t.penalty_points > 0) {
+  if (shown.points && t.penalty_points > 0) {
     out.push({
       key: 'points', emoji: '✨', text: fmtPoints(-t.penalty_points),
       sr: `minus ${t.penalty_points} points`, prose: `${MINUS}${t.penalty_points} ${t.penalty_points === 1 ? 'point' : 'points'}`,
@@ -174,6 +178,45 @@ export function repeatText(repeat: Repeat, days: number[], startOn: string, tz: 
     case 'weekly': return `Every ${DAY_LONG[isoWeekday(startOn) - 1]}`;
     case 'days': return days.length ? `Every ${joinWords([...days].sort((a, b) => a - b).map((d) => DAY_SHORT[d - 1]))}` : 'On chosen days';
   }
+}
+
+/** The repeat rule of a task (same fields on Task and in the form). */
+export interface RepeatRule { repeat: Repeat; repeat_days: number[]; start_on: string; end_on: string | null; due_time: string }
+
+/** Same rule as the server's app.task_occurs(). */
+export function occursOn(r: RepeatRule, date: string): boolean {
+  if (date < r.start_on || (r.end_on && date > r.end_on)) return false;
+  const wd = isoWeekday(date);
+  switch (r.repeat) {
+    case 'once': return date === r.start_on;
+    case 'daily': return true;
+    case 'weekdays': return wd <= 5;
+    case 'weekly': return wd === isoWeekday(r.start_on);
+    case 'days': return r.repeat_days.includes(wd);
+  }
+}
+
+/** The next day it is due (today counts until its time has passed); null when it won't come again. */
+export function nextDueDay(r: RepeatRule, today: string, nowHHMM: string): string | null {
+  const due = r.due_time.slice(0, 5);
+  let d = r.start_on > today ? r.start_on : today;
+  for (let n = 0; n < 8; n++, d = addDays(d, 1)) {
+    if (r.end_on && d > r.end_on) return null;
+    if (d === today && due <= nowHHMM) continue;
+    if (occursOn(r, d)) return d;
+  }
+  return null;
+}
+
+/** "Repeats every Mon, Wed and Fri at 19:00 · no end date" / "Once, tomorrow at 19:00". */
+export function repeatSummary(r: RepeatRule, today: string, tz: string, now: Date): string {
+  const at = r.due_time.slice(0, 5);
+  if (r.repeat === 'once') return `Once, ${dayWord(r.start_on, tz, now, true)} at ${at}`;
+  const pattern = repeatText(r.repeat, r.repeat_days, r.start_on, tz, now);
+  const bits = [`Repeats ${pattern.charAt(0).toLowerCase()}${pattern.slice(1)} at ${at}`];
+  if (r.start_on > today) bits.push(`starts ${dayWord(r.start_on, tz, now, true)}`);
+  bits.push(r.end_on ? `until ${dayWord(r.end_on, tz, now, true)}` : 'no end date');
+  return bits.join(' · ');
 }
 
 // ---------------------------------------------------------------- people

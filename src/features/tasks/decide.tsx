@@ -3,7 +3,7 @@ import { useId, useState } from 'react';
 import { Button, Chip, Sheet, Textarea } from '../../components/ui';
 import type { TaskInstance } from '../../lib/types';
 import { useTaskActions, useTaskCtx } from './hooks';
-import { joinWords, penaltyParts } from './lib';
+import { joinWords } from './lib';
 
 const SEND_BACK_CHIPS = ['Take a clearer photo', 'Not finished yet', 'Please try again'];
 const EXCUSE_CHIPS = ['Was ill', 'At the other home', 'Our mistake'];
@@ -74,7 +74,7 @@ export function ExcuseSheet(props: SheetProps) {
 }
 
 function ExcuseBody({ inst, onClose, onDone }: SheetProps) {
-  const { nameOf, currency } = useTaskCtx();
+  const { nameOf, penaltiesOf } = useTaskCtx();
   const actions = useTaskActions(onDone);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -89,7 +89,7 @@ function ExcuseBody({ inst, onClose, onDone }: SheetProps) {
   };
 
   const who = inst ? nameOf(inst.assignee_id) : '';
-  const back = inst?.status === 'missed' ? penaltyParts(inst, currency).map((p) => p.prose) : [];
+  const back = inst?.status === 'missed' ? penaltiesOf(inst).map((p) => p.prose) : [];
   const description = !inst ? undefined
     : back.length ? `The ${joinWords(back)} will be given back.`
     : inst.status === 'missed' ? 'It won’t count as not done.'

@@ -1,4 +1,4 @@
-// /tasks — kid: Today · Upcoming · Done; manager: By person · Approvals; grandparent: My challenges · Kids' tasks.
+// /tasks — kid: Today · Upcoming · Done; manager: By person · Repeating · Approvals; grandparent: My challenges · Kids' tasks.
 import type { ReactNode } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
 import {
@@ -11,7 +11,8 @@ import type { Member, TaskInstance } from '../../lib/types';
 import { ApprovalsList } from './Approvals';
 import { useDelayed, useFetch, useTaskCtx } from './hooks';
 import { byDueAsc, byDueDesc, byUrgency, dayWord, isActive, isFinished, joinWords, kidsFirst, weekEnd } from './lib';
-import { ChipGroup, LoadError, PersonFilter, Refreshing, SkeletonRows, TabPanel, Tabs, TaskList } from './parts';
+import { ChallengesOff, ChipGroup, LoadError, PersonFilter, Refreshing, SkeletonRows, TabPanel, Tabs, TaskList } from './parts';
+import { RepeatingList } from './Repeating';
 
 const PAST_DAYS = 14;
 const AHEAD_DAYS = 14;
@@ -26,12 +27,14 @@ export default function TasksHome() {
 }
 
 // ---------------------------------------------------------------- shared
-/** All instances from 14 days ago to 14 days ahead (the server makes them up to a week ahead). */
+/** All instances from 14 days ago to 14 days ahead (the server makes them up to a week ahead); no challenges while they're switched off. */
 function useRangeInstances() {
-  const { today, state } = useTaskCtx();
+  const { today, state, feat } = useTaskCtx();
   const from = addDays(today, -PAST_DAYS);
   const to = addDays(today, AHEAD_DAYS);
-  return useFetch(() => api.listInstances(from, to, null), ['instances', from, to], state);
+  const q = useFetch(() => api.listInstances(from, to, null), ['instances', from, to], state);
+  const data = q.data && !feat.challenges ? q.data.filter((i) => i.kind !== 'challenge') : q.data;
+  return { ...q, data };
 }
 
 /** Read/write one URL search param (history replace, so Back leaves the page). */
@@ -54,9 +57,10 @@ function Loading({ big }: { big?: boolean }) {
 
 /** Amber card "Dad did your challenge!" → the "to check" list (kids and grandparents). */
 function ChallengesToCheck({ big }: { big?: boolean }) {
-  const { approvalsCount, state, membersById } = useTaskCtx();
-  const q = useFetch(() => (approvalsCount > 0 ? api.listApprovals() : Promise.resolve([])), ['to-check', approvalsCount > 0], state);
-  if (approvalsCount <= 0) return null;
+  const { approvalsCount, state, membersById, feat } = useTaskCtx();
+  const on = feat.challenges && approvalsCount > 0;
+  const q = useFetch(() => (on ? api.listApprovals() : Promise.resolve([])), ['to-check', on], state);
+  if (!on) return null;
   const names = [...new Set((q.data ?? []).map((i) => membersById[i.assignee_id]?.display_name).filter((n): n is string => !!n))];
   const title = names.length
     ? `${joinWords(names)} did your ${approvalsCount > 1 ? 'challenges' : 'challenge'}!`
@@ -97,14 +101,14 @@ const KID_TABS = ['today', 'upcoming', 'done'] as const;
 type KidTab = (typeof KID_TABS)[number];
 
 function KidHome() {
-  const { me, today } = useTaskCtx();
+  const { me, today, feat } = useTaskCtx();
   const q = useRangeInstances();
   const [tab, setTab] = useParam<KidTab>('tab', KID_TABS, 'today');
   const meId = me?.id;
 
   const all = q.data ?? [];
   const mine = all.filter((i) => i.assignee_id === meId);
-  const setByMe = all.filter((i) => i.assignee_id !== meId && i.created_by === meId);
+  const setByMe = feat.challenges ? all.filter((i) => i.assignee_id !== meId && i.created_by === meId) : [];
   const isNow = (i: TaskInstance) => i.occurs_on === today || (i.occurs_on < today && isActive(i));
 
   const todayMine = mine.filter(isNow).sort(byUrgency);
@@ -165,7 +169,7 @@ function KidHome() {
         right={(
           <>
             <Refreshing on={q.refreshing} />
-            <LinkButton to="/tasks/new" size="sm" icon="plus">Challenge</LinkButton>
+            {feat.challenges && <LinkButton to="/tasks/new" size="sm" icon="plus">Challenge</LinkButton>}
           </>
         )}
       />
@@ -184,7 +188,7 @@ const GP_TABS = ['mine', 'kids'] as const;
 type GpTab = (typeof GP_TABS)[number];
 
 function GrandparentHome() {
-  const { me, members, today } = useTaskCtx();
+  const { me, members, today, feat } = useTaskCtx();
   const q = useRangeInstances();
   const [tab, setTab] = useParam<GpTab>('tab', GP_TABS, 'mine');
   const meId = me?.id;
@@ -195,7 +199,9 @@ function GrandparentHome() {
   const kids = kidsFirst(members.filter((m) => m.role === 'kid'));
 
   let body: ReactNode;
-  if (q.error && !q.data) body = <LoadError message={friendlyError(q.error)} onRetry={q.reload} />;
+  if (tab === 'mine' && !feat.challenges) {
+    body = <ChallengesOff action={<Button variant="secondary" onClick={() => setTab('kids')}>See the kids’ tasks</Button>} />;
+  } else if (q.error && !q.data) body = <LoadError message={friendlyError(q.error)} onRetry={q.reload} />;
   else if (!q.data) body = <Loading />;
   else if (tab === 'mine') {
     body = mineAll.length === 0
@@ -224,14 +230,14 @@ function GrandparentHome() {
         right={(
           <>
             <Refreshing on={q.refreshing} />
-            <LinkButton to="/tasks/new" size="sm" icon="plus">Challenge</LinkButton>
+            {feat.challenges && <LinkButton to="/tasks/new" size="sm" icon="plus">Challenge</LinkButton>}
           </>
         )}
       />
       <ChallengesToCheck />
       <Tabs
         idBase="tasks-gp" label="Show tasks" value={tab} onChange={setTab}
-        tabs={[{ value: 'mine', label: 'My challenges' }, { value: 'kids', label: 'Kids’ tasks' }]}
+        tabs={[{ value: 'mine', label: feat.challenges ? 'My challenges' : 'Challenges' }, { value: 'kids', label: 'Kids’ tasks' }]}
       />
       <TabPanel idBase="tasks-gp" value={tab}>{body}</TabPanel>
     </div>
@@ -239,7 +245,7 @@ function GrandparentHome() {
 }
 
 // ---------------------------------------------------------------- manager
-const M_TABS = ['person', 'approvals'] as const;
+const M_TABS = ['person', 'repeating', 'approvals'] as const;
 type MTab = (typeof M_TABS)[number];
 
 function ManagerHome() {
@@ -251,6 +257,7 @@ function ManagerHome() {
 
   let body: ReactNode;
   if (tab === 'approvals') body = <ApprovalsList />;
+  else if (tab === 'repeating') body = <RepeatingList />;
   else if (q.error && !q.data) body = <LoadError message={friendlyError(q.error)} onRetry={q.reload} />;
   else if (!q.data) body = <Loading />;
   else body = <ByPerson data={q.data} people={kidsFirst(members)} />;
@@ -270,6 +277,7 @@ function ManagerHome() {
         idBase="tasks-m" label="Show tasks" value={tab} onChange={setTab}
         tabs={[
           { value: 'person', label: 'By person' },
+          { value: 'repeating', label: 'Repeating' },
           { value: 'approvals', label: 'Approvals', count: approvalsCount, countLabel: `${approvalsCount} waiting` },
         ]}
       />
@@ -296,7 +304,7 @@ const statusFilterOf = (i: TaskInstance): StatusFilter | null =>
     : i.status === 'missed' || i.status === 'excused' ? 'notdone' : null;
 
 function ByPerson({ data, people, readOnly }: { data: TaskInstance[]; people: Member[]; readOnly?: boolean }) {
-  const { today, me } = useTaskCtx();
+  const { today, me, feat } = useTaskCtx();
   const [params, setParams] = useSearchParams();
   const update = (fn: (p: URLSearchParams) => void) => setParams((p) => { const n = new URLSearchParams(p); fn(n); return n; }, { replace: true });
 
@@ -355,7 +363,7 @@ function ByPerson({ data, people, readOnly }: { data: TaskInstance[]; people: Me
       {noTasksAtAll ? (
         <EmptyState
           emoji="📝" title="No tasks yet"
-          message={readOnly ? 'When the kids get tasks, you can see them here.' : 'Make a chore or a challenge.'}
+          message={readOnly ? 'When the kids get tasks, you can see them here.' : feat.challenges ? 'Make a chore or a challenge.' : 'Make a chore — it can repeat by itself.'}
           action={readOnly ? undefined : <LinkButton to="/tasks/new" icon="plus">New</LinkButton>}
         />
       ) : groups.length === 0 ? (
