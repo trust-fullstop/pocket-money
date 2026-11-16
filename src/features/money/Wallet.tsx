@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
-  Avatar, Button, Card, EmptyState, IconButton, LinkButton, ListRow, PageHeader, Sheet, cx,
+  Avatar, Button, Card, EmptyState, FxNote, IconButton, LinkButton, ListRow, PageHeader, Sheet, cx,
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
@@ -12,6 +12,7 @@ import { useApp } from '../../lib/session';
 import type { Member } from '../../lib/types';
 import { AllowanceSheet } from './AllowanceEditor';
 import { BankCard } from './Bank';
+import { FxCard, type FxRow } from './Fx';
 import { GoalsSection } from './Goals';
 import { HISTORY_PAGE, HistorySection } from './History';
 import { useData, useDelayed } from './moneyUtils';
@@ -108,6 +109,11 @@ export function WalletPage() {
   const allowance = member.allowance_cents ?? 0;
   const canEditGoals = self || (isManager && kidWallet);
   const spotHref = `/money/spot?member=${memberId}`;
+  const fxRows: FxRow[] = [
+    ...(on.allowance && allowance > 0 ? [{ label: 'Pocket money', cents: allowance }] : []),
+    ...(b.spending > 0 ? [{ label: 'Spending', cents: b.spending }] : []),
+    ...(on.savings && b.savings > 0 ? [{ label: 'Savings', cents: b.savings }] : []),
+  ];
 
   // Actions by role (UX §3.2 step 4), minus the ones whose part is switched off.
   const moveSheet = () => setSheet('move');
@@ -161,7 +167,7 @@ export function WalletPage() {
         <p className="flex items-center gap-2 px-1 text-[15px] text-muted">
           <span aria-hidden="true">💰</span>
           {allowance > 0
-            ? <span>Pocket money: <strong className="text-ink">{money(allowance, cur)}</strong> {allowanceSchedule(member.allowance_period, member.allowance_day)}</span>
+            ? <span>Pocket money: <strong className="text-ink">{money(allowance, cur)}</strong> {allowanceSchedule(member.allowance_period, member.allowance_day)} <FxNote cents={allowance} currency={cur} /></span>
             : <span>No pocket money yet.</span>}
           {managerOfKid && <button type="button" onClick={() => setSheet('allowance')} className="min-h-11 font-semibold text-accent-ink underline underline-offset-2">{allowance > 0 ? 'Change' : 'Set it'}</button>}
         </p>
@@ -200,6 +206,8 @@ export function WalletPage() {
           <span aria-hidden="true">📨</span> My requests — what the grown-ups said
         </LinkButton>
       ) : null}
+
+      {kidWallet && <FxCard rows={fxRows} />}
 
       {on.bank && (kidWallet || self) && (
         <BankCard memberId={memberId} self={self} name={name} canEdit={self || managerOfKid} cur={cur} onFeatureOff={changed} />

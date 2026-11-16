@@ -10,6 +10,7 @@ export { ToastProvider, UIProvider } from './Toast';
 export { useToast, useConfirm, type ToastTone, type ConfirmOptions } from './context';
 export { Field, FieldFor, Input, Select, Textarea, type FieldProps, type InputProps, type SelectProps, type SelectOption, type TextareaProps, type A11yProps } from './Field';
 export { AmountInput, type AmountInputProps, type AmountKind } from './AmountInput';
+export { FxNote, type FxNoteProps } from './FxNote';
 export { Segmented, type SegmentedProps, type SegmentedOption } from './Segmented';
 export { Chip, Badge, CountBadge, type ChipProps, type BadgeTone } from './Chip';
 export { Avatar, type AvatarProps, type AvatarSize } from './Avatar';

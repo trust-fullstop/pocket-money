@@ -166,7 +166,7 @@ export function AskSpendSheet({ balances, cur, onClose, onChanged }: BaseProps) 
     >
       <div className="space-y-4">
         <Input label="What do you want to buy?" value={label} maxLength={60} placeholder="Lego set" onChange={(e) => setLabel(e.target.value)} error={labelErr} autoComplete="off" />
-        <AmountInput kind="money" label="It costs" value={cents} onChange={setCents} max={10_000_000} error={amountErr} />
+        <AmountInput kind="money" label="It costs" value={cents} onChange={setCents} max={10_000_000} error={amountErr} fxEntry />
         <OverLine text={overText} />
         <Textarea label="Why?" optional rows={2} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
         <p className="text-[14px] text-muted">A grown-up says yes or no. If yes, it comes off your Spending and they pay in real life.</p>
@@ -218,7 +218,7 @@ export function WithdrawSheet({ balances, cur, onClose, onChanged }: BaseProps) 
       }
     >
       <div className="space-y-4">
-        <AmountInput kind="money" label={`How much? (you have ${money(have, cur)})`} value={cents} onChange={setCents} max={10_000_000} error={amountErr} />
+        <AmountInput kind="money" label={`How much? (you have ${money(have, cur)})`} value={cents} onChange={setCents} max={10_000_000} error={amountErr} fxEntry />
         <OverLine text={overText} />
         <Input label="What for?" optional value={label} maxLength={60} placeholder="A new bike" onChange={(e) => setLabel(e.target.value)} autoComplete="off" />
         <Textarea label="Anything else?" optional rows={2} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />

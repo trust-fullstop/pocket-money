@@ -8,6 +8,7 @@ import { backend } from '../../lib/backend';
 import { friendlyError, toAppError } from '../../lib/errors';
 import { useFeatures } from '../../lib/features';
 import { money, timeAgo } from '../../lib/format';
+import { currencyWord, spendCurrencyOf } from '../../lib/fx';
 import { useApp, useLoad } from '../../lib/session';
 import type { Evidence, Family, FamilySettings } from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
@@ -28,7 +29,7 @@ function timeZones(current: string): string[] {
 }
 
 interface Draft {
-  name: string; currency: string; timezone: string;
+  name: string; currency: string; timezone: string; spendCurrency: string;
   interest: string; saverBonus: string; noSavingsPenalty: string;
   lateGrace: string; challengeCap: string; catchup: string;
   gpMoney: boolean; managersAddAdults: boolean; emergency: FamilySettings['emergency_visibility']; evidence: Evidence;
@@ -39,6 +40,7 @@ const draftFrom = (f: Family): Draft => ({
   name: f.name,
   currency: f.currency,
   timezone: f.timezone,
+  spendCurrency: spendCurrencyOf(f) ?? '',
   interest: String(f.settings.interest_pct_month ?? 0),
   saverBonus: String(f.settings.saver_bonus_points ?? 0),
   noSavingsPenalty: String(f.settings.no_savings_penalty_points ?? 0),
@@ -117,6 +119,9 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
     if (d.managersAddAdults !== !!fs.managers_add_adults) s.managers_add_adults = d.managersAddAdults;
     if (d.emergency !== fs.emergency_visibility) s.emergency_visibility = d.emergency;
     if (d.evidence !== fs.default_evidence) s.default_evidence = d.evidence;
+    // "Same as the family currency" (or the same code) = off
+    const spend = d.spendCurrency && d.spendCurrency !== d.currency ? d.spendCurrency : null;
+    if (spend !== (spendCurrencyOf(family) ?? null) || (spend === null && fs.spend_currency)) s.spend_currency = spend;
     if (Object.keys(s).length) p.settings = s;
     return p;
   }, [d, family, interest, saverBonus, penalty, cap, catchup, interestErr, saverErr, penaltyErr, capErr, catchupErr]);
@@ -188,13 +193,28 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
           <Select
             label="Currency"
             value={d.currency}
-            onChange={(e) => set({ currency: e.target.value })}
+            onChange={(e) => set({ currency: e.target.value, ...(e.target.value === d.spendCurrency ? { spendCurrency: '' } : {}) })}
             options={[
               ...CURRENCIES.map((c) => ({ value: c.code, label: c.label })),
               ...(CURRENCIES.some((c) => c.code === family.currency) ? [] : [{ value: family.currency, label: family.currency }]),
             ]}
             hint={d.currency !== family.currency ? 'Existing amounts keep their numbers — only the symbol changes.' : undefined}
             error={serverErr.currency}
+          />
+          <Select
+            label="Also show money in"
+            value={d.spendCurrency && d.spendCurrency !== d.currency ? d.spendCurrency : ''}
+            onChange={(e) => set({ spendCurrency: e.target.value })}
+            options={[
+              { value: '', label: 'Nothing else' },
+              ...CURRENCIES.filter((c) => c.code !== d.currency).map((c) => ({ value: c.code, label: c.label })),
+              ...(d.spendCurrency && d.spendCurrency !== d.currency && !CURRENCIES.some((c) => c.code === d.spendCurrency)
+                ? [{ value: d.spendCurrency, label: d.spendCurrency }] : []),
+            ]}
+            hint={d.spendCurrency && d.spendCurrency !== d.currency
+              ? `Money amounts also show what they’re worth in ${currencyWord(d.spendCurrency)} at today’s rate. The app keeps counting in ${currencyWord(d.currency)}.`
+              : 'Pick a second currency, e.g. when you pay in euro and the kids buy things in rand. The app then shows today’s exchange rate.'}
+            error={serverErr.spend_currency}
           />
           <Select
             label="Time zone"

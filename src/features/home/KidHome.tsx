@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Avatar, Card, EmptyState, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
+import { Avatar, Card, EmptyState, FxNote, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures, type FeatureApi } from '../../lib/features';
 import { minutes, money, plural, points } from '../../lib/format';
@@ -147,13 +147,17 @@ function BalanceTiles({ meId, b, currency, features }: { meId: string; b: Balanc
         <Stat
           label={<><span aria-hidden="true">👛</span> {owes ? 'Owes' : 'Spending'}</>}
           value={<>{money(owes ? -b.spending : b.spending, currency)}{owes && <span aria-hidden="true"> ⚠️</span>}</>}
+          sub={b.spending !== 0 ? <FxNote cents={Math.abs(b.spending)} currency={currency} /> : undefined}
           tone={owes ? 'warn' : undefined}
           className="[&_.text-2xl]:text-xl"
         />
       </Link>
       {savings && (
         <Link to={`/money/${meId}`} className={tile}>
-          <Stat label={<><span aria-hidden="true">🐷</span> Savings</>} value={money(b.savings, currency)} className="[&_.text-2xl]:text-xl" />
+          <Stat
+            label={<><span aria-hidden="true">🐷</span> Savings</>} value={money(b.savings, currency)} className="[&_.text-2xl]:text-xl"
+            sub={b.savings !== 0 ? <FxNote cents={Math.abs(b.savings)} currency={currency} /> : undefined}
+          />
         </Link>
       )}
       {time && (
@@ -290,6 +294,7 @@ function GoalCard({ wallet, meId, currency }: { wallet: LoadResult<Wallet>; meId
         />
         <p className="mt-2 text-[15px]">
           <span className="font-semibold tabular-nums">{money(saved, currency)} of {money(goal.target_cents, currency)}</span>
+          {' '}<FxNote cents={goal.target_cents} currency={currency} />
           <span className="text-muted"> · {eta}</span>
         </p>
       </Link>

@@ -1,7 +1,7 @@
 // Pocket money for a kid (managers): amount, every week / every month, pay day and a live preview of the first
 // payment. Used from the wallet (Money → kid) and from Family → kid → Pocket money.
 import { useId, useState } from 'react';
-import { AmountInput, Button, Chip, Segmented, Select, Sheet, useToast } from '../../components/ui';
+import { AmountInput, Button, Chip, FxNote, Segmented, Select, Sheet, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
 import { addDays, allowanceSchedule, dateInTz, formatDay, money, nextPayDate, ordinal, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
@@ -121,7 +121,7 @@ export function AllowanceSheet({ member, onClose, onSaved }: AllowanceSheetProps
       <div className="space-y-5">
         <AmountInput
           kind="money" label="How much?" value={cents} onChange={(c) => pick(() => setCents(c))}
-          max={MAX_CENTS} chips={CHIPS[period]} hint="Leave empty or 0 to stop it."
+          max={MAX_CENTS} chips={CHIPS[period]} hint="Leave empty or 0 to stop it." fxEntry
         />
 
         <div className="space-y-2">
@@ -157,7 +157,7 @@ export function AllowanceSheet({ member, onClose, onSaved }: AllowanceSheetProps
         <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-[15px]" aria-live="polite">
           {v > 0 ? (
             <>
-              {name} gets <strong className="text-good">{money(v, cur)}</strong> {schedule}
+              {name} gets <strong className="text-good">{money(v, cur)}</strong> <FxNote cents={v} currency={cur} suffix="today" /> {schedule}
               {' · '}{changed ? 'first' : 'next'} payment <strong>{firstWords}</strong>
             </>
           ) : savedCents > 0 ? (

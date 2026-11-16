@@ -194,6 +194,16 @@ export const FAQ: FaqEntry[] = [
     feature: 'bank',
   },
   {
+    id: 'exchange',
+    q: 'How much is my money in rand?',
+    en: 'The app counts in one currency, but money can come in euro and the shop can be in rand. 💱 When a parent picks “Also show money in” (Family rules), Money shows today’s rate, like €1 = R 18.66, and the other currency next to your money (“≈ R 373”). There’s a calculator in your wallet, and when you ask to spend or set a goal you can type in the other currency. Banks and Revolut use their own rate, so the shop can be a little different.',
+    nl: 'De app rekent in één munt, maar geld kan in euro komen en de winkel kan in rand zijn. 💱 Als een ouder “Also show money in” kiest (Family rules), laat Money de koers van vandaag zien, zoals €1 = R 18,66, en de andere munt naast je geld (“≈ R 373”). In je portemonnee staat een rekenmachine, en als je vraagt om iets te kopen of een doel maakt kun je in de andere munt typen. Banken en Revolut gebruiken hun eigen koers, dus in de winkel kan het een beetje anders zijn.',
+    keys: [
+      '*rand', '*rands', '*exchange', '*exchange rate', '*wisselkoers', '*koers', '*zar', 'convert', 'omrekenen', 'south africa',
+      'south african', 'zuid afrika', 'currency', 'valuta', 'in rand', 'how much in', 'hoeveel in', 'euro to rand', 'euro naar rand',
+    ],
+  },
+  {
     id: 'earn',
     q: 'How can I earn more?',
     en: 'Do your tasks on time, with a good photo. ✅ Ask a parent if there’s an extra job you can do. Take on challenges, and keep some money in Savings so it can grow. Look at “This week” in Money: it shows what you can still earn.',

@@ -64,7 +64,8 @@ export interface FamilySettings {
   emergency_visibility: 'family' | 'adults';
   catchup_days: number;
   default_evidence: Evidence;
-  features: Features;             // which parts of the app are switched on (parent admin → Features)
+  spend_currency: string | null;  // currency the kids spend in (e.g. 'ZAR'); null = same as the family currency
+  features: Features;              // which parts of the app are switched on (parent admin → Features)
 }
 
 /** Parts of the app a parent can switch on/off. Chores + the spending pot are always on (the core). */
@@ -114,7 +115,7 @@ export interface AskEntry {
 
 /** A real bank-account balance typed in by a parent or the kid (information only, not part of the app ledger). */
 export interface BankBalance {
-  id: string; member_id: string; label: string; amount_cents: number; as_of: string; note: string | null;
+  id: string; member_id: string; label: string; amount_cents: number; currency: string; as_of: string; note: string | null;
   created_by: string | null; created_at: string; can_delete: boolean;
 }
 

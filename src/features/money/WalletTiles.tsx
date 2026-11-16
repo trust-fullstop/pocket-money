@@ -1,7 +1,7 @@
 // Balance tiles: Spending 👛 · Savings 🐷 · Time ⏱️ · Points ✨. Self-contained, reusable (Home, Family…).
 // A negative spending balance reads "Owes €1.50" with ⚠️ in the warning style — never a bare red minus.
 // Tiles whose part is switched off (Family → Features) are left out; the grid adapts to 1–4 tiles.
-import { cx } from '../../components/ui';
+import { FxNote, cx } from '../../components/ui';
 import { useFeatures } from '../../lib/features';
 import { minutes, money, points } from '../../lib/format';
 import type { Balances, FeatureKey } from '../../lib/types';
@@ -73,6 +73,9 @@ export function WalletTiles({ balances, currency, show = ['spending', 'savings',
             >
               {balanceText(k, v, currency)}
             </div>
+            {(k === 'spending' || k === 'savings') && v !== 0 && (
+              <FxNote cents={Math.abs(v)} currency={currency} className={cx('block truncate', compact ? 'text-[12px]' : 'text-[14px]')} />
+            )}
           </li>
         );
       })}

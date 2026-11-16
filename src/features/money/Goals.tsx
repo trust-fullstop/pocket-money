@@ -166,7 +166,7 @@ export function GoalSheet({ goal, memberId, self, name, onClose, onChanged }: {
           placeholder="A new bike" onChange={(e) => setTitle(e.target.value)} error={titleErr} autoComplete="off"
         />
         <EmojiGrid label="Pick a picture" options={emojis} value={emoji} onChange={setEmoji} />
-        <AmountInput kind="money" label="It costs" value={target} onChange={setTarget} max={10_000_000} error={targetErr} />
+        <AmountInput kind="money" label="It costs" value={target} onChange={setTarget} max={10_000_000} error={targetErr} fxEntry />
         {error && <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{error}</p>}
         {goal && (
           <Button variant="ghost" icon="trash" className="text-bad" loading={busy === 'archive'} disabled={busy === 'save'} onClick={archive}>

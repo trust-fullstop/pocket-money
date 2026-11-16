@@ -57,6 +57,7 @@ The app nudges unsecured accounts ("Secure your account so you don't lose your m
 - Money is virtual: a ledger. Parents pay out real cash or transfers when a spend request is approved.
 - Balances are never typed in. Every change is a ledger row with a readable reason, who did it and when.
 - A negative spending balance shows as **"owes"** (for example, "Sam owes €1.50").
+- **A second currency** (Family rules → "Also show money in", e.g. Dad pays in EUR and the kids in South Africa buy in rand, or the family counts in rand and Dad thinks in euro). The ledger stays in the family currency. The app shows "≈ R 373" next to money, a "💱 Euro and rand" card in the wallet (today's rate, pocket money / spending / savings converted, a two-way calculator), and "Type in R" / "Type in €" for pocket money, spend and savings requests and goals (stored in the family currency at today's rate, frozen while typing). Rates: ECB reference rates via Frankfurter (free, no key), fallback open.er-api.com, fetched by the device and cached for 6 hours; no family data is sent. Real bank balances remember their own currency.
 
 ## 5. Features
 
@@ -196,7 +197,8 @@ Free-tier watch-outs:
 | Google sign-in | v1 | Supabase Google provider. You create a free Google OAuth client once |
 | Life360 | v1 link only | No public API. The profile stores the person's Life360 link or name and opens the Life360 app |
 | Wi-Fi device scan | Future | Browsers cannot scan networks. Option A: a home agent script on an always-on PC posts the ARP table to the app. Option B: the router API |
-| Revolut | Future | Revolut has no personal API. Open-banking aggregators (for example GoCardless Bank Account Data or Enable Banking) can read balances with consent, but junior/teen accounts may not be exposed, so check this first. v1 keeps a manual note |
+| Revolut | Future | Revolut has no personal API. Open-banking aggregators (for example GoCardless Bank Account Data or Enable Banking) can read balances with consent, but junior/teen accounts may not be exposed, so check this first. v1: the balance is typed in (Real bank account card, in EUR or rand) |
+| Exchange rates | v1 | ECB reference rates via api.frankfurter.dev (v2), fallback open.er-api.com. Both free, no key, CORS open. Display only |
 | Push notifications | Phase 5 | Web Push works on Android, and on iPhone only when the app is added to the home screen (iOS 16.4+) |
 
 ## 10. Privacy and safety

@@ -48,7 +48,8 @@ begin
   perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('features',
     jsonb_build_object('challenges', true, 'spotted', true, 'allowance', true, 'requests', true, 'savings', true,
       'interest', true, 'saver_rules', true, 'goals', true, 'targets', true, 'time', true, 'points', true,
-      'calendar', true, 'emergency', true, 'devices', true, 'ask', true))));
+      'calendar', true, 'emergency', true, 'devices', true, 'ask', true),
+    'spend_currency', 'ZAR')));  -- the demo kids spend in rand: shows today's EUR → ZAR rate
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
   anna := (public.add_member(p_name => 'Anna', p_role => 'step_parent', p_avatar => '👩‍🦰', p_relation => 'Bonus mum')->>'member_id')::uuid;

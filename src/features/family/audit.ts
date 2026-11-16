@@ -20,6 +20,7 @@ export const SETTING_LABEL: Record<string, string> = {
   catchup_days: 'catch-up days',
   default_evidence: 'default proof',
   features: 'features',
+  spend_currency: 'kids’ spending currency',
 };
 
 const MEMBER_FIELD: Record<string, string> = {

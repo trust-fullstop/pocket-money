@@ -92,8 +92,8 @@ export const api = {
   // ---- real bank balance (information only) ----
   listBankBalances: (memberId: string, limit = 20) => rpc<BankBalance[]>('list_bank_balances', { p_member: memberId, p_limit: limit }),
   /** label e.g. "Revolut"; asOf YYYY-MM-DD (default today); amount may be negative (overdrawn). */
-  setBankBalance: (memberId: string, amountCents: number, label?: string | null, asOf?: string | null, note?: string | null) =>
-    rpc<BankBalance>('set_bank_balance', { p_member: memberId, p_amount_cents: amountCents, p_label: label ?? null, p_as_of: asOf ?? null, p_note: note ?? null }),
+  setBankBalance: (memberId: string, amountCents: number, label?: string | null, asOf?: string | null, note?: string | null, currency?: string | null) =>
+    rpc<BankBalance>('set_bank_balance', { p_member: memberId, p_amount_cents: amountCents, p_label: label ?? null, p_as_of: asOf ?? null, p_note: note ?? null, p_currency: currency ?? null }),
   deleteBankBalance: (id: string) => rpc<Ok>('delete_bank_balance', { p_id: id }),
 
   // ---- ask (AI helper) ----
