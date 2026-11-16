@@ -7,11 +7,12 @@ import {
   useConfirm, useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { minutes, money, points } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Target, TargetMetric, TimeLabel } from '../../lib/types';
-import { clip, isStale, moneyError, useData } from './moneyUtils';
-import { CardTitle, LoadFailed, NotForYou, SheetActions } from './parts';
+import { clip, isFeatureOff, isStale, moneyError, useData } from './moneyUtils';
+import { CardTitle, FeatureOff, LoadFailed, NotForYou, SheetActions } from './parts';
 import { TIME_LABELS, timeLabelWords } from './txMeta';
 
 const METRICS: { value: TargetMetric; label: string }[] = [
@@ -147,6 +148,7 @@ export function TargetsPage() {
 
   if (w.loading) return <PageSpinner />;
   if (w.code === 'not_allowed') return <NotForYou />;
+  if (w.code === 'feature_off') return <FeatureOff feature="targets" />;
   if (!w.data) {
     return (
       <div className="space-y-4">
@@ -189,11 +191,16 @@ function TargetSheet({ target, memberId, name, cur, onClose, onChanged }: {
 }) {
   const toast = useToast();
   const confirm = useConfirm();
+  const features = useFeatures();
   const [d, setD] = useState<Draft>(() => toDraft(target));
   const [tried, setTried] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'save' | 'archive' | null>(null);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => { setD((x) => ({ ...x, [k]: v })); setError(null); };
+  // Switched-off parts are hidden, unless this target already uses them (so a parent can see and clear it).
+  const showTime = features.on('time') || (target?.prize_minutes ?? 0) > 0;
+  const showPoints = features.on('points') || (target?.prize_points ?? 0) > 0 || target?.metric === 'points_earned';
+  const metrics = METRICS.filter((x) => x.value !== 'points_earned' || showPoints);
 
   const titleErr = tried && !d.title.trim() ? 'Give it a short name.' : undefined;
   const thresholdOk = (d.threshold ?? 0) > 0 && (d.metric !== 'completion_pct' || (d.threshold ?? 0) <= 100);
@@ -217,7 +224,9 @@ function TargetSheet({ target, memberId, name, cur, onClose, onChanged }: {
       await onChanged();
       onClose();
     } catch (e) {
-      setError(moneyError(e));
+      const msg = moneyError(e);
+      setError(msg);
+      if (isFeatureOff(e)) toast.show(msg, 'error');
       if (isStale(e)) await onChanged();
     } finally {
       setBusy(null);
@@ -237,7 +246,9 @@ function TargetSheet({ target, memberId, name, cur, onClose, onChanged }: {
       await onChanged();
       onClose();
     } catch (e) {
-      setError(moneyError(e));
+      const msg = moneyError(e);
+      setError(msg);
+      if (isFeatureOff(e)) { toast.show(msg, 'error'); await onChanged(); }
     } finally {
       setBusy(null);
     }
@@ -258,7 +269,7 @@ function TargetSheet({ target, memberId, name, cur, onClose, onChanged }: {
           label="How long" value={d.period} onChange={(v) => set('period', v)}
           options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]}
         />
-        <Select label="Goal" value={d.metric} options={METRICS} onChange={(e) => pickMetric(e.target.value as TargetMetric)} />
+        <Select label="Goal" value={d.metric} options={metrics} onChange={(e) => pickMetric(e.target.value as TargetMetric)} />
         {d.metric === 'completion_pct' ? (
           <Input
             label="How much of the tasks" type="text" inputMode="numeric" suffix="%" value={d.threshold == null ? '' : String(d.threshold)}
@@ -274,14 +285,14 @@ function TargetSheet({ target, memberId, name, cur, onClose, onChanged }: {
         <fieldset className="space-y-3 rounded-2xl border border-line/70 p-3">
           <legend className="px-1 text-[15px] font-bold"><span aria-hidden="true">🎁 </span>Prize</legend>
           <AmountInput kind="money" label="Money" optional value={d.prize_cents} onChange={(v) => set('prize_cents', v)} max={100_000} chips={[100, 200, 500]} />
-          <AmountInput kind="time" label="Time" optional value={d.prize_minutes} onChange={(v) => set('prize_minutes', v)} max={1440} />
-          {(d.prize_minutes ?? 0) > 0 && (
+          {showTime && <AmountInput kind="time" label="Time" optional value={d.prize_minutes} onChange={(v) => set('prize_minutes', v)} max={1440} />}
+          {showTime && (d.prize_minutes ?? 0) > 0 && (
             <Segmented<TimeLabel>
               label="Kind of time" value={d.time_label} onChange={(v) => set('time_label', v)}
               options={(Object.keys(TIME_LABELS) as TimeLabel[]).map((k) => ({ value: k, label: `${TIME_LABELS[k].emoji} ${TIME_LABELS[k].label}` }))}
             />
           )}
-          <AmountInput kind="points" label="Points" optional value={d.prize_points} onChange={(v) => set('prize_points', v)} max={10_000} chips={[5, 10, 20]} />
+          {showPoints && <AmountInput kind="points" label="Points" optional value={d.prize_points} onChange={(v) => set('prize_points', v)} max={10_000} chips={[5, 10, 20]} />}
           <Input label="Or in words" optional value={d.prize_text} maxLength={120} placeholder="Pick the film on Friday" onChange={(e) => set('prize_text', e.target.value)} />
         </fieldset>
 

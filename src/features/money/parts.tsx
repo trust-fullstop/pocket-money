@@ -1,12 +1,59 @@
 // Small shared building blocks for the Money screens (components only; helpers live in moneyUtils.ts).
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Card, EmptyState, LinkButton, ProgressBar, Sheet, cx } from '../../components/ui';
+import { useParams } from 'react-router';
+import { Button, Card, EmptyState, LinkButton, PageHeader, ProgressBar, Sheet, cx } from '../../components/ui';
+import { useFeatures } from '../../lib/features';
 import { amount } from '../../lib/format';
 import { usePhotoUrl } from '../../lib/photos';
+import { useApp } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
-import type { Currency, Member } from '../../lib/types';
+import { FEATURE_NEEDS, type Currency, type FeatureKey, type Member } from '../../lib/types';
 import { deltaWords, pointsWords } from './moneyUtils';
 import { TONE_TEXT, type TxTone } from './txMeta';
+
+/** Page copy for the Money parts that have their own route. */
+const OFF_COPY: Partial<Record<FeatureKey, { emoji: string; title: string; headline: string }>> = {
+  spotted: { emoji: '📸', title: 'Spotted 📸', headline: 'Spotted is switched off' },
+  requests: { emoji: '📨', title: 'Requests', headline: 'Requests are switched off' },
+  goals: { emoji: '🎯', title: 'Goals', headline: 'Savings goals are switched off' },
+  targets: { emoji: '🏆', title: 'Targets', headline: 'Targets are switched off' },
+};
+const FEATURE_NAME: Partial<Record<FeatureKey, string>> = { savings: 'Savings' };
+
+/** Friendly page for a part of Money that is switched off in Family → Features (also used on a `feature_off` answer). */
+export function FeatureOff({ feature }: { feature: FeatureKey }) {
+  const { memberId } = useParams();
+  const { me, isManager } = useApp();
+  const features = useFeatures();
+  const gift = feature === 'spotted' && me?.role === 'grandparent';
+  const copy = OFF_COPY[feature] ?? { emoji: '💤', title: 'Money', headline: 'This part is switched off' };
+  const back = memberId ? `/money/${memberId}` : '/money';
+  const need = FEATURE_NEEDS[feature];
+  const needText = need && !features.on(need) ? ` It needs ${FEATURE_NAME[need] ?? need} switched on too.` : '';
+  return (
+    <div className="space-y-4">
+      <PageHeader title={gift ? 'Send a gift 🎁' : copy.title} back={back} />
+      <Card>
+        <EmptyState
+          emoji={gift ? '🎁' : copy.emoji}
+          title={gift ? 'Gifts are switched off' : copy.headline}
+          message={isManager
+            ? `You can switch it on in Family → Features whenever your family is ready.${needText}`
+            : 'A parent can switch it on later.'}
+          action={isManager
+            ? <LinkButton to="/family/features" icon="settings">Family features</LinkButton>
+            : <LinkButton to={back} variant="secondary" icon="back">{memberId ? 'Back to the wallet' : 'Back to Money'}</LinkButton>}
+        />
+      </Card>
+    </div>
+  );
+}
+
+/** Renders `children` only when `feature` is switched on; otherwise the friendly switched-off page. */
+export function FeatureGate({ feature, children }: { feature: FeatureKey; children: ReactNode }) {
+  const features = useFeatures();
+  return features.on(feature) ? <>{children}</> : <FeatureOff feature={feature} />;
+}
 
 /** Signed amount with colour + explicit sign; screen readers hear "plus €2.50". */
 export function Delta({ currency, value, cur, tone, struck, className }: {

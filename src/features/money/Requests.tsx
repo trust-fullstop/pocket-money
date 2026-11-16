@@ -9,7 +9,7 @@ import { minutes, money, timeAgo } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Balances, MoneyRequest } from '../../lib/types';
 import { clip, isStale, moneyError, useData, useDelayed } from './moneyUtils';
-import { LoadFailed, QuickChips, SheetActions, SkeletonRows } from './parts';
+import { FeatureOff, LoadFailed, QuickChips, SheetActions, SkeletonRows } from './parts';
 import { timeLabelWords } from './txMeta';
 
 const KIND_EMOJI: Record<MoneyRequest['kind'], string> = { spend: '🛍️', withdraw: '🏦', time: '⏳' };
@@ -228,6 +228,7 @@ export function RequestsPage() {
   const rows = list.data ?? [];
   const shown = view === 'all' ? rows.filter((r) => r.status !== 'pending' || !isManager) : rows;
   const waitingAll = view === 'all' && isManager ? rows.filter((r) => r.status === 'pending').length : 0;
+  if (list.code === 'feature_off') return <FeatureOff feature="requests" />;
 
   return (
     <div className="space-y-4">

@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import { AmountInput, Button, Chip, Input, Segmented, Sheet, Textarea, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { minutes, money } from '../../lib/format';
 import type { Balances, TimeLabel } from '../../lib/types';
-import { clip, moneyError } from './moneyUtils';
+import { clip, isFeatureOff, moneyError } from './moneyUtils';
 import { SheetActions } from './parts';
 import { POTS, TIME_LABELS, timeLabelWords } from './txMeta';
 
@@ -18,6 +19,17 @@ interface BaseProps {
   cur: string;
   onClose: () => void;
   onChanged: () => Promise<void>;
+}
+
+type Toast = ReturnType<typeof useToast>;
+
+/** The part was switched off meanwhile (server said `feature_off`): say so, close and reload so it disappears. */
+async function closedIfOff(e: unknown, toast: Toast, onClose: () => void, onChanged: () => Promise<void>): Promise<boolean> {
+  if (!isFeatureOff(e)) return false;
+  toast.show(moneyError(e), 'error');
+  onClose();
+  await onChanged();
+  return true;
 }
 
 function ErrorLine({ error }: { error: string | null }) {
@@ -36,6 +48,7 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
   canToSpending: boolean; initialTo?: 'savings' | 'spending';
 }) {
   const toast = useToast();
+  const features = useFeatures();
   const [to, setTo] = useState<'savings' | 'spending'>(canToSpending ? initialTo : 'savings');
   const [cents, setCents] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,6 +77,7 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
       await onChanged();
       onClose();
     } catch (e) {
+      if (await closedIfOff(e, toast, onClose, onChanged)) return;
       setError(moneyError(e, self ? `You only have ${money(from, cur)} to move.` : `${name} only has ${money(from, cur)} to move.`));
     } finally {
       setBusy(false);
@@ -96,7 +110,12 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
           ))}
         </div>
         <OverLine text={overText} />
-        {to === 'savings' && self && <p className="text-[14px] text-muted">Savings grow over time. To take money out later, you ask a grown-up.</p>}
+        {to === 'savings' && self && (
+          <p className="text-[14px] text-muted">
+            {features.on('interest') ? 'Savings grow over time. ' : ''}
+            {features.on('requests') ? 'To take money out later, you ask a grown-up.' : 'A grown-up can move it back to spending later.'}
+          </p>
+        )}
         <ErrorLine error={error} />
       </div>
     </Sheet>
@@ -129,6 +148,7 @@ export function AskSpendSheet({ balances, cur, onClose, onChanged }: BaseProps) 
       await onChanged();
       onClose();
     } catch (e) {
+      if (await closedIfOff(e, toast, onClose, onChanged)) return;
       setError(moneyError(e, `You have ${money(have, cur)}. Save up or earn more first.`));
     } finally {
       setBusy(false);
@@ -181,6 +201,7 @@ export function WithdrawSheet({ balances, cur, onClose, onChanged }: BaseProps) 
       await onChanged();
       onClose();
     } catch (e) {
+      if (await closedIfOff(e, toast, onClose, onChanged)) return;
       setError(moneyError(e, `You have ${money(have, cur)} in savings.`));
     } finally {
       setBusy(false);
@@ -233,6 +254,7 @@ export function UseTimeSheet({ balances, onClose, onChanged }: BaseProps) {
       await onChanged();
       onClose();
     } catch (e) {
+      if (await closedIfOff(e, toast, onClose, onChanged)) return;
       setError(moneyError(e, `You have ${minutes(have)}.`));
     } finally {
       setBusy(false);
@@ -279,6 +301,7 @@ export function AllowanceSheet({ memberId, name, cur, current, onClose, onChange
       await onChanged();
       onClose();
     } catch (e) {
+      if (await closedIfOff(e, toast, onClose, onChanged)) return;
       setError(moneyError(e));
     } finally {
       setBusy(false);

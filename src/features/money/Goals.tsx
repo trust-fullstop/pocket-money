@@ -8,8 +8,8 @@ import { money } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Goal } from '../../lib/types';
 import { isManager } from '../../lib/types';
-import { clip, goalEtaText, goalProgress, isStale, moneyError, useData } from './moneyUtils';
-import { CardTitle, LoadFailed, NotForYou, SheetActions } from './parts';
+import { clip, goalEtaText, goalProgress, isFeatureOff, isStale, moneyError, useData } from './moneyUtils';
+import { CardTitle, FeatureOff, LoadFailed, NotForYou, SheetActions } from './parts';
 
 const GOAL_EMOJIS = ['🎯', '🚲', '🎮', '⚽', '🧸', '📚', '🎨', '🎧', '👟', '🛹', '🐶', '🍦', '🎟️', '🏕️', '📱', '🎸', '🦄', '🧱', '🎁', '✈️'];
 
@@ -119,7 +119,9 @@ export function GoalSheet({ goal, memberId, self, name, onClose, onChanged }: {
       await onChanged();
       onClose();
     } catch (e) {
-      setError(moneyError(e));
+      const msg = moneyError(e);
+      setError(msg);
+      if (isFeatureOff(e)) toast.show(msg, 'error');
       if (isStale(e)) await onChanged();
     } finally {
       setBusy(null);
@@ -140,7 +142,9 @@ export function GoalSheet({ goal, memberId, self, name, onClose, onChanged }: {
       await onChanged();
       onClose();
     } catch (e) {
-      setError(moneyError(e));
+      const msg = moneyError(e);
+      setError(msg);
+      if (isFeatureOff(e)) { toast.show(msg, 'error'); await onChanged(); }
     } finally {
       setBusy(null);
     }
@@ -189,6 +193,7 @@ export function GoalsPage() {
 
   if (w.loading) return <PageSpinner />;
   if (w.code === 'not_allowed') return <NotForYou />;
+  if (w.code === 'feature_off') return <FeatureOff feature="goals" />;
   if (!w.data) {
     return (
       <div className="space-y-4">

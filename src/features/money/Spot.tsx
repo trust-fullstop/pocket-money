@@ -7,12 +7,13 @@ import {
   Textarea, cx, useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { amount, minutes, money } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp } from '../../lib/session';
 import type { Currency, MoneyLabel, SpotInput, TimeLabel, Transaction, TxKind } from '../../lib/types';
 import { TxRow } from './History';
-import { canSeeMoney, clip, moneyError } from './moneyUtils';
+import { canSeeMoney, clip, isFeatureOff, moneyError } from './moneyUtils';
 import { NotForYou, QuickChips, SheetActions } from './parts';
 import { MONEY_LABELS, TIME_LABELS } from './txMeta';
 
@@ -25,6 +26,7 @@ const PLUS_LABELS: MoneyLabel[] = ['reward', 'extra', 'prize'];
 
 export function SpotPage() {
   const { me, family, members, membersById, balancesOf, refresh, isManager, now } = useApp();
+  const features = useFeatures();
   const navigate = useNavigate();
   const toast = useToast();
   const [params] = useSearchParams();
@@ -77,15 +79,19 @@ export function SpotPage() {
   const cur = family.currency;
   const kid = kidId ? membersById[kidId] : undefined;
   const name = kid?.display_name ?? 'them';
+  // Time and points only when those parts are switched on (gifts are money only).
+  const timeOn = !amG && features.on('time');
+  const pointsOn = !amG && features.on('points');
+  const extras = [timeOn && 'time', pointsOn && 'points'].filter(Boolean) as string[];
   const c = cents ?? 0;
-  const m = amG ? 0 : mins ?? 0;
-  const p = amG ? 0 : pts ?? 0;
+  const m = timeOn ? mins ?? 0 : 0;
+  const p = pointsOn ? pts ?? 0 : 0;
   const hasAmount = c + m + p > 0;
   const why = reason.trim();
   const missing = [
     !kid && 'who',
     !dir && 'reward or consequence',
-    !hasAmount && (amG ? 'an amount' : 'money, time or points'),
+    !hasAmount && (extras.length === 0 ? 'an amount' : extras.length === 1 ? `money or ${extras[0]}` : 'money, time or points'),
     !why && 'why',
   ].filter(Boolean) as string[];
   const ready = missing.length === 0;
@@ -144,7 +150,13 @@ export function SpotPage() {
       if (canSeeMoney(me, kid, family)) navigate(`/money/${kid.id}`, { replace: true });
       else setDone(kid.display_name);
     } catch (e) {
-      setSendError(moneyError(e));
+      const msg = moneyError(e);
+      if (isFeatureOff(e)) {
+        // Spotted (or a part of it) was switched off meanwhile: reload so the page shows what's on now.
+        toast.show(msg, 'error');
+        setConfirm(false);
+        await refresh();
+      } else setSendError(msg);
     } finally {
       setBusy(false);
     }
@@ -268,11 +280,11 @@ export function SpotPage() {
       {/* 4. Amounts */}
       <section aria-labelledby="spot-amount" className="space-y-3">
         <h2 id="spot-amount" className="px-1 text-[15px] font-bold">
-          4. {amG ? 'How much?' : dir === 'minus' ? 'What does it cost?' : 'What do they get?'} <span className="font-normal text-muted">{amG ? '' : '(at least one)'}</span>
+          4. {amG ? 'How much?' : dir === 'minus' ? 'What does it cost?' : 'What do they get?'} <span className="font-normal text-muted">{extras.length > 0 ? '(at least one)' : ''}</span>
         </h2>
         <Card className="space-y-3">
           <AmountInput
-            kind="money" label={amG ? 'Money' : dir === 'minus' ? 'Money (a fine)' : 'Money'} optional={!amG}
+            kind="money" label={amG ? 'Money' : dir === 'minus' ? 'Money (a fine)' : 'Money'} optional={extras.length > 0}
             value={cents} onChange={setCents} max={100_000} chips={[50, 100, 200]}
           />
           {!amG && dir !== 'minus' && (cents ?? 0) > 0 && (
@@ -287,7 +299,7 @@ export function SpotPage() {
               ))}
             </div>
           )}
-          {!amG && (
+          {timeOn && (
             <>
               <AmountInput kind="time" label="Time" optional value={mins} onChange={setMins} max={1440} chips={[15, 30]} />
               {(mins ?? 0) > 0 && (
@@ -296,9 +308,9 @@ export function SpotPage() {
                   options={(Object.keys(TIME_LABELS) as TimeLabel[]).map((k) => ({ value: k, label: `${TIME_LABELS[k].emoji} ${TIME_LABELS[k].label}` }))}
                 />
               )}
-              <AmountInput kind="points" label="Points" optional value={pts} onChange={setPts} max={10_000} chips={[5, 10, 20]} />
             </>
           )}
+          {pointsOn && <AmountInput kind="points" label="Points" optional value={pts} onChange={setPts} max={10_000} chips={[5, 10, 20]} />}
         </Card>
       </section>
 

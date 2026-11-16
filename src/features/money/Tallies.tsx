@@ -1,6 +1,7 @@
 // Tallies card: This week · This month · This year, as cause → effect lines ("Earned +€5.00 — from tasks…").
 import { useState } from 'react';
 import { Card, Segmented, cx } from '../../components/ui';
+import { useFeatures } from '../../lib/features';
 import { addDays, formatDate, minutes, money, points } from '../../lib/format';
 import type { Tally, Wallet } from '../../lib/types';
 import { CardTitle } from './parts';
@@ -31,18 +32,31 @@ function rangeText(t: Tally): string {
 
 const join = (parts: string[]) => parts.join(' · ');
 
+/** "Tasks, bonuses and pocket money" */
+function andList(parts: string[]): string {
+  return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
 export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self: boolean; name: string; cur: string }) {
   const [period, setPeriod] = useState<Period>('week');
+  const features = useFeatures();
+  const on = features.on;
   const t = wallet.tallies[period];
   const m = (v: number) => money(v, cur);
   const savedOut = t.money_saved < 0;
+  const timeOn = on('time');
+  const pointsOn = on('points');
 
+  // Lines (and their explanations) only for the parts that are switched on (Family → Features).
+  const earnedFrom = andList([
+    'Tasks', ...(on('spotted') ? ['bonuses', 'gifts'] : []), ...(on('targets') ? ['prizes'] : []), ...(on('allowance') ? ['pocket money'] : []),
+  ]);
   const moneyLines: Line[] = [
-    line('earned', '✅', 'Earned', 'Tasks, bonuses, gifts, prizes and pocket money', t.money_earned, m, 'plus', true),
-    line('lost', '⚠️', 'Lost', 'Fines and tasks not done in time', t.money_lost, m, 'minus', true),
-    line('saved', '🐷', savedOut ? 'Taken out of savings' : 'Saved', savedOut ? 'Moved back to spending' : 'Moved into savings', t.money_saved, m, 'neutral', false),
+    line('earned', '✅', 'Earned', earnedFrom, t.money_earned, m, 'plus', true),
+    line('lost', '⚠️', 'Lost', on('spotted') ? 'Fines and tasks not done in time' : 'Tasks not done in time', t.money_lost, m, 'minus', true),
+    ...(on('savings') ? [line('saved', '🐷', savedOut ? 'Taken out of savings' : 'Saved', savedOut ? 'Moved back to spending' : 'Moved into savings', t.money_saved, m, 'neutral', false)] : []),
     line('spent', '🛍️', 'Spent', 'Things bought', t.money_spent, m, 'neutral', false),
-    line('interest', '🌱', 'Interest', 'Savings grew by themselves (counted in Earned)', t.interest, m, 'plus', true),
+    ...(on('interest') ? [line('interest', '🌱', 'Interest', 'Savings grew by themselves (counted in Earned)', t.interest, m, 'plus', true)] : []),
   ];
   const timeLines: Line[] = [
     line('t-earned', '⏱️', 'Time earned', 'From tasks and rewards', t.time_earned, (v) => minutes(v), 'plus', true),
@@ -56,13 +70,13 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
 
   const possible = join([
     t.possible_cents > 0 ? m(t.possible_cents) : '',
-    t.possible_minutes > 0 ? minutes(t.possible_minutes) : '',
-    t.possible_points > 0 ? points(t.possible_points) : '',
+    timeOn && t.possible_minutes > 0 ? minutes(t.possible_minutes) : '',
+    pointsOn && t.possible_points > 0 ? points(t.possible_points) : '',
   ].filter(Boolean));
   const got = join([
     t.possible_cents > 0 || t.money_earned > 0 ? m(t.money_earned) : '',
-    t.possible_minutes > 0 && t.time_earned > 0 ? minutes(t.time_earned) : '',
-    t.possible_points > 0 && t.points_earned > 0 ? points(t.points_earned) : '',
+    timeOn && t.possible_minutes > 0 && t.time_earned > 0 ? minutes(t.time_earned) : '',
+    pointsOn && t.possible_points > 0 && t.points_earned > 0 ? points(t.points_earned) : '',
   ].filter(Boolean));
 
   return (
@@ -86,8 +100,8 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
       )}
 
       <TallyGroup title="Money" emoji="💰" lines={moneyLines} />
-      <TallyGroup title="Time" emoji="⏱️" lines={timeLines} />
-      <TallyGroup title="Points" emoji="✨" lines={pointLines} />
+      {timeOn && <TallyGroup title="Time" emoji="⏱️" lines={timeLines} />}
+      {pointsOn && <TallyGroup title="Points" emoji="✨" lines={pointLines} />}
 
       <div className="mt-4">
         <h4 className="text-[13px] font-bold uppercase tracking-wide text-muted"><span aria-hidden="true">📋 </span>Tasks</h4>

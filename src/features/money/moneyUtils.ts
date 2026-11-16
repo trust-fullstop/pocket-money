@@ -109,10 +109,13 @@ export function moneyError(e: unknown, insufficient?: string): string {
   return friendlyError(e);
 }
 
-/** Is this error a "someone else already handled it" that should trigger a refetch? */
+/** The server says this part of the app is switched off (Family → Features) — our copy of the switches is old. */
+export const isFeatureOff = (e: unknown) => toAppError(e).code === 'feature_off';
+
+/** Should this error trigger a refetch? (Someone else already handled it, or a part was switched off meanwhile.) */
 export const isStale = (e: unknown) => {
   const c = toAppError(e).code;
-  return c === 'wrong_status' || c === 'not_found';
+  return c === 'wrong_status' || c === 'not_found' || c === 'feature_off';
 };
 
 /** Cut a string to n characters (for API limits) without breaking emoji surrogate pairs. */

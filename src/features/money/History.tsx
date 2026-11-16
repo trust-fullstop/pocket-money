@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge, Button, Chip, EmptyState, Sheet, Textarea, cx, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { formatWhen } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Currency, Transaction } from '../../lib/types';
@@ -90,7 +91,10 @@ export interface HistorySectionProps {
 
 export function HistorySection({ memberId, initial, ownerName, self, cur, onChanged }: HistorySectionProps) {
   const { me } = useApp();
+  const features = useFeatures();
   const [filter, setFilter] = useState<Filter>('all');
+  // Time / Points filters only when that part is switched on (old rows still show under "All").
+  const filters = FILTERS.filter((x) => x.value === 'all' || x.value === 'money' || x.value === filter || features.on(x.value));
   const [rows, setRows] = useState<Transaction[]>(initial);
   const [more, setMore] = useState(initial.length >= HISTORY_PAGE);
   const [busy, setBusy] = useState<'filter' | 'more' | null>(null);
@@ -168,11 +172,13 @@ export function HistorySection({ memberId, initial, ownerName, self, cur, onChan
   return (
     <section aria-labelledby="history-title" className="space-y-2">
       <h2 id="history-title" className="px-1 text-sm font-bold uppercase tracking-wide text-muted">What happened</h2>
-      <div role="group" aria-label="Show" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
-        {FILTERS.map((f) => (
-          <Chip key={f.value} selected={filter === f.value} emoji={f.emoji} onClick={() => pick(f.value)}>{f.label}</Chip>
-        ))}
-      </div>
+      {filters.length > 2 && (
+        <div role="group" aria-label="Show" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+          {filters.map((f) => (
+            <Chip key={f.value} selected={filter === f.value} emoji={f.emoji} onClick={() => pick(f.value)}>{f.label}</Chip>
+          ))}
+        </div>
+      )}
 
       {error && <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{error}</p>}
 
@@ -180,7 +186,7 @@ export function HistorySection({ memberId, initial, ownerName, self, cur, onChan
         <div className="rounded-2xl border border-line/70 bg-surface">
           <EmptyState
             emoji="🌱" title={filter === 'all' ? 'Nothing yet' : 'Nothing here yet'}
-            message={self ? 'Do a task and it shows up here.' : `When ${ownerName} earns, saves or spends, it shows up here.`}
+            message={self ? 'Do a task and it shows up here.' : `When ${ownerName} ${features.on('savings') ? 'earns, saves or spends' : 'earns or spends'}, it shows up here.`}
           />
         </div>
       ) : (
