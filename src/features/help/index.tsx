@@ -1,21 +1,16 @@
-// PLACEHOLDER (Superman) — replaced by the Help/Ask builder. Mounted at /help/* (lazy-loaded in src/App.tsx).
-import { Route, Routes } from 'react-router';
-import { EmptyState, PageHeader } from '../../components/ui';
-
-function ComingSoon() {
-  return (
-    <>
-      <PageHeader title="Help" back />
-      <EmptyState emoji="💡" title="Coming soon" message="How Pocket Money works, and a helper you can ask questions." />
-    </>
-  );
-}
+// Help module, mounted at /help/* (lazy-loaded in src/App.tsx).
+import { Navigate, Route, Routes } from 'react-router';
+import AllAsks from './AllAsks';
+import AskPage from './AskPage';
+import HelpHome from './HelpHome';
 
 export default function HelpModule() {
   return (
     <Routes>
-      <Route index element={<ComingSoon />} />
-      <Route path="*" element={<ComingSoon />} />
+      <Route index element={<HelpHome />} />
+      <Route path="ask" element={<AskPage />} />
+      <Route path="ask/all" element={<AllAsks />} />
+      <Route path="*" element={<Navigate replace to="/help" />} />
     </Routes>
   );
 }

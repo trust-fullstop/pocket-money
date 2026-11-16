@@ -6,6 +6,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
+import { useFeatures } from '../../lib/features';
 import { memberRoleLabel, points } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp } from '../../lib/session';
@@ -16,6 +17,7 @@ import { useSecured } from './useSecured';
 export default function MeHome() {
   const { me, family, isManager, mode, balancesOf, patchMe, refresh } = useApp();
   const toast = useToast();
+  const features = useFeatures();
   const [identity, setIdentity] = useState(false);
   const [people, setPeople] = useState(false);
   const { secured } = useSecured(me);
@@ -92,7 +94,7 @@ export default function MeHome() {
             />
           </div>
 
-          {!theme.classic && (
+          {!theme.classic && features.on('points') && (
             <CharacterPicker value={theme.character ?? null} points={pts} onChange={(c) => saveTheme({ character: c ?? undefined })} />
           )}
 
@@ -107,7 +109,9 @@ export default function MeHome() {
 
       <Section title="About me" className="mt-6">
         <Card padded={false} className="divide-y divide-line overflow-hidden">
-          <ListRow to="/me/profile" left={<RowIcon icon="heart" />} title="My emergency card" subtitle="Allergies, doctor, emergency contacts…" />
+          {features.on('emergency') && (
+            <ListRow to="/me/profile" left={<RowIcon icon="heart" />} title="My emergency card" subtitle="Allergies, doctor, emergency contacts…" />
+          )}
           <ListRow
             to="/me/secure" left={<RowIcon icon={secured ? 'shield-check' : 'shield'} warn={!secured} />} title="Sign-in & devices"
             subtitle={secured ? 'Secured — you can sign in on a new phone' : '⚠️ Only this phone so far'}
@@ -115,6 +119,7 @@ export default function MeHome() {
           {mode === 'demo' && (
             <ListRow onClick={() => setPeople(true)} left={<RowIcon icon="swap" />} title="Switch person" subtitle="Demo: try the app as someone else" />
           )}
+          <ListRow to="/help" left={<RowIcon icon="help" />} title="How Pocket Money works" subtitle="What everything means, and questions" />
         </Card>
       </Section>
 

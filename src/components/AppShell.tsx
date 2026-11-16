@@ -1,18 +1,20 @@
 import { Suspense } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { useFeatures } from '../lib/features';
 import { useApp } from '../lib/session';
 import { DemoBar } from './DemoBar';
 import { Avatar, CountBadge, Icon, PageSpinner, cx, type IconName } from './ui';
 
 interface NavItem { to: string; label: string; icon: IconName; end?: boolean; badge?: number; badgeLabel?: string }
 
-/** Member layout: (demo bar) · top bar · page · bottom nav · "Spotted" button. */
+/** Member layout: (demo bar) · top bar (Help, Me) · page · bottom nav · "Spotted" button. */
 export function AppShell() {
   const { me, family, state, isManager, mode } = useApp();
+  const features = useFeatures();
   const { pathname } = useLocation();
   const approvals = state?.counts.approvals ?? 0;
   const requests = isManager ? state?.counts.requests ?? 0 : 0;
-  const canSpot = isManager || me?.role === 'grandparent';
+  const canSpot = (isManager || me?.role === 'grandparent') && features.on('spotted');
   // Only on overview pages: on forms and detail pages it would cover their sticky action buttons.
   const overview = /^\/(tasks(\/approvals)?|money|calendar|family)?\/?$/.test(pathname);
   const showSpot = canSpot && overview;
@@ -21,7 +23,7 @@ export function AppShell() {
     { to: '/', label: 'Home', icon: 'home', end: true },
     { to: '/tasks', label: 'Tasks', icon: 'tasks', badge: approvals, badgeLabel: `${approvals} waiting for approval` },
     { to: '/money', label: 'Money', icon: 'money', badge: requests, badgeLabel: `${requests} requests to answer` },
-    { to: '/calendar', label: 'Calendar', icon: 'calendar' },
+    ...(features.on('calendar') ? [{ to: '/calendar', label: 'Calendar', icon: 'calendar' } satisfies NavItem] : []),
     { to: '/family', label: 'Family', icon: 'family' },
   ];
 
@@ -34,6 +36,15 @@ export function AppShell() {
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-7 shrink-0" />
             <span className="truncate text-lg font-extrabold">{family?.name ?? 'Pocket Money'}</span>
           </Link>
+          <NavLink
+            to="/help" aria-label="Help and questions" title="Help and questions"
+            className={({ isActive }) => cx(
+              'grid size-11 shrink-0 place-items-center rounded-full transition',
+              isActive ? 'bg-accent-soft text-accent-ink' : 'text-muted hover:bg-surface-2 hover:text-ink',
+            )}
+          >
+            <Icon name="help" size={26} />
+          </NavLink>
           <Link
             to="/me" aria-label={`Me: ${me?.display_name ?? ''} – profile, look and sign-in`}
             className="grid size-11 shrink-0 place-items-center rounded-full"
