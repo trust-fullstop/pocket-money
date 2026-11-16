@@ -14,6 +14,8 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefine
 export const cloudConfigured = !!(SUPABASE_URL && SUPABASE_KEY);
 /** Google sign-in needs a Google OAuth client configured in Supabase; hide the buttons until VITE_GOOGLE_AUTH=1. */
 export const googleEnabled = cloudConfigured && import.meta.env.VITE_GOOGLE_AUTH === '1';
+/** Private deployments are provisioned in advance (scripts/provision-family.sql), so strangers never see "Create our family". */
+export const allowCreateFamily = import.meta.env.VITE_ALLOW_CREATE_FAMILY === '1';
 
 export function selectedMode(): Mode {
   if (!cloudConfigured) return 'demo';

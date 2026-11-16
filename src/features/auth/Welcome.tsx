@@ -6,7 +6,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
-import { cloudConfigured, googleEnabled, switchMode } from '../../lib/backend/select';
+import { allowCreateFamily, cloudConfigured, googleEnabled, switchMode } from '../../lib/backend/select';
 import { friendlyError } from '../../lib/errors';
 import { deviceTimeZone } from '../../lib/format';
 import { useApp } from '../../lib/session';
@@ -62,10 +62,12 @@ function Hero() {
         {mode === 'demo' && hasPeople && (
           <Button size="lg" block icon="sparkles" onClick={() => setPeople(true)}>Explore the example family</Button>
         )}
-        <LinkButton to="/welcome/create" size="lg" block variant={mode === 'demo' && hasPeople ? 'secondary' : 'primary'} icon="plus">
-          Create our family
-        </LinkButton>
-        <LinkButton to="/join" size="lg" block variant="secondary" icon="qr">I have a QR code / join code</LinkButton>
+        {(mode === 'demo' || allowCreateFamily) && (
+          <LinkButton to="/welcome/create" size="lg" block variant={mode === 'demo' && hasPeople ? 'secondary' : 'primary'} icon="plus">
+            Create our family
+          </LinkButton>
+        )}
+        <LinkButton to="/join" size="lg" block variant={mode === 'cloud' && !allowCreateFamily ? 'primary' : 'secondary'} icon="qr">I have a QR code / join code</LinkButton>
         {mode === 'cloud' && googleEnabled && (
           <Button size="lg" block variant="secondary" onClick={google}><GoogleLogo />Sign in with Google</Button>
         )}
