@@ -620,7 +620,7 @@ function Preview({ values: v, people, meId }: { values: Values; people: Member[]
   }, currency);
   const names = people.map((m) => (m.id === meId ? 'you' : m.display_name));
   const subject = names.length ? joinWords(names) : 'They';
-  const verb = names.length > 1 ? 'each get' : names.length === 1 && names[0] === 'you' ? 'get' : 'gets';
+  const verb = names.length > 1 ? 'each get' : names.length === 0 || names[0] === 'you' ? 'get' : 'gets';
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const time = v.due_time || '19:00';
   const sentence = [

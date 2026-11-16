@@ -14,7 +14,7 @@ export function AppShell() {
   const requests = isManager ? state?.counts.requests ?? 0 : 0;
   const canSpot = isManager || me?.role === 'grandparent';
   // Only on overview pages: on forms and detail pages it would cover their sticky action buttons.
-  const overview = /^\/(tasks(\/approvals)?|money(\/[0-9a-f-]{36})?|calendar|family)?\/?$/.test(pathname);
+  const overview = /^\/(tasks(\/approvals)?|money|calendar|family)?\/?$/.test(pathname);
   const showSpot = canSpot && overview;
 
   const nav: NavItem[] = [

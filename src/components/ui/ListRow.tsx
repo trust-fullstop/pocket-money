@@ -30,7 +30,7 @@ export function ListRow({ left, title, subtitle, right, onClick, to, href, chevr
     <>
       {left && <span className="shrink-0">{left}</span>}
       <span className="min-w-0 flex-1 text-left">
-        <span className={cx('block truncate font-semibold leading-snug', danger && 'text-bad')}>{title}</span>
+        <span className={cx('block line-clamp-2 font-semibold leading-snug', danger && 'text-bad')}>{title}</span>
         {subtitle && <span className="block text-[14px] leading-snug text-muted">{subtitle}</span>}
       </span>
       {right && <span className="shrink-0 text-right">{right}</span>}

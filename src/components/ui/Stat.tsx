@@ -12,7 +12,7 @@ export function Stat({ label, value, sub, icon, tone, className }: {
       <div className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-muted">
         {icon && <Icon name={icon} size={15} />}{label}
       </div>
-      <div className={cx('truncate text-2xl font-extrabold tabular-nums leading-tight', toneClass)}>{value}</div>
+      <div className={cx('text-2xl font-extrabold tabular-nums leading-tight wrap-break-word', toneClass)}>{value}</div>
       {sub && <div className="truncate text-sm text-muted">{sub}</div>}
     </div>
   );
