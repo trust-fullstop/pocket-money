@@ -51,6 +51,7 @@ export const api = {
   listInstances: (from: string, to: string, memberId?: string | null) =>
     rpc<TaskInstance[]>('list_instances', { p_from: from, p_to: to, p_member: memberId ?? null }),
   listApprovals: () => rpc<TaskInstance[]>('list_approvals'),
+  getInstance: (instanceId: string) => rpc<TaskInstance>('get_instance', { p_instance: instanceId }),
   submitTask: (instanceId: string, beforePath: string | null, afterPath: string | null, note: string | null) =>
     rpc<Ok>('submit_task', { p_instance: instanceId, p_before: beforePath, p_after: afterPath, p_note: note }),
   decideTask: (instanceId: string, approve: boolean, note?: string | null) =>
