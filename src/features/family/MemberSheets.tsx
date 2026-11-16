@@ -246,7 +246,7 @@ export function RoleSheet({ member, onClose }: SheetBase) {
           options={ROLE_CHOICES.map((r) => ({ value: r, label: r === 'owner' ? 'Owner (hand over to them)' : roleLabel(r) }))}
         />
         <ul className="space-y-1 text-[14px] text-muted">
-          <li><strong className="text-ink">Parent, step-parent, guardian:</strong> approve tasks, pay out money, change rules.</li>
+          <li><strong className="text-ink">Parent, bonus parent, guardian:</strong> approve tasks, pay out money, change rules.</li>
           <li><strong className="text-ink">Grandparent:</strong> cheers, gifts and small challenges.</li>
           <li><strong className="text-ink">Kid:</strong> does tasks and earns.</li>
         </ul>

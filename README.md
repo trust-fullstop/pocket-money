@@ -3,7 +3,7 @@
 A private family app for pocket money and family life. Kids earn **money, time and points** for doing what they said they would, face a clear **consequence** when they don't, and get rewarded for **saving**. The family shares a calendar, reminders, emergency cards and challenges that go both ways.
 
 - 📱 It is a mobile-first web app (PWA): open it in the phone browser and choose **Add to Home Screen**.
-- 👨‍👩‍👧‍👦 Blended families are the normal case: owner, parents, step-parents, guardians, grandparents and kids.
+- 👨‍👩‍👧‍👦 Blended families are the normal case: owner, parents, **bonus parents**, guardians, grandparents and kids aged 0 to 21. Everyone can have a custom relationship label ("Bonus dad", "Oma").
 - 🔳 People join with a **QR code**, and the app never sends email.
 - 🧪 A **demo mode** runs the real database inside your browser, so you can try everything with zero setup.
 - 💶 It runs on **€0 hosting**: Cloudflare Pages plus the Supabase free tier.
@@ -19,7 +19,7 @@ npm run dev
 
 1. Open http://localhost:5173 and choose **Try the demo**.
 2. You start as **Dad**. Use the **DEMO** bar at the top to:
-   - **switch person:** Mum, Anna (step-mum), Oma, Sam, Mia or Leo
+   - **switch person:** Mum, Anna (bonus mum), Oma, or the kids Leo (14), Sam (12) and Mia (12)
    - **⏩ +1 day:** move time forward to see missed-task consequences, weekly interest and prizes
    - **reset:** go back to the starting data
 

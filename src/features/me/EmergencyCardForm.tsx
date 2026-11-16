@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Button, Card, Icon, IconButton, Input, Section, Select, Textarea, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
-import { life360Href } from '../../lib/format';
+import { KID_MAX_AGE, ageFrom, life360Href, roleLabel } from '../../lib/format';
 import type { EmergencyContact, Member, Profile } from '../../lib/types';
 
 const BLOOD_TYPES = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'].map((v) => ({ value: v.replace('−', '-'), label: v }));
@@ -42,7 +42,7 @@ function toProfile(d: Draft, base: Profile | null | undefined): Profile {
 
 export interface EmergencyCardFormProps {
   /** Whose card (needs edit rights: yourself, or a kid/any member if you're a manager). */
-  member: Pick<Member, 'id' | 'display_name' | 'profile'>;
+  member: Pick<Member, 'id' | 'display_name' | 'profile'> & Partial<Pick<Member, 'role' | 'relation'>>;
   /** Called after a successful save (e.g. to refresh state / navigate). */
   onSaved?: () => void | Promise<void>;
   /** Text on the save button. */
@@ -54,21 +54,30 @@ export function EmergencyCardForm({ member, onSaved, saveLabel = 'Save emergency
   const toast = useToast();
   const initial = useMemo(() => toDraft(member.profile), [member.profile]);
   const [d, setD] = useState<Draft>(initial);
+  const initialRelation = member.relation ?? '';
+  const [relation, setRelation] = useState(initialRelation);
   const [busy, setBusy] = useState(false);
-  const dirty = JSON.stringify(d) !== JSON.stringify(initial);
+  const dirty = JSON.stringify(d) !== JSON.stringify(initial) || relation.trim() !== initialRelation.trim();
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
   const setContact = (i: number, patch: Partial<EmergencyContact>) =>
     setD((x) => ({ ...x, emergency_contacts: x.emergency_contacts.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
 
   const heightError = d.height_cm && !/^\d{2,3}$/.test(d.height_cm.trim()) ? 'Height in whole centimetres, e.g. 142' : undefined;
+  const age = ageFrom(d.birthday);
+  const birthdayError = d.birthday && age === null ? 'Please pick a date.'
+    : age !== null && age < 0 ? 'That date is in the future.'
+    : member.role === 'kid' && age !== null && age > KID_MAX_AGE ? `Kids can be 0 to ${KID_MAX_AGE} years old.`
+    : undefined;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (heightError) return;
+    if (heightError || birthdayError) return;
     setBusy(true);
     try {
-      await api.updateMember(member.id, { profile: toProfile(d, member.profile) });
+      const patch: Record<string, unknown> = { profile: toProfile(d, member.profile) };
+      if (member.role !== undefined && relation.trim() !== initialRelation.trim()) patch.relation = relation.trim().slice(0, 30);
+      await api.updateMember(member.id, patch);
       toast.show('Emergency card saved', 'success');
       await onSaved?.();
     } catch (err) {
@@ -82,7 +91,18 @@ export function EmergencyCardForm({ member, onSaved, saveLabel = 'Save emergency
     <form onSubmit={submit} className="space-y-6" noValidate>
       <Section title="Basics">
         <Card className="space-y-4">
-          <Input label="Birthday" type="date" value={d.birthday} onChange={(e) => set('birthday', e.target.value)} optional />
+          {member.role !== undefined && (
+            <Input
+              label="What the family calls them" value={relation} maxLength={30}
+              onChange={(e) => setRelation(e.target.value)} optional
+              placeholder={roleLabel(member.role)}
+              hint={`E.g. Bonus dad, Oma, Godmother. Empty = “${roleLabel(member.role)}”.`}
+            />
+          )}
+          <Input
+            label="Birthday" type="date" value={d.birthday} onChange={(e) => set('birthday', e.target.value)} optional
+            max={new Date().toISOString().slice(0, 10)} error={birthdayError}
+          />
           <Input label="Phone" type="tel" inputMode="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} optional placeholder="+27 82 123 4567" />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Height" inputMode="numeric" suffix="cm" value={d.height_cm} onChange={(e) => set('height_cm', e.target.value.replace(/[^\d]/g, '').slice(0, 3))} error={heightError} optional />

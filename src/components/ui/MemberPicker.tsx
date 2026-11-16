@@ -1,4 +1,4 @@
-import { roleLabel } from '../../lib/format';
+import { memberRoleLabel } from '../../lib/format';
 import { useMaybeApp } from '../../lib/session';
 import type { Member, Role } from '../../lib/types';
 import { Avatar } from './Avatar';
@@ -59,7 +59,7 @@ export function MemberPicker(props: MemberPickerProps) {
                 )}
               </span>
               <span className={cx('w-full truncate text-center text-[14px] leading-tight', on ? 'font-bold text-ink' : 'font-semibold text-muted')}>{m.display_name}</span>
-              {showRole && <span className="w-full truncate text-center text-[12px] text-muted">{roleLabel(m.role)}</span>}
+              {showRole && <span className="w-full truncate text-center text-[12px] text-muted">{memberRoleLabel(m)}</span>}
             </button>
           );
         })}

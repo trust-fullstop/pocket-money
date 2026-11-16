@@ -46,7 +46,7 @@ begin
   update public.member_logins set label = 'Demo' where user_id = u_dad;
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
-  anna := (public.add_member(p_name => 'Anna', p_role => 'step_parent', p_avatar => '👩‍🦰')->>'member_id')::uuid;
+  anna := (public.add_member(p_name => 'Anna', p_role => 'step_parent', p_avatar => '👩‍🦰', p_relation => 'Bonus mum')->>'member_id')::uuid;
   oma  := (public.add_member(p_name => 'Oma',  p_role => 'grandparent', p_avatar => '👵')->>'member_id')::uuid;
   sam  := (public.add_member(p_name => 'Sam',  p_role => 'kid',         p_avatar => '🧒')->>'member_id')::uuid;
   mia  := (public.add_member(p_name => 'Mia',  p_role => 'kid',         p_avatar => '👧')->>'member_id')::uuid;
@@ -82,8 +82,8 @@ begin
   perform public.update_member(p_member => sam, p_patch => jsonb_build_object(
     'allowance_cents', 500,
     'theme', jsonb_build_object('character', 'fox', 'accent', 'orange'),
-    'profile', jsonb_build_object('birthday', to_char((v_today + 20) - interval '11 years', 'YYYY-MM-DD'),
-      'blood_type', 'O+', 'height_cm', 142, 'allergies', 'Peanuts 🥜 (EpiPen in school bag)', 'school', 'De Regenboog, group 7',
+    'profile', jsonb_build_object('birthday', to_char((v_today + 20) - interval '13 years', 'YYYY-MM-DD'),
+      'blood_type', 'O+', 'height_cm', 154, 'allergies', 'Peanuts 🥜 (EpiPen in school bag)', 'school', 'De Regenboog, group 8',
       'doctor', 'Dr. de Vries, +31 20 555 0101',
       'emergency_contacts', jsonb_build_array(
         jsonb_build_object('name', 'Mum', 'phone', '+31 6 2222 2222', 'relation', 'Mum'),
@@ -92,8 +92,8 @@ begin
   perform public.update_member(p_member => mia, p_patch => jsonb_build_object(
     'allowance_cents', 300,
     'theme', jsonb_build_object('character', 'unicorn', 'accent', 'pink'),
-    'profile', jsonb_build_object('birthday', to_char((v_today + 75) - interval '8 years', 'YYYY-MM-DD'),
-      'blood_type', 'A+', 'height_cm', 121, 'allergies', 'None', 'school', 'De Regenboog, group 4',
+    'profile', jsonb_build_object('birthday', to_char((v_today + 75) - interval '13 years', 'YYYY-MM-DD'),
+      'blood_type', 'A+', 'height_cm', 151, 'allergies', 'None', 'school', 'Het Lyceum, 1st year',
       'emergency_contacts', jsonb_build_array(
         jsonb_build_object('name', 'Mum', 'phone', '+31 6 2222 2222', 'relation', 'Mum'),
         jsonb_build_object('name', 'Dad', 'phone', '+31 6 1111 1111', 'relation', 'Dad')))));

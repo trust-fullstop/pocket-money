@@ -167,9 +167,23 @@ export function deviceTimeZone(): string {
 
 // ---------------------------------------------------------------- people & words
 export const ROLE_LABELS: Record<Role, string> = {
-  owner: 'Owner', parent: 'Parent', step_parent: 'Step-parent', guardian: 'Guardian', grandparent: 'Grandparent', kid: 'Kid',
+  owner: 'Owner', parent: 'Parent', step_parent: 'Bonus parent', guardian: 'Guardian', grandparent: 'Grandparent', kid: 'Kid',
 };
 export const roleLabel = (role: Role | string | null | undefined) => (role ? ROLE_LABELS[role as Role] ?? role : '');
+/** What the family calls someone: their custom relationship ("Bonus dad") or else the role label. */
+export const memberRoleLabel = (m: { role: Role | string; relation?: string | null } | null | undefined) =>
+  (m ? m.relation?.trim() || roleLabel(m.role) : '');
+
+/** Kids can be 0–21 years old. */
+export const KID_MAX_AGE = 21;
+/** Whole years between a YYYY-MM-DD birthday and today (null if missing/invalid). */
+export function ageFrom(birthday?: string | null, today: Date = new Date()): number | null {
+  if (!birthday || !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) return null;
+  const [y, m, d] = birthday.split('-').map(Number);
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age -= 1;
+  return age;
+}
 
 /** plural(3, 'task') → "3 tasks" */
 export const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;

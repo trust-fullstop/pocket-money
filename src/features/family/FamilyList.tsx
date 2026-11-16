@@ -3,7 +3,7 @@ import {
   Avatar, Badge, Button, Card, EmptyState, Icon, LinkButton, ListRow, PageHeader, Section, cx, type IconName,
 } from '../../components/ui';
 import { api } from '../../lib/api';
-import { plural, roleLabel, todayISO } from '../../lib/format';
+import { memberRoleLabel, plural, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { Member } from '../../lib/types';
 import { InviteScreen } from './InviteScreen';
@@ -77,7 +77,7 @@ export default function FamilyList() {
                         }
                         subtitle={
                           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span>{roleLabel(m.role)}{age !== null ? ` · ${plural(age, 'year')}` : ''}</span>
+                            <span>{memberRoleLabel(m)}{age !== null ? ` · ${plural(age, 'year')}` : ''}</span>
                             {status(m)}
                           </span>
                         }

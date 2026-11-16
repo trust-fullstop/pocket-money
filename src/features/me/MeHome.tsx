@@ -6,7 +6,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
-import { points, roleLabel } from '../../lib/format';
+import { memberRoleLabel, points } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp } from '../../lib/session';
 import { ACCENTS, CHARACTERS, accentOf, levelFromPoints, type AccentKey, type ColorMode } from '../../lib/theme';
@@ -50,7 +50,7 @@ export default function MeHome() {
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-2xl font-extrabold leading-tight">{me.display_name}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <Badge tone="accent">{roleLabel(me.role)}</Badge>
+            <Badge tone="accent">{memberRoleLabel(me)}</Badge>
             <span className="truncate text-sm text-muted">{family.name}</span>
           </div>
           <Button variant="ghost" size="sm" icon="edit" className="-ml-3 mt-1" onClick={() => setIdentity(true)}>Name &amp; avatar</Button>

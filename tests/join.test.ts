@@ -161,3 +161,21 @@ describe('who may manage whose sign-in (can_manage_login)', () => {
     expect((await a.Kid.rpc<any>('get_state')).family.name).toBe('Family A');
   });
 });
+
+describe('relationship labels', () => {
+  it('stores a custom relation on add and update; only allowed editors may change it', async () => {
+    const f = await makeFamily(db, { Mum: 'parent', Kid: 'kid' });
+    const added = await f.owner.rpc<any>('add_member', { p_name: 'Anna', p_role: 'step_parent', p_avatar: null, p_relation: '  Bonus mum ' });
+    let st = await f.owner.rpc<any>('get_state');
+    expect(st.members.find((m: any) => m.id === added.member_id)).toMatchObject({ role: 'step_parent', relation: 'Bonus mum' });
+    expect(st.members.find((m: any) => m.id === f.Kid.id).relation).toBeNull();
+
+    await f.Mum.rpc('update_member', { p_member: f.Kid.id, p_patch: { relation: 'Bonus son' } });
+    await f.Kid.rpc('update_member', { p_member: f.Kid.id, p_patch: { relation: '' } }); // self may clear it
+    st = await f.owner.rpc<any>('get_state');
+    expect(st.members.find((m: any) => m.id === f.Kid.id).relation).toBeNull();
+
+    await expectCode(f.Kid.rpc('update_member', { p_member: f.Mum.id, p_patch: { relation: 'Boss' } }), 'not_allowed');
+    await expectCode(f.owner.rpc('add_member', { p_name: 'X', p_role: 'kid', p_avatar: null, p_relation: 'x'.repeat(31) }), 'invalid', 'relation');
+  });
+});

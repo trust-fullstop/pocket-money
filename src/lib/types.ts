@@ -37,6 +37,7 @@ export interface Profile {
 export interface Member {
   id: string;
   role: Role;
+  relation: string | null;  // custom label shown instead of the role, e.g. "Bonus dad", "Godmother"
   display_name: string;
   avatar: string;           // emoji
   photo_path: string | null;

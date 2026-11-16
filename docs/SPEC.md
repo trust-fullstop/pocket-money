@@ -13,14 +13,16 @@ It runs in the phone browser and can be added to the home screen (PWA). There is
 
 ## 2. Who uses it
 
-A **family network** is one shared space. Blended and divorced families are the normal case: several households, several sets of parents and step-parents.
+A **family network** is one shared space. Blended and divorced families are the normal case: several households, several sets of parents and **bonus parents**. The family this was written for has three kids aged 14, 12 and 12.
 
 | Role | Typical person | Can do |
 | --- | --- | --- |
 | Owner | The adult who created the family | Everything, including adding or removing adults and deleting the family |
-| Parent / Step-parent / Guardian ("managers") | Mum, Dad, step-parents, carers (no fixed limit; 4–8 is normal) | Add kids and grandparents, create chores and challenges with rewards and penalties, approve or send back, bonuses and fines, approve requests, change family rules |
+| Parent / Bonus parent / Guardian ("managers") | Mum, Dad, bonus mums and dads (step-parents), carers (no fixed limit; 4–8 is normal) | Add kids and grandparents, create chores and challenges with rewards and penalties, approve or send back, bonuses and fines, approve requests, change family rules |
 | Grandparent | Grandma, Grandpa | See the kids' progress, give **gifts** (positive only), create events and reminders, set fun challenges (text and points rewards only) |
-| Kid | Children of any age | See their own wallet, do tasks with photo evidence, move money to savings, ask to spend or use time, set savings goals, challenge anyone in the family (text and points rewards only), create events |
+| Kid | Children aged 0 to 21 | See their own wallet, do tasks with photo evidence, move money to savings, ask to spend or use time, set savings goals, challenge anyone in the family (text and points rewards only), create events |
+
+**Relationship labels:** the role decides what someone may do, but the family can call each person whatever fits: "Bonus dad", "Oma", "Godmother", "Partner of Mum" and so on. Pick a suggestion or type your own when adding someone, or edit it later on their card.
 
 Rules:
 

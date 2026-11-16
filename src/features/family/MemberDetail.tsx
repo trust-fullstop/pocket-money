@@ -4,7 +4,7 @@ import {
   Avatar, Badge, Card, EmptyState, Icon, LinkButton, ListRow, PageHeader, Section, buttonClass, cx, type IconName,
 } from '../../components/ui';
 import { api } from '../../lib/api';
-import { formatDate, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
+import { formatDate, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { Member, Profile } from '../../lib/types';
@@ -119,13 +119,13 @@ export default function MemberDetail() {
 
   return (
     <>
-      <PageHeader title={m.display_name} subtitle={roleLabel(m.role)} back="/family" />
+      <PageHeader title={m.display_name} subtitle={memberRoleLabel(m)} back="/family" />
 
       {/* Hero */}
       <Card className="flex flex-col items-center gap-3 text-center">
         <Avatar member={m} size="xl" ring name="" />
         <div className="flex flex-wrap justify-center gap-2">
-          <Badge tone="neutral">{roleLabel(m.role)}{self ? ' · you' : ''}</Badge>
+          <Badge tone="neutral">{memberRoleLabel(m)}{self ? ' · you' : ''}</Badge>
           {m.linked
             ? <Badge tone="good"><span aria-hidden="true">✅</span> Connected</Badge>
             : <Badge tone="warn"><span aria-hidden="true">⏳</span> Not connected yet</Badge>}

@@ -24,8 +24,9 @@ export const api = {
   tick: () => rpc<TickResult>('tick'),
 
   // ---- members, joining & sign-in ----
-  addMember: (name: string, role: Exclude<Role, 'owner'>, avatar?: string) =>
-    rpc<{ member_id: string; invite: Invite }>('add_member', { p_name: name, p_role: role, p_avatar: avatar ?? null }),
+  addMember: (name: string, role: Exclude<Role, 'owner'>, avatar?: string, relation?: string | null) =>
+    rpc<{ member_id: string; invite: Invite }>('add_member',
+      { p_name: name, p_role: role, p_avatar: avatar ?? null, p_relation: relation?.trim() || null }),
   createInvite: (memberId: string) => rpc<Invite>('create_invite', { p_member: memberId }),
   invitePreview: (code: string) => rpc<InvitePreview>('invite_preview', { p_code: code }),
   redeemInvite: (code: string, deviceLabel?: string) =>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  AVATAR_EMOJIS, Avatar, Button, Card, EmojiGrid, EmptyState, Input, LinkButton, PageHeader, Select, useToast,
+  AVATAR_EMOJIS, Avatar, Button, Card, Chip, EmojiGrid, EmptyState, Input, LinkButton, PageHeader, Select, useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError, toAppError } from '../../lib/errors';
@@ -15,10 +15,18 @@ type NewRole = Exclude<Role, 'owner'>;
 
 const ROLE_HELP: Record<NewRole, string> = {
   parent: 'Can approve tasks, pay out money and change the rules.',
-  step_parent: 'Same as a parent: approves tasks and pays out money.',
+  step_parent: 'Same as a parent (bonus mum, bonus dad…): approves tasks and pays out money.',
   guardian: 'Same as a parent: approves tasks and pays out money.',
   grandparent: 'Can cheer the kids on, give gifts and set small challenges.',
-  kid: 'Does tasks, earns money, time and points.',
+  kid: 'Any age from 0 to 21. Does tasks, earns money, time and points.',
+};
+
+const RELATION_IDEAS: Record<NewRole, string[]> = {
+  parent: ['Mum', 'Dad', 'Mama', 'Papa'],
+  step_parent: ['Bonus mum', 'Bonus dad', 'Partner of Dad', 'Partner of Mum'],
+  guardian: ['Aunt', 'Uncle', 'Godmother', 'Godfather', 'Foster parent'],
+  grandparent: ['Oma', 'Opa', 'Grandma', 'Grandpa', 'Bonus oma'],
+  kid: ['Son', 'Daughter', 'Bonus son', 'Bonus daughter', 'Cousin'],
 };
 
 export default function AddMember() {
@@ -28,6 +36,7 @@ export default function AddMember() {
   const roles = me ? addableRoles(me) : [];
   const [name, setName] = useState('');
   const [role, setRole] = useState<NewRole>('kid');
+  const [relation, setRelation] = useState('');
   const [picked, setPicked] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,7 +60,7 @@ export default function AddMember() {
     setNameError(null);
     setBusy(true);
     try {
-      const res = await api.addMember(clean.slice(0, 40), role, avatar);
+      const res = await api.addMember(clean.slice(0, 40), role, avatar, relation.trim().slice(0, 30) || null);
       setCreated({ id: res.member_id, name: clean, avatar, invite: res.invite });
       void refresh();
     } catch (e) {
@@ -88,6 +97,23 @@ export default function AddMember() {
           options={roles.map((r) => ({ value: r, label: roleLabel(r) }))}
           hint={ROLE_HELP[role]}
         />
+        <div>
+          <Input
+            label="What do you call them?"
+            value={relation}
+            maxLength={30}
+            autoComplete="off"
+            onChange={(e) => setRelation(e.target.value)}
+            placeholder={RELATION_IDEAS[role][0]}
+            hint={`Shown instead of “${roleLabel(role)}”. Type anything you like.`}
+            optional
+          />
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Ideas">
+            {RELATION_IDEAS[role].map((idea) => (
+              <Chip key={idea} selected={relation === idea} onClick={() => setRelation(relation === idea ? '' : idea)}>{idea}</Chip>
+            ))}
+          </div>
+        </div>
         <div>
           <h2 className="mb-2 text-[15px] font-semibold">Avatar</h2>
           <EmojiGrid label="Avatar emoji" options={emojiOptions} value={avatar} onChange={setPicked} />
