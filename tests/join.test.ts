@@ -144,9 +144,15 @@ describe('who may manage whose sign-in (can_manage_login)', () => {
     expect((await fam.Mum.rpc<any>('create_invite', { p_member: fam.Kid.id })).member_id).toBe(fam.Kid.id);
     expect((await fam.Mum.rpc<any>('create_invite', { p_member: fam.Oma.id })).member_id).toBe(fam.Oma.id);
 
-    // an adult who has never signed in can be invited by a co-parent
+    // adults are the owner's call: a co-parent can't add one, unless the owner allows it
+    await expectCode(fam.Mum.rpc('add_member', { p_name: 'Uncle', p_role: 'guardian' }), 'not_allowed', 'adults_owner_only');
+    await expectCode(fam.Mum.rpc('update_family', { p_patch: { settings: { managers_add_adults: true } } }), 'not_allowed', 'owner_only');
+    await fam.owner.rpc('update_family', { p_patch: { settings: { managers_add_adults: true } } });
+    // then an adult who has never signed in can be invited by a co-parent
     const fresh = await fam.Mum.rpc<any>('add_member', { p_name: 'Uncle', p_role: 'guardian' });
     expect((await fam.Mum.rpc<any>('create_invite', { p_member: fresh.member_id })).member_id).toBe(fresh.member_id);
+    await fam.owner.rpc('update_family', { p_patch: { settings: { managers_add_adults: false } } });
+    await expectCode(fam.Mum.rpc('create_invite', { p_member: fresh.member_id }), 'not_allowed');
 
     const logins = await fam.Mum.rpc<any[]>('list_logins', { p_member: null });
     expect(logins).toHaveLength(1);

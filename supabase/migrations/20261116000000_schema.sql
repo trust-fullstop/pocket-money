@@ -248,12 +248,20 @@ create table public.audit_log (
 );
 create index audit_log_family_idx on public.audit_log(family_id, created_at desc);
 
+-- Deployment-wide settings (single row). max_families = null means unlimited (tests/demo);
+-- the Supabase-only migration sets it to 1 so a private deployment serves exactly one family.
+create table public.app_config (
+  id boolean primary key default true check (id),
+  max_families int check (max_families > 0)
+);
+insert into public.app_config(id) values (true);
+
 -- Lock every table: no direct access, everything goes through RPCs.
 do $$
 declare t text;
 begin
   foreach t in array array['families','members','member_logins','invites','redeem_attempts','tasks','task_instances',
-    'transactions','requests','goals','targets','target_results','events','devices','period_runs','audit_log']
+    'transactions','requests','goals','targets','target_results','events','devices','period_runs','audit_log','app_config']
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('revoke all on public.%I from public, anon, authenticated', t);

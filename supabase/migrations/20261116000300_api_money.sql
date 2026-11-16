@@ -58,7 +58,7 @@ create or replace function app.goal_json(g public.goals) returns jsonb language 
 
 -- Value of a target over [p_start, p_end). completion_pct counts approved AND submitted instances as done
 -- (a late approval must not cost the kid the prize); cancelled/excused instances are left out.
--- Prizes themselves never count towards a target.
+-- Prizes themselves never count towards a target, and neither do refunds (excused fines, reversals).
 create or replace function app.target_value(tg public.targets, f public.families, p_start date, p_end date) returns int
 language sql stable as $$
   select case tg.metric
@@ -70,11 +70,13 @@ language sql stable as $$
          and i.status not in ('cancelled','excused'))
     when 'money_earned' then (
       select coalesce(sum(x.amount), 0)::int from public.transactions x
-       where x.member_id = tg.member_id and x.currency = 'money' and x.amount > 0 and x.kind not in ('transfer','prize')
+       where x.member_id = tg.member_id and x.currency = 'money' and x.amount > 0
+         and x.kind not in ('transfer','prize','excuse','reversal')
          and x.effective_at >= app.local_ts(p_start, '00:00', f.timezone) and x.effective_at < app.local_ts(p_end, '00:00', f.timezone))
     else (
       select coalesce(sum(x.amount), 0)::int from public.transactions x
-       where x.member_id = tg.member_id and x.currency = 'points' and x.amount > 0 and x.kind <> 'prize'
+       where x.member_id = tg.member_id and x.currency = 'points' and x.amount > 0
+         and x.kind not in ('prize','excuse','reversal')
          and x.effective_at >= app.local_ts(p_start, '00:00', f.timezone) and x.effective_at < app.local_ts(p_end, '00:00', f.timezone))
   end $$;
 

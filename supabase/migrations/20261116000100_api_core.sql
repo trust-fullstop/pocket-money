@@ -16,7 +16,7 @@ create or replace function app.role_rank(r text) returns int language sql immuta
 create or replace function app.default_settings() returns jsonb language sql immutable as $$
   select '{"interest_pct_month":2,"saver_bonus_points":10,"no_savings_penalty_points":10,"late_grace_minutes":60,
            "challenge_points_cap":50,"grandparents_see_money":true,"emergency_visibility":"family",
-           "catchup_days":7,"default_evidence":"photo"}'::jsonb $$;
+           "catchup_days":7,"default_evidence":"photo","managers_add_adults":false}'::jsonb $$;
 
 create or replace function app.settings(f public.families) returns jsonb language sql stable as $$
   select app.default_settings() || coalesce(f.settings, '{}'::jsonb) $$;
@@ -65,14 +65,20 @@ create or replace function app.can_see_money(me public.members, m public.members
 create or replace function app.can_see_profile(me public.members, m public.members, s jsonb) returns boolean language sql stable as $$
   select me.family_id = m.family_id and (me.id = m.id or me.role <> 'kid' or coalesce(s->>'emergency_visibility','family') = 'family') $$;
 
--- Who may add devices / reset sign-in for whom. Adults who already have a login can only be
--- touched by the owner or themselves (prevents a co-parent taking over another adult's account).
+-- Who may add devices / reset sign-in for whom. Adults (parent/bonus parent/guardian) are the owner's call:
+-- other managers only manage kids and grandparents, unless the owner turned on "managers_add_adults"
+-- (then also adults who have not connected a device yet). Prevents a co-parent taking over an adult account.
+create or replace function app.managers_add_adults(p_family uuid) returns boolean language sql stable as $$
+  select coalesce((app.settings(f)->>'managers_add_adults')::boolean, false) from public.families f where f.id = p_family $$;
+
 create or replace function app.can_manage_login(me public.members, m public.members) returns boolean language sql stable as $$
   select me.family_id = m.family_id and (
        me.id = m.id
     or me.role = 'owner'
     or (app.is_manager(me.role) and m.role <> 'owner'
-        and (m.role in ('kid','grandparent') or not exists (select 1 from public.member_logins l where l.member_id = m.id))))
+        and (m.role in ('kid','grandparent')
+             or (app.managers_add_adults(me.family_id)
+                 and not exists (select 1 from public.member_logins l where l.member_id = m.id)))))
 $$;
 
 create or replace function app.can_edit_member(me public.members, m public.members) returns boolean language sql stable as $$
@@ -134,7 +140,8 @@ end $$;
 create or replace function app.member_json(m public.members, me public.members, s jsonb) returns jsonb language sql stable as $$
   select jsonb_build_object(
     'id', m.id, 'role', m.role, 'display_name', m.display_name, 'avatar', m.avatar, 'photo_path', m.photo_path,
-    'theme', m.theme, 'created_at', m.created_at, 'allowance_cents', m.allowance_cents,
+    'theme', m.theme, 'created_at', m.created_at,
+    'allowance_cents', case when app.can_see_money(me, m, s) then m.allowance_cents end,
     'profile', case when app.can_see_profile(me, m, s) then m.profile else null end,
     'linked', exists (select 1 from public.member_logins l where l.member_id = m.id),
     'username', case when me.id = m.id or app.is_manager(me.role) then m.username end,
@@ -149,6 +156,10 @@ begin
   if v_uid is null then raise exception 'not_signed_in'; end if;
   if exists (select 1 from public.member_logins where user_id = v_uid) then raise exception 'already_member'; end if;
   if coalesce(trim(p_family_name), '') = '' or coalesce(trim(p_my_name), '') = '' then raise exception 'invalid' using detail = 'name'; end if;
+  perform 1 from public.app_config where id for update;
+  if (select max_families from public.app_config where id) <= (select count(*) from public.families) then
+    raise exception 'family_limit';
+  end if;
   perform app.check_tz(p_timezone);
   insert into public.families(name, currency, timezone) values (trim(p_family_name), upper(coalesce(p_currency, 'EUR')), p_timezone)
     returning * into f;
@@ -202,6 +213,8 @@ begin
       elsif k = 'late_grace_minutes' and jsonb_typeof(v) = 'number' and (v::text)::numeric between 0 and 1440 then null;
       elsif k = 'catchup_days' and jsonb_typeof(v) = 'number' and (v::text)::numeric between 0 and 31 then null;
       elsif k = 'grandparents_see_money' and jsonb_typeof(v) = 'boolean' then null;
+      elsif k = 'managers_add_adults' and jsonb_typeof(v) = 'boolean' then
+        if me.role <> 'owner' then raise exception 'not_allowed' using detail = 'owner_only'; end if;
       elsif k = 'emergency_visibility' and v #>> '{}' in ('family','adults') then null;
       elsif k = 'default_evidence' and v #>> '{}' in ('photo','photo_or_note','none') then null;
       else raise exception 'invalid' using detail = 'setting:' || k;
@@ -270,6 +283,9 @@ begin
   me := app.me();
   if not app.is_manager(me.role) then raise exception 'not_allowed'; end if;
   if p_role not in ('parent','step_parent','guardian','grandparent','kid') then raise exception 'invalid' using detail = 'role'; end if;
+  if p_role in ('parent','step_parent','guardian') and me.role <> 'owner' and not app.managers_add_adults(me.family_id) then
+    raise exception 'not_allowed' using detail = 'adults_owner_only';
+  end if;
   if coalesce(trim(p_name), '') = '' then raise exception 'invalid' using detail = 'name'; end if;
   if (select count(*) from public.members where family_id = me.family_id and active) >= 30 then
     raise exception 'invalid' using detail = 'too_many_members';

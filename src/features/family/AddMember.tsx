@@ -30,10 +30,10 @@ const RELATION_IDEAS: Record<NewRole, string[]> = {
 };
 
 export default function AddMember() {
-  const { me, isManager, refresh } = useApp();
+  const { me, isManager, refresh, family } = useApp();
   const navigate = useNavigate();
   const toast = useToast();
-  const roles = me ? addableRoles(me) : [];
+  const roles = me ? addableRoles(me, { managersAddAdults: !!family?.settings.managers_add_adults }) : [];
   const [name, setName] = useState('');
   const [role, setRole] = useState<NewRole>('kid');
   const [relation, setRelation] = useState('');

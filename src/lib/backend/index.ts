@@ -19,6 +19,8 @@ export interface Backend {
   identities(): Promise<AuthIdentity[]>;
   /** Upload a compressed image; path = `${familyId}/${folder}/${uuid}.jpg`. */
   uploadPhoto(path: string, blob: Blob): Promise<void>;
+  /** Delete every stored photo of a family (used before deleting the family). */
+  deleteFamilyPhotos(familyId: string): Promise<void>;
   /** Short-lived URL (cloud: signed URL 1h; demo: object URL). */
   photoUrl(path: string): Promise<string>;
   /** Demo only: seeded people to "switch to", switch, reset and time-travel. */

@@ -146,6 +146,12 @@ export function createDemoBackend(): Backend {
         [path, blob.type || 'image/jpeg', data]);
     },
 
+    async deleteFamilyPhotos(familyId: string) {
+      const db = await getDb();
+      await db.query(`delete from public.demo_photos where path like $1`, [`${familyId}/%`]);
+      photoUrls.clear();
+    },
+
     async photoUrl(path: string) {
       const hit = photoUrls.get(path);
       if (hit) return hit;

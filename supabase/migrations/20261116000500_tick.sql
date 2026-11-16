@@ -68,14 +68,20 @@ begin
     n_missed := n_missed + 1;
   end loop;
 
-  -- 3. weekly pocket money for the current week (only weeks starting on/after the kid was added)
+  -- 3. weekly pocket money: the current week, plus any weeks missed since the last run (e.g. the free
+  --    Supabase project was paused). Only weeks starting on/after the kid was added; at most 12 weeks back.
+  --    Never back-pays weeks before the previous run, so setting an allowance today doesn't pay old weeks.
   ws := app.week_start(v_today);
-  for k in select m.* from public.members m
-            where m.family_id = f.id and m.active and m.role = 'kid' and m.allowance_cents > 0
-              and (m.created_at at time zone f.timezone)::date <= ws
-  loop
-    perform app.post(f.id, k.id, 'money', 'spending', k.allowance_cents, 'allowance', 'pocket', 'Weekly pocket money', null,
-                     'week', k.id, 'allowance:' || ws, app.local_ts(ws, '00:00', f.timezone));
+  v_first := greatest(ws - 7 * 11,
+                      coalesce(app.week_start((f.last_tick_at at time zone f.timezone)::date), ws));
+  for we in select d::date from generate_series(v_first, ws, interval '7 days') d loop
+    for k in select m.* from public.members m
+              where m.family_id = f.id and m.active and m.role = 'kid' and m.allowance_cents > 0
+                and (m.created_at at time zone f.timezone)::date <= we
+    loop
+      perform app.post(f.id, k.id, 'money', 'spending', k.allowance_cents, 'allowance', 'pocket', 'Weekly pocket money', null,
+                       'week', k.id, 'allowance:' || we, app.local_ts(we, '00:00', f.timezone));
+    end loop;
   end loop;
 
   -- 4. close completed weeks (Mon..Sun): interest, saver bonus, no-savings rule, weekly targets
@@ -97,7 +103,7 @@ begin
              coalesce(sum(x.amount) filter (where x.pot = 'savings' and x.effective_at < ws_ts), 0),
              coalesce(sum(x.amount) filter (where x.pot = 'spending' and x.effective_at < we_ts), 0),
              coalesce(sum(x.amount) filter (where x.currency = 'money' and x.amount > 0
-                        and x.kind in ('task_reward','bonus','gift','prize','allowance','excuse')
+                        and x.kind in ('task_reward','bonus','gift','prize','allowance')
                         and x.effective_at >= ws_ts and x.effective_at < we_ts), 0)
         into sav_end, sav_start, spend_end, earned
         from public.transactions x where x.member_id = k.id;

@@ -4,14 +4,16 @@ import { isManager, type Member, type Role } from '../../lib/types';
 
 type Who = Pick<Member, 'id' | 'role'>;
 type Target = Pick<Member, 'id' | 'role' | 'linked'>;
+/** Owner setting `managers_add_adults` (default off): other parents may add and connect adults. */
+type Opts = { managersAddAdults?: boolean };
 
 const CARED_FOR: Role[] = ['kid', 'grandparent'];
 
 /** app.can_manage_login: QR for a device, set/clear password, list/remove signed-in devices. */
-export function canManageLogin(me: Who, m: Target): boolean {
+export function canManageLogin(me: Who, m: Target, opts: Opts = {}): boolean {
   if (me.id === m.id || me.role === 'owner') return true;
   if (!isManager(me.role) || m.role === 'owner') return false;
-  return CARED_FOR.includes(m.role) || !m.linked;
+  return CARED_FOR.includes(m.role) || (!!opts.managersAddAdults && !m.linked);
 }
 
 /** app.can_edit_member: name, avatar, theme, profile. */
@@ -31,15 +33,15 @@ export function canChangeRole(me: Who, m: Pick<Member, 'id'>): boolean {
 }
 
 /** remove_member: never yourself or the owner; owner anyone else; managers whoever they manage. */
-export function canRemoveMember(me: Who, m: Target): boolean {
+export function canRemoveMember(me: Who, m: Target, opts: Opts = {}): boolean {
   if (me.id === m.id || m.role === 'owner') return false;
   if (me.role === 'owner') return true;
-  return isManager(me.role) && canManageLogin(me, m);
+  return isManager(me.role) && canManageLogin(me, m, opts);
 }
 
-/** Roles a manager may give a new member (owner: all; other managers: kid + grandparent). */
-export function addableRoles(me: Who): Exclude<Role, 'owner'>[] {
-  if (me.role === 'owner') return ['parent', 'step_parent', 'guardian', 'grandparent', 'kid'];
+/** Roles a manager may give a new member (owner: all; other managers: kid + grandparent, adults only if allowed). */
+export function addableRoles(me: Who, opts: Opts = {}): Exclude<Role, 'owner'>[] {
+  if (me.role === 'owner' || (isManager(me.role) && opts.managersAddAdults)) return ['parent', 'step_parent', 'guardian', 'grandparent', 'kid'];
   if (isManager(me.role)) return ['kid', 'grandparent'];
   return [];
 }

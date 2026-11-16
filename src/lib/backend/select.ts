@@ -12,6 +12,8 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefine
 
 /** True when this build has Supabase credentials (cloud mode is possible). */
 export const cloudConfigured = !!(SUPABASE_URL && SUPABASE_KEY);
+/** Google sign-in needs a Google OAuth client configured in Supabase; hide the buttons until VITE_GOOGLE_AUTH=1. */
+export const googleEnabled = cloudConfigured && import.meta.env.VITE_GOOGLE_AUTH === '1';
 
 export function selectedMode(): Mode {
   if (!cloudConfigured) return 'demo';

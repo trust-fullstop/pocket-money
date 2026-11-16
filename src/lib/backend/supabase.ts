@@ -67,6 +67,30 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw toAppError(error);
     },
 
+    async deleteFamilyPhotos(familyId: string) {
+      const bucket = sb.storage.from('photos');
+      const listAll = async (prefix: string) => {
+        const names: { name: string; folder: boolean }[] = [];
+        for (let offset = 0; ; offset += 1000) {
+          const { data, error } = await bucket.list(prefix, { limit: 1000, offset });
+          if (error) throw toAppError(error);
+          names.push(...(data ?? []).map((o) => ({ name: o.name, folder: o.id === null })));
+          if (!data || data.length < 1000) return names;
+        }
+      };
+      const paths: string[] = [];
+      for (const folder of (await listAll(familyId)).filter((e) => e.folder)) {
+        for (const file of (await listAll(`${familyId}/${folder.name}`)).filter((e) => !e.folder)) {
+          paths.push(`${familyId}/${folder.name}/${file.name}`);
+        }
+      }
+      for (let i = 0; i < paths.length; i += 100) {
+        const { error } = await bucket.remove(paths.slice(i, i + 100));
+        if (error) throw toAppError(error);
+      }
+      signed.clear();
+    },
+
     async photoUrl(path: string) {
       const hit = signed.get(path);
       if (hit && hit.exp > Date.now()) return hit.url;

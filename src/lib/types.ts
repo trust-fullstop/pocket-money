@@ -46,7 +46,7 @@ export interface Member {
   linked: boolean;          // has at least one signed-in device
   username: string | null;  // only for self / managers
   has_password: boolean;
-  allowance_cents: number;  // weekly pocket money, paid automatically at week start
+  allowance_cents: number | null;  // weekly pocket money (null when the caller may not see this member's money)
   created_at: string;
 }
 
@@ -57,6 +57,7 @@ export interface FamilySettings {
   late_grace_minutes: number;
   challenge_points_cap: number;
   grandparents_see_money: boolean;
+  managers_add_adults: boolean;   // owner setting: other parents may add adults (default off = owner only)
   emergency_visibility: 'family' | 'adults';
   catchup_days: number;
   default_evidence: Evidence;

@@ -16,7 +16,8 @@ export default function FamilyList() {
   const today = todayISO(tz, now());
 
   // "On 2 devices" needs list_logins, which is only allowed for people you manage — ask in the background.
-  const countable = me ? members.filter((m) => m.linked && canManageLogin(me, m)) : [];
+  const opts = { managersAddAdults: !!family?.settings.managers_add_adults };
+  const countable = me ? members.filter((m) => m.linked && canManageLogin(me, m, opts)) : [];
   const countKey = countable.map((m) => m.id).join(',');
   const deviceCounts = useLoad(async () => {
     const pairs = await Promise.all(countable.map(async (m) => {
@@ -61,7 +62,7 @@ export default function FamilyList() {
               <ul className="divide-y divide-line">
                 {g.list.map((m) => {
                   const age = ageFrom(m.profile?.birthday, today);
-                  const showQr = isManager && !m.linked && canManageLogin(me, m);
+                  const showQr = isManager && !m.linked && canManageLogin(me, m, opts);
                   return (
                     <li key={m.id} className="flex items-center">
                       <ListRow

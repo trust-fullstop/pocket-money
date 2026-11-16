@@ -4,6 +4,7 @@ import {
   useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
+import { backend } from '../../lib/backend';
 import { friendlyError, toAppError } from '../../lib/errors';
 import { money, timeAgo } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
@@ -29,7 +30,7 @@ interface Draft {
   name: string; currency: string; timezone: string;
   interest: string; saverBonus: string; noSavingsPenalty: string;
   lateGrace: string; challengeCap: string; catchup: string;
-  gpMoney: boolean; emergency: FamilySettings['emergency_visibility']; evidence: Evidence;
+  gpMoney: boolean; managersAddAdults: boolean; emergency: FamilySettings['emergency_visibility']; evidence: Evidence;
 }
 type FieldKey = keyof FamilySettings | 'name' | 'currency' | 'timezone';
 
@@ -44,6 +45,7 @@ const draftFrom = (f: Family): Draft => ({
   challengeCap: String(f.settings.challenge_points_cap ?? 0),
   catchup: String(f.settings.catchup_days ?? 0),
   gpMoney: !!f.settings.grandparents_see_money,
+  managersAddAdults: !!f.settings.managers_add_adults,
   emergency: f.settings.emergency_visibility ?? 'family',
   evidence: f.settings.default_evidence ?? 'photo_or_note',
 });
@@ -110,6 +112,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
     if (cap !== fs.challenge_points_cap && !capErr) s.challenge_points_cap = cap;
     if (catchup !== fs.catchup_days && !catchupErr) s.catchup_days = catchup;
     if (d.gpMoney !== !!fs.grandparents_see_money) s.grandparents_see_money = d.gpMoney;
+    if (d.managersAddAdults !== !!fs.managers_add_adults) s.managers_add_adults = d.managersAddAdults;
     if (d.emergency !== fs.emergency_visibility) s.emergency_visibility = d.emergency;
     if (d.evidence !== fs.default_evidence) s.default_evidence = d.evidence;
     if (Object.keys(s).length) p.settings = s;
@@ -279,6 +282,14 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
         </SettingsCard>
 
         <SettingsCard title="Privacy" emoji="🔒">
+          {isOwner && (
+            <Toggle
+              checked={d.managersAddAdults}
+              onChange={(v) => set({ managersAddAdults: v })}
+              label="Other parents can add adults"
+              description="Off: only you (the owner) can add parents, bonus parents and guardians. Kids and grandparents can always be added by any parent."
+            />
+          )}
           <Toggle
             checked={d.gpMoney}
             onChange={(v) => set({ gpMoney: v })}
@@ -423,6 +434,8 @@ function DeleteFamilySheet({ family, signOut, onClose }: { family: Family; signO
     if (!match) return;
     setBusy(true);
     try {
+      // Photos first (Storage has no cascade); if this fails nothing is deleted yet and the owner can retry.
+      await backend().deleteFamilyPhotos(family.id);
       await api.deleteFamily(family.name);
       try { await signOut(); } catch { /* the session is gone anyway */ }
       location.href = `${import.meta.env.BASE_URL}welcome`;

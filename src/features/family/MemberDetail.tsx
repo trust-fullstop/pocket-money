@@ -26,7 +26,8 @@ export default function MemberDetail() {
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [qr, setQr] = useState(false);
   const m: Member | undefined = membersById[memberId];
-  const manageLogin = !!(me && m && m.id !== me.id && canManageLogin(me, m));
+  const opts = { managersAddAdults: !!family?.settings.managers_add_adults };
+  const manageLogin = !!(me && m && m.id !== me.id && canManageLogin(me, m, opts));
 
   const logins = useLoad(
     () => (manageLogin ? api.listLogins(memberId) : Promise.resolve(null)),
@@ -91,7 +92,7 @@ export default function MemberDetail() {
         <ListRow
           key="allowance" onClick={() => setSheet('allowance')} left={<RowIcon icon="money" />}
           title="Weekly pocket money"
-          subtitle={m.allowance_cents > 0 ? `${money(m.allowance_cents, family.currency)} every week` : 'Not set'}
+          subtitle={(m.allowance_cents ?? 0) > 0 ? `${money(m.allowance_cents ?? 0, family.currency)} every week` : 'Not set'}
         />,
       );
     }
@@ -104,7 +105,7 @@ export default function MemberDetail() {
         />,
       );
     }
-    if (canRemoveMember(me, m)) {
+    if (canRemoveMember(me, m, opts)) {
       manageRows.push(
         <ListRow
           key="remove" onClick={() => setSheet('remove')} danger chevron={false}

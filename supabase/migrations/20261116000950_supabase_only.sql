@@ -34,6 +34,11 @@ create policy "pm photos delete" on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and public.can_delete_photo(name));
 -- no update policy: photos are immutable evidence
 
+-- Private deployment: exactly one family. After the first family is created, nobody else can create one,
+-- so strangers who open the site can't use the free-tier database or photo storage. (Join with a QR code still works.)
+-- To host more families later: update public.app_config set max_families = null;
+update public.app_config set max_families = 1 where id;
+
 create extension if not exists pg_cron with schema pg_catalog;
 
 do $$

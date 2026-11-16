@@ -5,7 +5,8 @@ alter table public.members add column if not exists relation text check (char_le
 create or replace function app.member_json(m public.members, me public.members, s jsonb) returns jsonb language sql stable as $$
   select jsonb_build_object(
     'id', m.id, 'role', m.role, 'relation', m.relation, 'display_name', m.display_name, 'avatar', m.avatar,
-    'photo_path', m.photo_path, 'theme', m.theme, 'created_at', m.created_at, 'allowance_cents', m.allowance_cents,
+    'photo_path', m.photo_path, 'theme', m.theme, 'created_at', m.created_at,
+    'allowance_cents', case when app.can_see_money(me, m, s) then m.allowance_cents end,
     'profile', case when app.can_see_profile(me, m, s) then m.profile else null end,
     'linked', exists (select 1 from public.member_logins l where l.member_id = m.id),
     'username', case when me.id = m.id or app.is_manager(me.role) then m.username end,
@@ -19,6 +20,9 @@ begin
   me := app.me();
   if not app.is_manager(me.role) then raise exception 'not_allowed'; end if;
   if p_role not in ('parent','step_parent','guardian','grandparent','kid') then raise exception 'invalid' using detail = 'role'; end if;
+  if p_role in ('parent','step_parent','guardian') and me.role <> 'owner' and not app.managers_add_adults(me.family_id) then
+    raise exception 'not_allowed' using detail = 'adults_owner_only';
+  end if;
   if coalesce(trim(p_name), '') = '' then raise exception 'invalid' using detail = 'name'; end if;
   if char_length(coalesce(trim(p_relation), '')) > 30 then raise exception 'invalid' using detail = 'relation'; end if;
   if (select count(*) from public.members where family_id = me.family_id and active) >= 30 then

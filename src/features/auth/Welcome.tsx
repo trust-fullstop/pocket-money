@@ -6,7 +6,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
-import { cloudConfigured, switchMode } from '../../lib/backend/select';
+import { cloudConfigured, googleEnabled, switchMode } from '../../lib/backend/select';
 import { friendlyError } from '../../lib/errors';
 import { deviceTimeZone } from '../../lib/format';
 import { useApp } from '../../lib/session';
@@ -66,7 +66,7 @@ function Hero() {
           Create our family
         </LinkButton>
         <LinkButton to="/join" size="lg" block variant="secondary" icon="qr">I have a QR code / join code</LinkButton>
-        {mode === 'cloud' && (
+        {mode === 'cloud' && googleEnabled && (
           <Button size="lg" block variant="secondary" onClick={google}><GoogleLogo />Sign in with Google</Button>
         )}
         <div className="flex flex-wrap items-center justify-center gap-x-2 pt-1">

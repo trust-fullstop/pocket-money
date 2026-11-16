@@ -8,6 +8,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
+import { googleEnabled } from '../../lib/backend/select';
 import { friendlyError } from '../../lib/errors';
 import { timeAgo } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
@@ -68,7 +69,7 @@ export default function Secure() {
 
       <StatusCard secured={sec.secured} loading={sec.loading} username={me.username} google={sec.google?.email ?? (sec.google ? 'Google' : null)} />
 
-      {mode === 'cloud' && (
+      {mode === 'cloud' && googleEnabled && (
         <Section title="Google" className="mt-6">
           <GoogleCard linkedEmail={sec.google ? sec.google.email ?? 'your Google account' : null} />
         </Section>
@@ -123,7 +124,7 @@ function StatusCard({ secured, loading, username, google }: { secured: boolean; 
       <span className="text-2xl leading-none" aria-hidden="true">⚠️</span>
       <div>
         <h2 className="text-lg font-bold">Only this phone</h2>
-        <p>If you lose it you’ll need a new QR code from a parent. Add a password{' '}or Google below to be safe.</p>
+        <p>If you lose it you’ll need a new QR code from a parent. Add a {googleEnabled ? 'password or Google' : 'username and password'} below to be safe.</p>
       </div>
     </Card>
   );

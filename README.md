@@ -45,7 +45,7 @@ You need a free **Supabase** project (database, login and photos) and **Cloudfla
 
 1. Go to https://supabase.com, choose **New project**, pick the **Free** plan and the **EU (Frankfurt)** region, and save the database password somewhere safe.
 2. Load the database:
-   - **Option A (no tools):** open **SQL Editor** and run each file in `supabase/migrations/` **in filename order**: `…000000_schema.sql`, `…000100_api_core.sql`, `…000200…`, up to `…000950_supabase_only.sql`.
+   - **Option A (no tools):** open **SQL Editor** and run **every** file in `supabase/migrations/` **in filename order**, from `…000000_schema.sql` to the last one (currently `…001100_relation.sql`). Skip none: later files replace earlier functions.
    - **Option B (CLI):** run `npx supabase init` (once; this creates `supabase/config.toml`), then `npx supabase login`, then `npx supabase link --project-ref <your-ref>`, then `npx supabase db push`.
 3. Go to **Authentication → Sign In / Providers** and turn on:
    - **Allow anonymous sign-ins**, which the QR join needs

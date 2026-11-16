@@ -1,7 +1,7 @@
 // Error codes raised by the SQL functions (`raise exception '<code>' using detail = '...'`).
 export const ERROR_CODES = [
   'not_signed_in', 'not_member', 'already_member', 'not_allowed', 'not_found', 'invalid', 'insufficient',
-  'wrong_status', 'invite_invalid', 'too_many_attempts', 'username_taken', 'bad_login', 'locked', 'not_in_demo',
+  'wrong_status', 'invite_invalid', 'too_many_attempts', 'username_taken', 'bad_login', 'locked', 'not_in_demo', 'family_limit',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number] | 'network' | 'unknown';
 
@@ -40,6 +40,7 @@ const FRIENDLY: Record<ErrorCode, string> = {
   bad_login: 'Wrong username or password.',
   locked: 'Too many wrong tries. This account is locked for 15 minutes.',
   not_in_demo: "That isn't available in the demo.",
+  family_limit: 'This app is private to one family. Ask a parent for a QR code to join.',
   network: 'No connection. Check your internet and try again.',
   unknown: 'Something went wrong. Please try again.',
 };
