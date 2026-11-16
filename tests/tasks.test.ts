@@ -253,6 +253,7 @@ describe('update, archive, visibility', () => {
     await F.owner.rpc('tick');
     const n = await q(db, `select count(*)::int as n from public.task_instances where task_id = $1`, [r.task_ids[0]]);
     expect(n[0].n).toBe(8);
+    await expectCode(F.owner.rpc('update_task', { p_group: r.group_id, p_patch: { title: 'Too late' } }), 'wrong_status');
   });
 
   it('kids see only their own (or created) instances; grandparents see all read-only', async () => {

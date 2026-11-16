@@ -249,6 +249,7 @@ begin
   select * into b from public.tasks where group_id = p_group and family_id = me.family_id order by created_at, id limit 1;
   if not found then raise exception 'not_found' using detail = 'task'; end if;
   if not (app.is_manager(me.role) or b.created_by = me.id) then raise exception 'not_allowed'; end if;
+  if not b.active then raise exception 'wrong_status' using detail = 'task_stopped'; end if;
   if p_patch is null or jsonb_typeof(p_patch) <> 'object' then raise exception 'invalid' using detail = 'patch'; end if;
   t := app.apply_task_patch(b, p_patch, me, s);
   update public.tasks set title = t.title, details = t.details, emoji = t.emoji,

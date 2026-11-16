@@ -13,7 +13,9 @@ export function AppShell() {
   const approvals = state?.counts.approvals ?? 0;
   const requests = isManager ? state?.counts.requests ?? 0 : 0;
   const canSpot = isManager || me?.role === 'grandparent';
-  const showSpot = canSpot && !pathname.startsWith('/money/spot') && !pathname.startsWith('/me');
+  // Only on overview pages: on forms and detail pages it would cover their sticky action buttons.
+  const overview = /^\/(tasks(\/approvals)?|money(\/[0-9a-f-]{36})?|calendar|family)?\/?$/.test(pathname);
+  const showSpot = canSpot && overview;
 
   const nav: NavItem[] = [
     { to: '/', label: 'Home', icon: 'home', end: true },
