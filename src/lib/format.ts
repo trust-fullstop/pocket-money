@@ -176,6 +176,34 @@ export const memberRoleLabel = (m: { role: Role | string; relation?: string | nu
 
 /** Kids can be 0–21 years old. */
 export const KID_MAX_AGE = 21;
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+/** "every Monday" / "every month on the 1st". */
+export function allowanceSchedule(period: 'week' | 'month' | null | undefined, day: number | null | undefined): string {
+  const d = day ?? 1;
+  return period === 'month' ? `every month on the ${ordinal(d)}` : `every ${WEEKDAYS[(d - 1 + 7) % 7]}`;
+}
+/** "€20.00 every month on the 1st" (or null when no pocket money is set). */
+export function allowanceText(m: { allowance_cents: number | null; allowance_period: 'week' | 'month' | null; allowance_day: number | null },
+  currency = 'EUR'): string | null {
+  if (!m.allowance_cents || m.allowance_cents <= 0) return null;
+  return `${money(m.allowance_cents, currency)} ${allowanceSchedule(m.allowance_period, m.allowance_day)}`;
+}
+/** Next pay day (YYYY-MM-DD) on or after `fromISO` for a schedule. Same rule as the server (app.pay_allowances). */
+export function nextPayDate(period: 'week' | 'month' | null | undefined, day: number | null | undefined, fromISO: string): string {
+  const d = day ?? 1;
+  const [y, mo, da] = fromISO.split('-').map(Number);
+  const from = new Date(Date.UTC(y, mo - 1, da));
+  if (period === 'month') {
+    const thisMonth = new Date(Date.UTC(y, mo - 1, d));
+    const pick = thisMonth >= from ? thisMonth : new Date(Date.UTC(y, mo, d));
+    return pick.toISOString().slice(0, 10);
+  }
+  const iso = ((from.getUTCDay() + 6) % 7) + 1; // 1=Mon..7=Sun
+  const add = (d - iso + 7) % 7;
+  return new Date(from.getTime() + add * 86400000).toISOString().slice(0, 10);
+}
 /** Whole years between a YYYY-MM-DD birthday and today (null if missing/invalid). */
 export function ageFrom(birthday?: string | null, today: Date = new Date()): number | null {
   if (!birthday || !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) return null;

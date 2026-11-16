@@ -46,7 +46,10 @@ export interface Member {
   linked: boolean;          // has at least one signed-in device
   username: string | null;  // only for self / managers
   has_password: boolean;
-  allowance_cents: number | null;  // weekly pocket money (null when the caller may not see this member's money)
+  allowance_cents: number | null;  // pocket money per period (null when the caller may not see this member's money)
+  allowance_period: 'week' | 'month' | null;  // how often it's paid
+  allowance_day: number | null;    // week: ISO weekday 1=Mon..7=Sun · month: day of month 1..28
+  allowance_since: string | null;  // YYYY-MM-DD the current schedule started (no pay days before it)
   created_at: string;
 }
 
@@ -68,7 +71,7 @@ export interface FamilySettings {
 export type FeatureKey =
   | 'challenges'   // challenges (incl. kids challenging parents) + partnership
   | 'spotted'      // Spotted: on-the-spot reward / consequence (+ grandparent gifts)
-  | 'allowance'    // automatic weekly pocket money
+  | 'allowance'    // automatic pocket money (weekly or monthly, per kid)
   | 'requests'     // kids ask to spend money / use time
   | 'savings'      // savings pot + moving money to savings + withdraw requests
   | 'interest'     // weekly interest on savings (needs savings)
@@ -80,7 +83,8 @@ export type FeatureKey =
   | 'calendar'     // family calendar, reminders, birthdays
   | 'emergency'    // emergency card (health info, contacts, Life360)
   | 'devices'      // device list
-  | 'ask';         // "Ask Pocket" AI helper for questions (Claude), off until a parent turns it on
+  | 'ask'          // "Ask Pocket" AI helper for questions (Claude), off until a parent turns it on
+  | 'bank';        // real bank balance (e.g. Revolut) typed in by a parent or the kid — information only
 export type Features = Record<FeatureKey, boolean>;
 /** Features that only work when another feature is on. */
 export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest: 'savings', saver_rules: 'savings', goals: 'savings' };
@@ -88,10 +92,12 @@ export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest
 export const START_SMALL: Features = {
   challenges: false, spotted: true, allowance: true, requests: true, savings: false, interest: false, saver_rules: false,
   goals: false, targets: false, time: false, points: true, calendar: true, emergency: true, devices: false, ask: false,
+  bank: true,
 };
 export const EVERYTHING: Features = {
   challenges: true, spotted: true, allowance: true, requests: true, savings: true, interest: true, saver_rules: true,
   goals: true, targets: true, time: true, points: true, calendar: true, emergency: true, devices: true, ask: false,
+  bank: true,
 };
 /** Is a feature effectively on (respecting FEATURE_NEEDS)? Missing keys count as on (older data). */
 export function featureOn(f: Partial<Features> | undefined | null, key: FeatureKey): boolean {
@@ -104,6 +110,12 @@ export function featureOn(f: Partial<Features> | undefined | null, key: FeatureK
 export interface AskEntry {
   id: string; member_id: string; question: string; answer: string | null; status: 'pending' | 'answered' | 'failed';
   created_at: string;
+}
+
+/** A real bank-account balance typed in by a parent or the kid (information only, not part of the app ledger). */
+export interface BankBalance {
+  id: string; member_id: string; label: string; amount_cents: number; as_of: string; note: string | null;
+  created_by: string | null; created_at: string; can_delete: boolean;
 }
 
 export interface Family {

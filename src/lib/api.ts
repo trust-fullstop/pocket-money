@@ -2,7 +2,7 @@
 // Each function maps 1:1 to a public SQL function in supabase/migrations (param names prefixed p_).
 import { backend } from './backend';
 import type {
-  AppState, AskEntry, Balances, Device, DeviceInput, EventInput, EventOccurrence, Family, Goal, Invite, InvitePreview,
+  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, Goal, Invite, InvitePreview,
   LoginDevice, MoneyRequest, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput, TaskInstance,
   TickResult, Transaction, Wallet,
 } from './types';
@@ -88,6 +88,13 @@ export const api = {
   listDevices: () => rpc<Device[]>('list_devices'),
   upsertDevice: (d: DeviceInput) => rpc<{ id: string }>('upsert_device', { p: d }),
   deleteDevice: (deviceId: string) => rpc<Ok>('delete_device', { p_device: deviceId }),
+
+  // ---- real bank balance (information only) ----
+  listBankBalances: (memberId: string, limit = 20) => rpc<BankBalance[]>('list_bank_balances', { p_member: memberId, p_limit: limit }),
+  /** label e.g. "Revolut"; asOf YYYY-MM-DD (default today); amount may be negative (overdrawn). */
+  setBankBalance: (memberId: string, amountCents: number, label?: string | null, asOf?: string | null, note?: string | null) =>
+    rpc<BankBalance>('set_bank_balance', { p_member: memberId, p_amount_cents: amountCents, p_label: label ?? null, p_as_of: asOf ?? null, p_note: note ?? null }),
+  deleteBankBalance: (id: string) => rpc<Ok>('delete_bank_balance', { p_id: id }),
 
   // ---- ask (AI helper) ----
   /** Questions asked: managers see everyone's (or one member's), others only their own. Newest first. */
