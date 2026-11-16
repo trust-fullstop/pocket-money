@@ -91,6 +91,16 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       signed.clear();
     },
 
+    async ask(question: string) {
+      const { data, error } = await sb.functions.invoke<{ id: string; answer: string }>('ask', { body: { question } });
+      if (error) {
+        let code = 'unknown';
+        try { code = (await (error as { context?: Response }).context?.json())?.error ?? code; } catch { /* not JSON */ }
+        throw toAppError({ message: code });
+      }
+      return { id: data?.id ?? null, answer: data?.answer ?? '' };
+    },
+
     async photoUrl(path: string) {
       const hit = signed.get(path);
       if (hit && hit.exp > Date.now()) return hit.url;

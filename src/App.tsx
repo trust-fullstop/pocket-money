@@ -16,6 +16,7 @@ const Tasks = lazy(() => import('./features/tasks'));
 const Money = lazy(() => import('./features/money'));
 const Calendar = lazy(() => import('./features/calendar'));
 const Family = lazy(() => import('./features/family'));
+const Help = lazy(() => import('./features/help'));
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
 
@@ -49,6 +50,7 @@ function Root() {
           <Route path="money/*" element={<Money />} />
           <Route path="calendar/*" element={<Calendar />} />
           <Route path="family/*" element={<Family />} />
+          <Route path="help/*" element={<Help />} />
           <Route path="me/*" element={<Me />} />
           <Route path="*" element={<NotFound />} />
         </Route>

@@ -61,6 +61,49 @@ export interface FamilySettings {
   emergency_visibility: 'family' | 'adults';
   catchup_days: number;
   default_evidence: Evidence;
+  features: Features;             // which parts of the app are switched on (parent admin → Features)
+}
+
+/** Parts of the app a parent can switch on/off. Chores + the spending pot are always on (the core). */
+export type FeatureKey =
+  | 'challenges'   // challenges (incl. kids challenging parents) + partnership
+  | 'spotted'      // Spotted: on-the-spot reward / consequence (+ grandparent gifts)
+  | 'allowance'    // automatic weekly pocket money
+  | 'requests'     // kids ask to spend money / use time
+  | 'savings'      // savings pot + moving money to savings + withdraw requests
+  | 'interest'     // weekly interest on savings (needs savings)
+  | 'saver_rules'  // saver bonus + no-savings rule (needs savings)
+  | 'goals'        // savings goals (needs savings)
+  | 'targets'      // weekly/monthly targets with prizes
+  | 'time'         // time currency (Wi-Fi / game / fun minutes)
+  | 'points'       // points (XP) + characters & levels
+  | 'calendar'     // family calendar, reminders, birthdays
+  | 'emergency'    // emergency card (health info, contacts, Life360)
+  | 'devices'      // device list
+  | 'ask';         // "Ask Pocket" AI helper for questions (Claude), off until a parent turns it on
+export type Features = Record<FeatureKey, boolean>;
+/** Features that only work when another feature is on. */
+export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest: 'savings', saver_rules: 'savings', goals: 'savings' };
+/** "Start small" preset: learn the basics first, switch more on later. */
+export const START_SMALL: Features = {
+  challenges: false, spotted: true, allowance: true, requests: true, savings: false, interest: false, saver_rules: false,
+  goals: false, targets: false, time: false, points: true, calendar: true, emergency: true, devices: false, ask: false,
+};
+export const EVERYTHING: Features = {
+  challenges: true, spotted: true, allowance: true, requests: true, savings: true, interest: true, saver_rules: true,
+  goals: true, targets: true, time: true, points: true, calendar: true, emergency: true, devices: true, ask: false,
+};
+/** Is a feature effectively on (respecting FEATURE_NEEDS)? Missing keys count as on (older data). */
+export function featureOn(f: Partial<Features> | undefined | null, key: FeatureKey): boolean {
+  if (!f || f[key] === false) return false;
+  const need = FEATURE_NEEDS[key];
+  return need ? featureOn(f, need) : true;
+}
+
+/** One question a member asked the "Ask Pocket" helper (parents can see all, kids their own). */
+export interface AskEntry {
+  id: string; member_id: string; question: string; answer: string | null; status: 'pending' | 'answered' | 'failed';
+  created_at: string;
 }
 
 export interface Family {

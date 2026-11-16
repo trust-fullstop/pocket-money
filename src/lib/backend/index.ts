@@ -21,6 +21,8 @@ export interface Backend {
   uploadPhoto(path: string, blob: Blob): Promise<void>;
   /** Delete every stored photo of a family (used before deleting the family). */
   deleteFamilyPhotos(familyId: string): Promise<void>;
+  /** "Ask Pocket" helper. Cloud: Edge Function `ask` (Claude, server-side key). Demo: built-in answers. */
+  ask(question: string): Promise<{ id: string | null; answer: string }>;
   /** Short-lived URL (cloud: signed URL 1h; demo: object URL). */
   photoUrl(path: string): Promise<string>;
   /** Demo only: seeded people to "switch to", switch, reset and time-travel. */

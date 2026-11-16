@@ -152,6 +152,12 @@ export function createDemoBackend(): Backend {
       photoUrls.clear();
     },
 
+    async ask(question: string) {
+      // Demo: no AI call. The help module's built-in answers are used (see src/features/help/answers.ts).
+      const { localAnswer } = await import('../../features/help/answers');
+      return { id: null, answer: localAnswer(question) };
+    },
+
     async photoUrl(path: string) {
       const hit = photoUrls.get(path);
       if (hit) return hit;

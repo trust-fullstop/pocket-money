@@ -2,7 +2,7 @@
 // Each function maps 1:1 to a public SQL function in supabase/migrations (param names prefixed p_).
 import { backend } from './backend';
 import type {
-  AppState, Balances, Device, DeviceInput, EventInput, EventOccurrence, Family, Goal, Invite, InvitePreview,
+  AppState, AskEntry, Balances, Device, DeviceInput, EventInput, EventOccurrence, Family, Goal, Invite, InvitePreview,
   LoginDevice, MoneyRequest, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput, TaskInstance,
   TickResult, Transaction, Wallet,
 } from './types';
@@ -88,6 +88,12 @@ export const api = {
   listDevices: () => rpc<Device[]>('list_devices'),
   upsertDevice: (d: DeviceInput) => rpc<{ id: string }>('upsert_device', { p: d }),
   deleteDevice: (deviceId: string) => rpc<Ok>('delete_device', { p_device: deviceId }),
+
+  // ---- ask (AI helper) ----
+  /** Questions asked: managers see everyone's (or one member's), others only their own. Newest first. */
+  listAsks: (memberId?: string | null, limit = 50) => rpc<AskEntry[]>('list_asks', { p_member: memberId ?? null, p_limit: limit }),
+  /** Ask a question. Cloud: Supabase Edge Function `ask` (Claude). Demo: built-in answers. */
+  ask: (question: string) => backend().ask(question),
 };
 
 export type Api = typeof api;
