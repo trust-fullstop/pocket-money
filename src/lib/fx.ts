@@ -143,6 +143,13 @@ const WORDS: Record<string, string> = { ZAR: 'rand', EUR: 'euro', USD: 'dollars'
 /** "rand", "euro", "dollars", "pounds" (else the ISO code). */
 export const currencyWord = (code: string) => WORDS[code] ?? code;
 
+/** "€1 = R 18.66" — always the way round that gives a number of 1 or more (R→€ shows "€1 = R 18.66", not "R1 = €0.0536"). */
+export function rateHeadline(base: string, quote: string, rate: number): string {
+  return rate >= 1
+    ? `${money(100, base, { whole: true })} = ${rateText(rate, quote)}`
+    : `${money(100, quote, { whole: true })} = ${rateText(1 / rate, base)}`;
+}
+
 /** "R 18.66" for 1 unit of the base currency (more decimals for small rates, e.g. "€0.0536"). */
 export function rateText(rate: number, quote: string): string {
   const digits = rate >= 10 ? 2 : rate >= 1 ? 3 : 4;

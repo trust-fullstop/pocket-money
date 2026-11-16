@@ -2,7 +2,7 @@
 // (family rule "Kids spend money in"), what the wallet is worth there, and a two-way calculator. Display only.
 import { useId, useState } from 'react';
 import { Card, IconButton, Spinner, cx, inputShellClass } from '../../components/ui';
-import { approxMoney, currencyWord, rateText, toBase, toQuote, useFx, type Fx } from '../../lib/fx';
+import { approxMoney, currencyWord, rateHeadline, toBase, toQuote, useFx, type Fx } from '../../lib/fx';
 import { centsToInput, currencySymbol, formatDate, money, parseMoney } from '../../lib/format';
 import { CardTitle } from './parts';
 
@@ -34,9 +34,7 @@ export function FxCard({ rows }: { rows: FxRow[] }) {
       ) : (
         <div className="space-y-3">
           <div>
-            <p className="text-2xl font-extrabold tabular-nums">
-              {money(100, fx.base, { whole: true })} = {rateText(r.rate, fx.quote)}
-            </p>
+            <p className="text-2xl font-extrabold tabular-nums">{rateHeadline(fx.base, fx.quote, r.rate)}</p>
             <p className="text-[14px] text-muted">
               {r.source === 'ECB' ? 'European Central Bank rate' : 'Exchange rate'} of {formatDate(r.date)}
               {fx.loading ? ' · checking…' : fx.failed ? ' · couldn’t check again, this is the last one we have' : ''}

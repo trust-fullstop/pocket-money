@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import { clock, expectCode, makeDb, makeFamily, q, type Fam } from './helpers';
 import {
-  approxMoney, fetchRate, loadRate, parseErApi, parseFrankfurter, rateText, resetFxStore, spendCurrencyOf, toBase, toQuote,
+  approxMoney, fetchRate, loadRate, parseErApi, parseFrankfurter, rateHeadline, rateText, resetFxStore, spendCurrencyOf, toBase, toQuote,
 } from '../src/lib/fx';
 
 let db: PGlite;
@@ -121,6 +121,8 @@ describe('exchange rate (client)', () => {
     expect(sp(approxMoney(10050, 'EUR'))).toBe('€101');
     expect(sp(rateText(18.6584, 'ZAR'))).toBe('R 18.66');
     expect(sp(rateText(0.0536, 'EUR'))).toBe('€0.0536');
+    expect(sp(rateHeadline('EUR', 'ZAR', 18.66))).toBe('€1 = R 18.66');
+    expect(sp(rateHeadline('ZAR', 'EUR', 0.053595))).toBe('€1 = R 18.66');
     expect(spendCurrencyOf({ currency: 'EUR', settings: { spend_currency: 'ZAR' } })).toBe('ZAR');
     expect(spendCurrencyOf({ currency: 'EUR', settings: { spend_currency: 'EUR' } })).toBeNull();
     expect(spendCurrencyOf({ currency: 'EUR', settings: { spend_currency: null } })).toBeNull();
