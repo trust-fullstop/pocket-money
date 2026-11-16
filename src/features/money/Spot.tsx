@@ -117,8 +117,8 @@ export function SpotPage() {
       if (uploaded?.blob === photo) path = uploaded.path;
       else {
         try {
-          // Managers file it under the child's folder (the child can see it); grandparents may only write their own.
-          path = await uploadPhoto(family.id, amG ? me.id : kid.id, photo);
+          // Filed under the child's folder so the child can see it (grandparents may write into kids' folders).
+          path = await uploadPhoto(family.id, kid.id, photo);
           setUploaded({ blob: photo, path });
         } catch {
           setPhotoFailed(true);
@@ -224,7 +224,7 @@ export function SpotPage() {
           <>
             <PhotoCapture
               label="📷 Take photo" value={photo} onChange={choosePhoto}
-              hint={amG ? 'Only you and the parents can see this photo.' : `Only ${kid ? name : 'the child'}, parents and you can see this photo.`}
+              hint={amG ? `${kid ? name : 'Your grandchild'}, the parents and you can see this photo.` : `Only ${kid ? name : 'the child'}, parents and you can see this photo.`}
             />
             {!photo && <Button variant="secondary" block onClick={() => setSkipPhoto(true)}>Skip photo</Button>}
           </>
