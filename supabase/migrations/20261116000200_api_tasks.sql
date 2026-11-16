@@ -268,9 +268,11 @@ begin
     due_time = t.due_time, evidence = t.evidence, end_on = t.end_on
   where group_id = p_group and family_id = me.family_id;
   v_today := app.today(f);
-  -- Extending or removing the end date re-opens future days that an earlier, shorter end date cancelled.
+  -- Extending or removing the end date re-opens future days that an earlier, shorter end date cancelled
+  -- (only days whose due time is still ahead, so nobody gets a fine for a day that already passed).
   update public.task_instances i set status = 'open'
    where i.family_id = f.id and i.status = 'cancelled' and i.occurs_on >= v_today
+     and app.local_ts(i.occurs_on, t.due_time, f.timezone) > app.now()
      and (t.end_on is null or i.occurs_on <= t.end_on)
      and i.task_id in (select id from public.tasks where group_id = p_group and family_id = f.id and active);
   update public.task_instances i set due_at = app.local_ts(i.occurs_on, t.due_time, f.timezone)

@@ -87,6 +87,18 @@ describe('vera re-gate findings', () => {
     await f.owner.rpc('update_task', { p_group: t.group_id, p_patch: { end_on: null } });
     expect(await statusOn('2026-11-06')).toBe('open');
     expect(await statusOn('2026-11-09')).toBe('open');
+
+    // a day whose due time already passed stays cancelled (no surprise fine)
+    clock.now = '2026-11-10T08:00:00Z';
+    await f.owner.rpc('tick'); // creates the 10th
+    clock.now = '2026-11-10T19:30:00Z'; // after 19:00 local (CET) on the 10th, inside the grace period
+    await f.owner.rpc('update_task', { p_group: t.group_id, p_patch: { end_on: '2026-11-09' } });
+    expect(await statusOn('2026-11-10')).toBe('cancelled');
+    await f.owner.rpc('update_task', { p_group: t.group_id, p_patch: { end_on: null } });
+    expect(await statusOn('2026-11-10')).toBe('cancelled');
+    expect(await statusOn('2026-11-11')).toBe('open');
+    await f.owner.rpc('tick');
+    expect(await q(db, `select 1 from public.transactions where member_id = $1 and kind = 'task_penalty'`, [f.Kid.id])).toEqual([]);
   });
 
   it('provision_family creates the one family up front; the owner joins with the link; nobody can create another', async () => {
