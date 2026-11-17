@@ -17,7 +17,11 @@ export interface GuideCard {
  * Cards for the parts of the app that are switched on (tasks are always on).
  * `m` formats cents in the family currency for prose (e.g. "€2", "€0.50").
  */
-export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number) => string, settings: Partial<FamilySettings>): GuideCard[] {
+export function featureGuide(
+  on: (key: FeatureKey) => boolean, m: (cents: number) => string, settings: Partial<FamilySettings>,
+  /** The reader's own pocket money, e.g. "R 50.00 every Monday" (allowanceText). */
+  mine?: { allowance?: string | null },
+): GuideCard[] {
   const pts = on('points');
   const time = on('time');
   const rate = settings.interest_pct_month && settings.interest_pct_month > 0 ? settings.interest_pct_month : 2;
@@ -33,7 +37,8 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
     },
     on('allowance') && {
       key: 'allowance', emoji: '💰', title: 'Pocket money',
-      what: 'A set amount lands in your Spending all by itself: every week on a set day, or every month on a set date.',
+      what: 'A set amount lands in your Spending all by itself: every week on a set day, or every month on a set date.'
+        + (mine?.allowance ? ` Yours: ${mine.allowance}.` : ''),
       why: 'A fixed amount teaches you to plan ahead.',
       example: on('savings')
         ? `${m(500)} every Monday: spend ${m(300)}, save ${m(200)}. Or ${m(2000)} on the 1st of every month.`
@@ -80,7 +85,7 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
       key: 'bank', emoji: '🏦', title: 'Real bank balance',
       what: 'Type in what your real bank account (e.g. Revolut) says, so you see it next to the app.',
       why: 'The app and the bank are two different things. Seeing both helps you keep track.',
-      example: `Revolut says ${m(12345)}: Money → Update balance → ${m(12345)}. It doesn’t change your Pocket Money wallet.`,
+      example: `Revolut says ${m(12345)}: Money → Update balance → ${m(12345)}. It doesn’t change your Sow & Grow wallet.`,
     },
     on('challenges') && {
       key: 'challenges', emoji: '🤝', title: 'Challenges',
@@ -124,6 +129,18 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
       why: 'Parents keep track of what’s in the house.',
       example: 'Xbox, living room, owner: Sam.',
     },
+    on('learn') && {
+      key: 'learn', emoji: '🎓', title: 'Money school',
+      what: 'Short lessons about money: why and how to save, interest, earning more and saving for a goal.',
+      why: 'Knowing how money works helps you make good choices, now and later.',
+      example: `“How interest works”: ${m(10000)} at 10% a year is ${m(11000)} after one year, and ${m(12100)} after two.`,
+    },
+    on('faith') && {
+      key: 'faith', emoji: '🕊️', title: 'Faith, hope and love',
+      what: 'A Bible verse every day, and short reflections about faith, money and family. Each person can hide the verses in Me.',
+      why: 'Faith is part of our family. Nothing here is scored or tested.',
+      example: 'The verse of the day is on Home. Tap “Read in the Bible App” to read more.',
+    },
     on('ask') && {
       key: 'ask', emoji: '💬', title: 'Ask Pocket',
       what: 'A helper that answers questions about the app.',
@@ -135,7 +152,10 @@ export function featureGuide(on: (key: FeatureKey) => boolean, m: (cents: number
 }
 
 /** Questions a kid can tap to get started. */
-export const STARTERS = ['Why do I need a photo?', 'How does saving work?', 'What happens if I miss a task?', 'Hoe werkt sparen?'];
+export const STARTERS = [
+  'Why do I need a photo?', 'How does saving work?', 'Why should I save?', 'How does interest work?',
+  'What happens if I miss a task?', 'Hoe werkt sparen?',
+];
 
 /** Make an AI answer readable as plain text (drop markdown bold, headings and bullets). */
 export function plainAnswer(text: string): string {

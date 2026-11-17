@@ -15,6 +15,7 @@ export interface Theme {
   mode?: 'light' | 'dark' | 'system';
   character?: string;       // key of CHARACTERS, e.g. 'fox'
   classic?: boolean;        // plain look for parents
+  verses?: boolean;         // false = this person hides Bible verses (feature 'faith'); default shown
 }
 
 export interface EmergencyContact { name: string; phone: string; relation?: string }
@@ -85,7 +86,9 @@ export type FeatureKey =
   | 'emergency'    // emergency card (health info, contacts, Life360)
   | 'devices'      // device list
   | 'ask'          // "Ask Pocket" AI helper for questions (Claude), off until a parent turns it on
-  | 'bank';        // real bank balance (e.g. Revolut) typed in by a parent or the kid — information only
+  | 'bank'         // real bank balance (e.g. Revolut) typed in by a parent or the kid — information only
+  | 'learn'        // Money school: short lessons about saving, interest, earning and spending (+ XP once per lesson)
+  | 'faith';       // Faith, hope and love: verse of the day, faith reflections, Bible App links (each person can hide verses)
 export type Features = Record<FeatureKey, boolean>;
 /** Features that only work when another feature is on. */
 export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest: 'savings', saver_rules: 'savings', goals: 'savings' };
@@ -93,12 +96,12 @@ export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest
 export const START_SMALL: Features = {
   challenges: false, spotted: true, allowance: true, requests: true, savings: false, interest: false, saver_rules: false,
   goals: false, targets: false, time: false, points: true, calendar: true, emergency: true, devices: false, ask: false,
-  bank: true,
+  bank: true, learn: true, faith: false,
 };
 export const EVERYTHING: Features = {
   challenges: true, spotted: true, allowance: true, requests: true, savings: true, interest: true, saver_rules: true,
   goals: true, targets: true, time: true, points: true, calendar: true, emergency: true, devices: true, ask: false,
-  bank: true,
+  bank: true, learn: true, faith: true,
 };
 /** Is a feature effectively on (respecting FEATURE_NEEDS)? Missing keys count as on (older data). */
 export function featureOn(f: Partial<Features> | undefined | null, key: FeatureKey): boolean {
@@ -112,6 +115,11 @@ export interface AskEntry {
   id: string; member_id: string; question: string; answer: string | null; status: 'pending' | 'answered' | 'failed';
   created_at: string;
 }
+
+/** A finished Money school lesson (`points` = XP it gave, 0 when none). */
+export interface LessonDone { member_id: string; lesson: string; done_at: string; points: number }
+/** finish_lesson answer: `first` = finished just now (not before); `points` = XP given now (0 when not a kid / points off / again). */
+export interface FinishLessonResult { lesson: string; done_at: string; first: boolean; points: number }
 
 /** A real bank-account balance typed in by a parent or the kid (information only, not part of the app ledger). */
 export interface BankBalance {

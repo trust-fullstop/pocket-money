@@ -6,6 +6,8 @@ import { minutes, money, plural, points } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { Balances, EventOccurrence, Member, TaskInstance, Wallet } from '../../lib/types';
+import { VerseOfTheDay } from '../faith/VerseCard';
+import { useLessonsDone } from '../help/learn/useProgress';
 import { ComingUp, HomeSection, KidTaskRow, Loaded, SectionError, Skeleton } from './shared';
 import { byStatusThenDue, countsForProgress, eventsWindow, gridCols, rewardParts, sumRewards, weekRange } from './lib';
 
@@ -46,6 +48,8 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
         {balances ? <BalanceTiles meId={me.id} b={balances} currency={cur} features={features} /> : <NoBalances />}
       </div>
 
+      <VerseOfTheDay className="mt-4" />
+
       {approvals > 0 && checks.data && checks.data.length > 0 && <ChallengeToCheck list={checks.data} />}
 
       <HomeSection
@@ -81,6 +85,8 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
       <CouldEarn insts={insts.data} wallet={wallet.data} currency={cur} features={features} />
 
       {features.on('goals') && <GoalCard wallet={wallet} meId={me.id} currency={cur} />}
+
+      {features.on('learn') && <MoneySchoolCard />}
 
       {myRequests > 0 && (
         <Card padded={false} className="mt-6 overflow-hidden">
@@ -298,6 +304,58 @@ function GoalCard({ wallet, meId, currency }: { wallet: LoadResult<Wallet>; meId
           <span className="text-muted"> · {eta}</span>
         </p>
       </Link>
+    </HomeSection>
+  );
+}
+
+function MoneySchoolCard() {
+  const lessons = useLessonsDone();
+  const { count, total, next } = lessons.progress;
+  const title = <span><span aria-hidden="true">🎓 </span>Money school</span>;
+  if (lessons.data === undefined) {
+    return (
+      <HomeSection title={title}>
+        {lessons.error
+          ? <SectionError error={lessons.error} onRetry={() => void lessons.reload()} />
+          : <Skeleton rows={1} height="h-24" label="Loading Money school" />}
+      </HomeSection>
+    );
+  }
+  if (total === 0) return null;
+  const bar = (
+    <ProgressBar
+      className="mt-3" value={count} max={total} tone={next ? 'accent' : 'good'}
+      label="Money school lessons done" valueText={`${count} of ${total} done`}
+    />
+  );
+  if (!next) {
+    return (
+      <HomeSection title={title}>
+        <Link to="/help/learn" className="block rounded-2xl border border-line bg-surface p-4 shadow-sm transition active:scale-[0.99]">
+          <p className="text-lg font-bold">All done! <span aria-hidden="true">🎉</span></p>
+          <p className="text-[15px] text-muted">{count} of {total} lessons done. Do them again any time.</p>
+          {bar}
+        </Link>
+      </HomeSection>
+    );
+  }
+  return (
+    <HomeSection title={title} link={{ to: '/help/learn', label: 'All lessons' }}>
+      <Card>
+        <p className="text-[14px] font-semibold uppercase tracking-wide text-muted">{count === 0 ? 'Start with' : 'Up next'}</p>
+        <div className="mt-1 flex items-center gap-3">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{next.emoji}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold leading-snug">{next.title}</p>
+            <p className="text-[15px] text-muted">{next.summary}</p>
+          </div>
+        </div>
+        {bar}
+        <p className="mt-1 text-[15px] font-semibold tabular-nums">{count} of {total} done</p>
+        <LinkButton to={`/help/learn/${next.id}`} block className="mt-3">
+          {count === 0 ? 'Start' : 'Continue'}: {next.title}
+        </LinkButton>
+      </Card>
     </HomeSection>
   );
 }

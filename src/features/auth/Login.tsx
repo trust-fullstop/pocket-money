@@ -42,7 +42,7 @@ export default function Login() {
 
   return (
     <AuthShell>
-      <PageHeader title="Sign in" subtitle="With your Pocket Money username" back="/welcome" />
+      <PageHeader title="Sign in" subtitle="With your Sow & Grow username" back="/welcome" />
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Input
           label="Username" value={username} onChange={(e) => setUsername(e.target.value)}

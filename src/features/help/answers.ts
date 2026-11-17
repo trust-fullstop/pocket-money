@@ -23,12 +23,13 @@ export interface FaqEntry {
 export const FAQ: FaqEntry[] = [
   {
     id: 'purpose',
-    q: "What's the point of Pocket Money?",
-    en: 'Pocket Money shows that what you do has a result. Do your tasks and you earn money, time or points. Leave them and it costs you a little. Save, and your money can grow. And it works both ways: you can challenge grown-ups too. It’s teamwork, not punishment. 💛',
-    nl: 'Pocket Money laat zien dat wat je doet gevolgen heeft. Doe je taken en je verdient geld, tijd of punten. Laat je ze liggen, dan kost het je een beetje. Spaar je, dan kan je geld groeien. En het werkt twee kanten op: jij kunt volwassenen ook uitdagen. Het is samenwerken, geen straf. 💛',
+    q: "What's the point of Sow & Grow?",
+    en: 'Sow & Grow shows that what you do has a result. Do your tasks and you earn money, time or points. Leave them and it costs you a little. Save, and your money can grow. And it works both ways: you can challenge grown-ups too. It’s teamwork, not punishment. 💛',
+    nl: 'Sow & Grow laat zien dat wat je doet gevolgen heeft. Doe je taken en je verdient geld, tijd of punten. Laat je ze liggen, dan kost het je een beetje. Spaar je, dan kan je geld groeien. En het werkt twee kanten op: jij kunt volwassenen ook uitdagen. Het is samenwerken, geen straf. 💛',
     keys: [
       '*point of', '*purpose', '*what is pocket money', '*what is this app', '*what does this app', 'whats this app', 'why this app',
       'why do we use', 'about the app', 'what is it for', '*doel van', '*nut van', '*wat is pocket money', '*wat is deze app',
+      '*what is sow grow', '*what is sow and grow', '*wat is sow grow', '*wat is sow and grow', 'sow grow', 'sow and grow',
       'waarom deze app', 'wat doet deze app', 'waar is het voor', 'waarom gebruiken',
     ],
   },
@@ -92,6 +93,28 @@ export const FAQ: FaqEntry[] = [
     nl: 'Kies iets wat je wilt, zoals een koptelefoon van €40, en maak er een doel van met een emoji. 🎯 De balk laat zien hoe ver je bent (“€12 of €40”) en hoeveel weken het nog ongeveer duurt. Spaar elke week wat meer en zie de weken dalen.',
     keys: ['*goal', '*goals', '*spaardoel', 'doel', 'doelen', 'save for', 'saving for', 'sparen voor', 'how long', 'hoe lang', 'how many weeks'],
     feature: 'goals',
+  },
+  {
+    id: 'why_save',
+    q: 'Why should I save?',
+    en: 'Saving gives you choices. 🐷 First come the needs (things you must have, like food and school shoes), then the wants (nice to have, like a new game). Savings help when surprises happen, like broken earphones, and let you buy bigger things without borrowing. Waiting for something better later is a real superpower, and it gets easier with practice.',
+    nl: 'Sparen geeft je keuzes. 🐷 Eerst komt wat je nodig hebt (zoals eten en schoenen voor school), dan wat je graag wilt (leuk om te hebben, zoals een nieuwe game). Spaargeld helpt als er iets onverwachts gebeurt, zoals kapotte oortjes, en zo koop je grotere dingen zonder te lenen. Wachten op iets beters later is een echte superkracht, en het wordt makkelijker als je het oefent.',
+    keys: [
+      '*why should i save', '*should i save', '*why save', '*why saving', '*point of saving', '*waarom sparen', '*waarom zou ik sparen',
+      '*waarom moet ik sparen', '*needs and wants', '*need or want', '*nodig of willen', 'reason to save', 'delayed gratification',
+      'superpower', 'superkracht', 'saving', 'save',
+    ],
+  },
+  {
+    id: 'how_save',
+    q: 'How do I save more?',
+    en: 'Five tips 💰: 1) Pay yourself first: save a part the moment money arrives, not what’s left at the end. 2) Pick a part to save, like 20% (one fifth). 3) Want something you don’t need? Wait 24 hours first. 4) Compare prices in two or three shops. 5) Write down your goal and how much you’ll save each week. If your family uses Savings, tap Move to savings in Money.',
+    nl: 'Vijf tips 💰: 1) Betaal jezelf eerst: zet een deel opzij zodra je geld krijgt, niet wat er aan het eind over is. 2) Kies een deel om te sparen, bijvoorbeeld 20% (een vijfde). 3) Wil je iets wat je niet nodig hebt? Wacht dan eerst 24 uur. 4) Vergelijk prijzen in twee of drie winkels. 5) Schrijf je doel op en hoeveel je elke week spaart. Gebruikt jullie gezin Savings? Tik dan in Money op Move to savings.',
+    keys: [
+      '*how do i save', '*how to save', '*how can i save', '*save more', '*saving tips', '*tips for saving', '*hoe spaar ik',
+      '*hoe kan ik sparen', '*hoe moet ik sparen', '*meer sparen', '*spaartips', 'save money', 'geld sparen', 'pay yourself first',
+      '24 hour rule', '24 hours', '24 uur', 'jars', 'potjes',
+    ],
   },
   {
     id: 'savings',
@@ -185,8 +208,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'bank',
     q: 'What is the real bank balance?',
-    en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”. It’s only for looking: it doesn’t change the money in your Pocket Money wallet, and the app never touches your bank.',
-    nl: 'Sommige kinderen hebben ook een echte bankrekening, zoals Revolut. 🏦 Jij (of een ouder) kunt invullen wat de bank-app zegt: open Money, zoek “Real bank account” en tik op Update balance. Sta je rood? Zet dan “Overdrawn (negative)” aan. Het is alleen om te kijken: het verandert het geld in je Pocket Money-portemonnee niet, en de app komt nooit aan je bank.',
+    en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”. It’s only for looking: it doesn’t change the money in your Sow & Grow wallet, and the app never touches your bank.',
+    nl: 'Sommige kinderen hebben ook een echte bankrekening, zoals Revolut. 🏦 Jij (of een ouder) kunt invullen wat de bank-app zegt: open Money, zoek “Real bank account” en tik op Update balance. Sta je rood? Zet dan “Overdrawn (negative)” aan. Het is alleen om te kijken: het verandert het geld in je Sow & Grow-portemonnee niet, en de app komt nooit aan je bank.',
     keys: [
       '*bank', '*banks', '*revolut', '*rekening', '*bankrekening', '*saldo', 'banksaldo', 'banking', 'bank account', 'bank balance',
       'bank app', 'banking app', 'real bank', 'echte bank', 'echte rekening', 'overdrawn', 'rood staan', 'sta ik rood', 'bunq', 'rabobank',
@@ -233,6 +256,40 @@ export const FAQ: FaqEntry[] = [
     ],
   },
   {
+    id: 'learn',
+    q: 'Where is Money school?',
+    en: 'Money school has short lessons about money: why and how to save, how interest works, how to earn more and how to save for a goal. 🎓 Tap Help at the top of the app, then Money school. Each lesson takes about 3 minutes and ends with a short quiz. If your family uses points, kids get +5 XP the first time they finish a lesson.',
+    nl: 'Money school heeft korte lessen over geld: waarom en hoe je spaart, hoe rente werkt, hoe je meer verdient en hoe je spaart voor een doel. 🎓 Tik bovenaan de app op Help en dan op Money school. Elke les duurt ongeveer 3 minuten en eindigt met een korte quiz. Gebruikt jullie gezin punten? Dan krijgen kinderen +5 XP de eerste keer dat ze een les afmaken.',
+    keys: [
+      '*money school', '*geldschool', '*lesson', '*lessons', '*les', '*lessen', '*quiz', '*learn', '*leren', 'cursus',
+      'school', 'teach me', 'leer me', 'interest', 'rente',
+    ],
+    feature: 'learn',
+  },
+  {
+    id: 'faith',
+    q: 'Where are the Bible verses?',
+    en: 'There’s a verse of the day on Home 🕊️, the same one for the whole family all day. In Money school there are also short reflections about faith, money and family. Tap “Read in the Bible App” to read the verse with the verses around it. Rather not see them? Everyone can switch them off for themselves: tap your avatar at the top right to open Me, then switch off “Show Bible verses”.',
+    nl: 'Op Home staat een tekst van de dag 🕊️, de hele dag dezelfde voor het hele gezin. In Money school vind je ook korte overdenkingen over geloof, geld en gezin. Tik op “Read in the Bible App” om de tekst te lezen, met de verzen eromheen. Zie je ze liever niet? Iedereen kan ze voor zichzelf uitzetten: tik rechtsboven op je avatar om Me te openen en zet “Show Bible verses” uit.',
+    keys: [
+      '*bible', '*bijbel', '*verse', '*verses', '*bible verses', '*bijbeltekst', '*bijbelteksten', '*faith', '*geloof', '*verse of the day',
+      '*tekst van de dag', 'bible app', 'bijbel app', 'hide verses', 'hide the verses', 'god', 'jesus', 'jezus', 'reflection',
+      'reflections', 'overdenking', 'church', 'kerk', 'pray', 'bidden',
+    ],
+    feature: 'faith',
+  },
+  {
+    id: 'tithing',
+    q: 'What is tithing?',
+    en: 'A tithe means a tenth: 10% of what you get. 🕊️ In the Bible, people gave the first tenth back to God, to say thank you for everything they had. It’s about a thankful, free heart, not about having to. Want to know more? Open Money school and look under the faith reflections. And ask your parents what our family does.',
+    nl: 'Tiende betekent een tiende deel: 10% van wat je krijgt. 🕊️ In de Bijbel gaven mensen het eerste tiende deel terug aan God, als dank voor alles wat ze hadden. Het gaat om een dankbaar, vrij hart, niet om moeten. Wil je meer weten? Open Money school en kijk bij de overdenkingen over geloof. En vraag je ouders hoe ons gezin het doet.',
+    keys: [
+      '*tithe', '*tithes', '*tithing', '*tiende', '*tienden', '*tiende deel', 'a tenth', 'one tenth', 'tenth', 'give to god',
+      'give to church', 'geven aan god', 'geven aan de kerk', 'offering', 'collecte',
+    ],
+    feature: 'faith',
+  },
+  {
     id: 'helper',
     q: 'Who answers my questions here?',
     en: 'I’m Pocket 🐷, the app’s helper. I explain how the app works. I can’t change your money or tasks — only grown-ups can do that. Your parents can read your questions, so for anything personal, just talk to them.',
@@ -261,8 +318,8 @@ const DEFAULT = {
   nl: 'Goede vraag! Die weet ik nog niet. 🤔 Vraag me iets over taken, foto’s, sparen, boetes of punten. Of vraag het een ouder — die kent jullie regels het best.',
 };
 const EMPTY = {
-  en: 'Ask me anything about how Pocket Money works! 🐷',
-  nl: 'Vraag me alles over hoe Pocket Money werkt! 🐷',
+  en: 'Ask me anything about how Sow & Grow works! 🐷',
+  nl: 'Vraag me alles over hoe Sow & Grow werkt! 🐷',
 };
 const MAYBE_OFF = {
   en: ' (Don’t see this in the app? Your family may not use it yet.)',
@@ -288,6 +345,7 @@ const NL_WORDS = new Set([
   'mag', 'moet', 'als', 'ben', 'heb', 'krijg', 'krijgen', 'van', 'voor', 'met', 'zijn', 'wordt', 'gebeurt', 'dat', 'er', 'geen',
   'ook', 'maar', 'nog', 'wel', 'hallo', 'hoi', 'bedankt', 'dank', 'geld', 'sparen', 'zakgeld', 'taak', 'taken', 'klusje', 'boete',
   'punten', 'kopen', 'uitgeven', 'rente', 'tijd', 'uitdaging', 'gemist', 'vergeten', 'mama', 'papa', 'oma', 'opa',
+  'spaar', 'zou', 'les', 'leren', 'bijbel', 'geloof',
 ]);
 const EN_WORDS = new Set([
   'how', 'what', 'why', 'who', 'when', 'where', 'i', 'my', 'you', 'your', 'the', 'a', 'an', 'not', 'does', 'do', 'can', 'are', 'if',
@@ -305,14 +363,13 @@ export function isDutch(question: string): boolean {
   return nl > en;
 }
 
-/** The best matching FAQ entry, or null when nothing matches. */
-export function matchFaq(question: string): FaqEntry | null {
+/** Matching FAQ entries, best first (on a tie the earlier entry wins). Empty when nothing matches. */
+export function rankFaq(question: string): FaqEntry[] {
   const text = normalize(question);
-  if (!text) return null;
+  if (!text) return [];
   const tokens = text.split(' ');
   const padded = ` ${text} `;
-  let best = -1;
-  let bestScore = 0;
+  const hits: { i: number; score: number }[] = [];
   INDEX.forEach((keys, i) => {
     let score = 0;
     for (const k of keys) {
@@ -321,17 +378,25 @@ export function matchFaq(question: string): FaqEntry | null {
         : tokens.some((t) => (k.text.length >= 5 ? t.startsWith(k.text) : t === k.text));
       if (hit) score += k.weight;
     }
-    if (score > bestScore) { best = i; bestScore = score; }
+    if (score > 0) hits.push({ i, score });
   });
-  return best >= 0 ? FAQ[best] : null;
+  return hits.sort((a, b) => b.score - a.score || a.i - b.i).map((h) => FAQ[h.i]);
 }
 
-/** A friendly built-in answer (English or Dutch, following the question). */
-export function localAnswer(question: string): string {
+/** The best matching FAQ entry, or null when nothing matches. */
+export function matchFaq(question: string): FaqEntry | null {
+  return rankFaq(question)[0] ?? null;
+}
+
+/**
+ * A friendly built-in answer (English or Dutch, following the question). With `on`, answers about parts of the app
+ * that are switched off are skipped (the next best match is used); without it they get a "may be off" note.
+ */
+export function localAnswer(question: string, on?: (key: FeatureKey) => boolean): string {
   const lang = isDutch(question) ? 'nl' : 'en';
   if (!normalize(question)) return EMPTY[lang];
-  const hit = matchFaq(question);
+  const hit = rankFaq(question).find((e) => !on || !e.feature || on(e.feature));
   if (!hit) return DEFAULT[lang];
-  const optional = hit.feature && hit.feature !== 'ask';
+  const optional = !on && hit.feature && hit.feature !== 'ask';
   return hit[lang] + (optional ? MAYBE_OFF[lang] : '');
 }

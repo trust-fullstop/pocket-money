@@ -7,6 +7,7 @@ import { plural } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Balances, Member } from '../../lib/types';
 import { characterOf, levelFromPoints } from '../../lib/theme';
+import { VerseLine } from '../faith/VerseCard';
 import { WalletTiles } from './WalletTiles';
 
 function KidCard({ kid, balances, cur, showLevel }: { kid: Member; balances: Balances; cur: string; showLevel: boolean }) {
@@ -133,6 +134,7 @@ export function MoneyHome() {
           )}
         </div>
       )}
+      <VerseLine id="little-by-little" className="mt-8 border-t border-line px-1 pt-4" />
       <div className="h-16" aria-hidden="true" />
     </div>
   );

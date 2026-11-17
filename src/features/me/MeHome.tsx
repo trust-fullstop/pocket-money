@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router';
 import { DemoPeopleSheet } from '../../components/DemoPeopleSheet';
 import {
   AVATAR_EMOJIS, Avatar, Badge, Button, Card, EmojiGrid, Icon, Input, ListRow, PageHeader, PhotoCapture, ProgressBar,
@@ -12,6 +13,7 @@ import { uploadPhoto } from '../../lib/photos';
 import { useApp } from '../../lib/session';
 import { ACCENTS, CHARACTERS, accentOf, levelFromPoints, type AccentKey, type ColorMode } from '../../lib/theme';
 import type { Member, Theme } from '../../lib/types';
+import { VERSES_SECTION_ID, showsVerses } from '../faith/prefs';
 import { useSecured } from './useSecured';
 
 export default function MeHome() {
@@ -21,6 +23,19 @@ export default function MeHome() {
   const [identity, setIdentity] = useState(false);
   const [people, setPeople] = useState(false);
   const { secured } = useSecured(me);
+  const { hash } = useLocation();
+  const [savingVerses, setSavingVerses] = useState(false);
+  const ready = !!me && !!family;
+
+  // "Hide verses" (verse of the day) links to /me#verses: bring the toggle into view.
+  useEffect(() => {
+    if (!ready || hash !== `#${VERSES_SECTION_ID}`) return;
+    const el = document.getElementById(VERSES_SECTION_ID);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus({ preventScroll: true });
+  }, [hash, ready]);
+
   if (!me || !family) return null;
 
   const theme: Theme = me.theme ?? {};
@@ -35,6 +50,23 @@ export default function MeHome() {
     } catch (e) {
       toast.show(friendlyError(e), 'error');
       await refresh().catch(() => undefined);
+    }
+  };
+
+  const saveVerses = async (show: boolean) => {
+    if (savingVerses) return;
+    const next: Theme = { ...theme, verses: show };
+    patchMe({ theme: next });
+    setSavingVerses(true);
+    try {
+      await api.updateMember(me.id, { theme: next });
+      await refresh().catch(() => undefined);
+      toast.show(show ? 'Bible verses are on 🕊️' : 'Bible verses are hidden for you. Switch them on here any time.', 'success');
+    } catch (e) {
+      toast.show(friendlyError(e), 'error');
+      await refresh().catch(() => undefined);
+    } finally {
+      setSavingVerses(false);
     }
   };
 
@@ -107,6 +139,20 @@ export default function MeHome() {
         </Card>
       </Section>
 
+      {features.on('faith') && (
+        <div id={VERSES_SECTION_ID} tabIndex={-1} className="mt-6 scroll-mt-4 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
+          <Section title={<><span aria-hidden="true">🕊️ </span>Faith, hope and love</>}>
+            <Card className="!py-2">
+              <Toggle
+                label="Show Bible verses"
+                description="Verse of the day and verses in lessons, for you only."
+                checked={showsVerses(theme)} onChange={saveVerses}
+              />
+            </Card>
+          </Section>
+        </div>
+      )}
+
       <Section title="About me" className="mt-6">
         <Card padded={false} className="divide-y divide-line overflow-hidden">
           {features.on('emergency') && (
@@ -119,11 +165,11 @@ export default function MeHome() {
           {mode === 'demo' && (
             <ListRow onClick={() => setPeople(true)} left={<RowIcon icon="swap" />} title="Switch person" subtitle="Demo: try the app as someone else" />
           )}
-          <ListRow to="/help" left={<RowIcon icon="help" />} title="How Pocket Money works" subtitle="What everything means, and questions" />
+          <ListRow to="/help" left={<RowIcon icon="help" />} title="How Sow &amp; Grow works" subtitle="What everything means, and questions" />
         </Card>
       </Section>
 
-      <p className="mt-8 text-center text-xs text-muted">Pocket Money · {mode === 'demo' ? 'Demo (on this device)' : 'Cloud'}</p>
+      <p className="mt-8 text-center text-xs text-muted">Sow &amp; Grow · {mode === 'demo' ? 'Demo (on this device)' : 'Cloud'}</p>
 
       <IdentitySheet open={identity} onClose={() => setIdentity(false)} me={me} familyId={family.id} />
       {mode === 'demo' && <DemoPeopleSheet open={people} onClose={() => setPeople(false)} />}

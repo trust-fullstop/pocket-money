@@ -350,7 +350,7 @@ function AppLockCard({ memberId }: { memberId: string }) {
   const choose = async (c: LockChoice) => {
     if (c === current) return;
     if (c === 'none') {
-      const ok = await confirm({ title: 'Turn off app lock?', message: 'Anyone holding this phone can open Pocket Money as you.', confirmLabel: 'Turn off' });
+      const ok = await confirm({ title: 'Turn off app lock?', message: 'Anyone holding this phone can open Sow & Grow as you.', confirmLabel: 'Turn off' });
       if (ok) { clearLock(memberId); toast.show('App lock off', 'success'); }
       return;
     }

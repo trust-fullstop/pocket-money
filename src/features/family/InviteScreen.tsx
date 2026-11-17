@@ -165,7 +165,7 @@ export function InviteScreen({ member, initialInvite = null, purpose = 'join', o
   };
   const share = async () => {
     try {
-      await navigator.share({ title: 'Join our family on Pocket Money', text: `Join code: ${code}`, url });
+      await navigator.share({ title: 'Join our family on Sow & Grow', text: `Join code: ${code}`, url });
     } catch {
       /* cancelled */
     }

@@ -2,9 +2,9 @@
 // Each function maps 1:1 to a public SQL function in supabase/migrations (param names prefixed p_).
 import { backend } from './backend';
 import type {
-  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, Goal, Invite, InvitePreview,
-  LoginDevice, MoneyRequest, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput, TaskInstance,
-  TickResult, Transaction, Wallet,
+  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Invite,
+  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput,
+  TaskInstance, TickResult, Transaction, Wallet,
 } from './types';
 
 const rpc = <T>(fn: string, args: Record<string, unknown> = {}) => backend().rpc<T>(fn, args);
@@ -95,6 +95,12 @@ export const api = {
   setBankBalance: (memberId: string, amountCents: number, label?: string | null, asOf?: string | null, note?: string | null, currency?: string | null) =>
     rpc<BankBalance>('set_bank_balance', { p_member: memberId, p_amount_cents: amountCents, p_label: label ?? null, p_as_of: asOf ?? null, p_note: note ?? null, p_currency: currency ?? null }),
   deleteBankBalance: (id: string) => rpc<Ok>('delete_bank_balance', { p_id: id }),
+
+  // ---- Money school (lessons) ----
+  /** Finished lessons: managers see the whole family's, others only their own. Newest first. */
+  listLessonsDone: () => rpc<LessonDone[]>('list_lessons_done'),
+  /** Mark a lesson finished (once). Kids get +10 XP the first time when points are switched on. */
+  finishLesson: (lesson: string) => rpc<FinishLessonResult>('finish_lesson', { p_lesson: lesson }),
 
   // ---- ask (AI helper) ----
   /** Questions asked: managers see everyone's (or one member's), others only their own. Newest first. */

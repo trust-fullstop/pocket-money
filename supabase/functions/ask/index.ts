@@ -18,6 +18,7 @@
 // Errors: JSON { error: code } with codes from src/lib/errors.ts.
 // =====================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { APPROVED_VERSES } from './verses.ts';
 
 const DEFAULT_ORIGINS = 'https://pocketmoney.nl-dot.com,https://pocket-money-d6z.pages.dev,http://localhost:5173';
 const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') || DEFAULT_ORIGINS).split(',').map((s) => s.trim()).filter(Boolean);
@@ -35,10 +36,10 @@ interface Begin {
 const FEATURES: Record<string, string> = {
   challenges: 'Challenges: anyone can challenge anyone — kids can challenge parents too, or do one together as a partnership; finishing earns points.',
   spotted: 'Spotted: a parent who sees something good (or not so good) can give a reward or a consequence on the spot, with a reason; grandparents can give gifts.',
-  allowance: 'Pocket money: a fixed amount arrives every week.',
+  allowance: 'Pocket money: a fixed amount arrives automatically, every week on a set day or every month on a set date.',
   requests: 'Requests: ask a parent to approve spending money (and, when switched on, taking money out of savings or using screen time).',
   savings: "Savings: move money from Spending to Savings at any time; taking it out again needs a parent's OK.",
-  interest: 'Interest: savings grow a little every week — the more you save, the more it grows.',
+  interest: 'Savings bonus ("interest"): savings grow a little every week — a bonus the parents pay to reward saving; it is much higher than what a real bank pays.',
   saver_rules: 'Saver rules: bonus points when savings grew this week; points off when you earned money but saved nothing and have nothing left.',
   goals: 'Goals: save up for something; the app shows progress and about how many weeks to go.',
   targets: 'Targets: reach a weekly or monthly target (for example 80% of tasks done) and a prize is paid automatically.',
@@ -48,6 +49,9 @@ const FEATURES: Record<string, string> = {
   emergency: 'Emergency card: important contacts and health info everyone in the family can see.',
   devices: "Devices: the family's list of phones, tablets, consoles and who uses them.",
   ask: 'Ask Pocket: this helper; parents can read the questions.',
+  bank: 'Real bank balance: the kid or a parent types in what the real bank account (e.g. Revolut) says; it is only for looking and never changes the app wallet.',
+  learn: 'Money school (Help → Money school): short lessons — why this app, how to earn more, why save, how to save, how interest works, saving for a goal — each with a small quiz; kids get a few points the first time.',
+  faith: 'Faith, hope and love: a Bible verse of the day on Home, short reflections in Money school (faith and money; giving, blessing and provision; tithing; parents and children; one faith, many churches; Christians and other faiths), and links that open the verse in the Bible App; each person can hide the verses in Me.',
 };
 
 function cors(req: Request): Record<string, string> {
@@ -103,13 +107,46 @@ function systemPrompt(ctx: Begin): string {
     '- Warm and encouraging. Never shame or blame anyone.',
     '- Never decide about money, rewards, penalties, rules or disputes, and never promise anything: say "ask a parent"',
     '  ("vraag het aan je ouders") for decisions.',
-    '- No medical, legal or investment advice; only simple saving tips (save a part of what you get, set a goal).',
-    '- If a question is unsafe, adult or upsetting, or not about the app, money or family tasks, kindly decline and',
+    '- No medical, legal or investment advice (no stocks, crypto or "get rich" tips). You MAY explain money basics for',
+    '  children in simple words: why and how to save (save first, a part of everything you get, a goal), needs vs wants,',
+    '  waiting before buying, simple vs compound interest with small numbers, that borrowing costs interest, and staying',
+    '  safe (never share PINs, codes or passwords). Point to Money school in Help when it is switched on.',
+    '- If a question is unsafe, adult or upsetting, or not about the app, money, family tasks' +
+      (ctx.features?.faith ? ' or faith' : '') + ', kindly decline and',
     '  suggest talking to a parent or another trusted adult.',
     '- Never ask for personal data (address, school, phone numbers, passwords) and never repeat personal data the asker',
     '  shares.',
     '- When relevant (private or worrying topics), mention that parents can read the questions asked here.',
+    ...(ctx.features?.faith ? faithRules() : []),
   ].join('\n');
+}
+
+// Faith (feature 'faith'): only when asked, only approved verses, never preachy, never about fines.
+function faithRules(): string[] {
+  return [
+    '',
+    'Faith: this family is Christian and the app has a "Faith, hope and love" part. Only when the asker asks about God,',
+    'faith, prayer, the Bible, a verse, tithing, churches or other religions, you may answer warmly and share at most ONE',
+    'verse from the approved list below, quoted exactly, with its reference and "(WEB)". Never quote any other Bible text',
+    'or translation.',
+    '- Tithing: a tithe is a tenth (10%) given back to God with a thankful, free heart; Christians differ on the exact',
+    '  amount; ask your parents what our family does. Never present it as a way to get money back.',
+    '- Churches: explain differences between Catholic, Orthodox and Protestant churches (Lutheran, Anglican, Reformed,',
+    '  Methodist, Baptist, Pentecostal, Evangelical) briefly, accurately and respectfully; stress what all Christians',
+    '  share (one God — Father, Son and Holy Spirit; Jesus died and rose again; grace through faith; the Bible).',
+    '- Other faiths (Judaism, Islam, Hinduism, Buddhism, spiritualism, ancestors, "spiritual" beliefs): describe them',
+    '  accurately and kindly ("Muslims believe…"), then say what Christians believe differently. Never mock, never call',
+    '  people of other faiths bad; they are our neighbours and loved by God. Point to Money school → reflections.',
+    '- Stewardship and gratitude: everything is a gift from God and we look after it. God provides what we need. Giving',
+    '  is cheerful and free — never a deal to get more money back. Never promise wealth or rewards from God.',
+    '- Never use a verse to judge someone, to explain or justify fines, consequences or punishments, or to take sides',
+    '  in a family disagreement. Mistakes can be put right; there is grace and a fresh start.',
+    '- Parents and children love and honour each other both ways.',
+    '- Never pressure anyone to believe; people in a family can see things differently. Deeper questions: suggest',
+    '  talking with a parent, a church leader or another trusted adult.',
+    'Approved verses:',
+    ...APPROVED_VERSES.map((v) => `- ${v.ref}: ${v.text}`),
+  ];
 }
 
 async function callClaude(key: string, ctx: Begin, question: string): Promise<string> {

@@ -2,6 +2,7 @@
 // persisted in IndexedDB. Rebuilt automatically whenever the SQL changes.
 import type { PGlite } from '@electric-sql/pglite';
 import { AppError } from '../errors';
+import { featureOn, type Features } from '../types';
 import type { Backend } from './index';
 import { clearArgTypeCache, orderSqlFiles, pgRpc } from './pgcall';
 
@@ -153,9 +154,15 @@ export function createDemoBackend(): Backend {
     },
 
     async ask(question: string) {
-      // Demo: no AI call. The help module's built-in answers are used (see src/features/help/answers.ts).
-      const { localAnswer } = await import('../../features/help/answers');
-      return { id: null, answer: localAnswer(question) };
+      // Demo: no AI call. The help module's built-in answers are used (see src/features/help/answers.ts),
+      // skipping answers about parts of the app the family switched off.
+      const [{ localAnswer }, features] = await Promise.all([
+        import('../../features/help/answers'),
+        getDb()
+          .then((db) => pgRpc<{ family?: { settings?: { features?: Partial<Features> } } }>(db, 'get_state', {}, { userId: localStorage.getItem(UID_KEY), fakeNow: fakeNow() }))
+          .then((s) => s.family?.settings?.features, () => undefined),
+      ]);
+      return { id: null, answer: localAnswer(question, features ? (k) => featureOn(features, k) : undefined) };
     },
 
     async photoUrl(path: string) {

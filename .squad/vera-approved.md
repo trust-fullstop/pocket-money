@@ -8,4 +8,6 @@
 
 - 2026-11-16 (evening): spend currency (EUR pocket money, kids spend in rand) — migration 20261116001600, fx lib, FxNote/FxCard, Type in R, bank balance currency. Kryptonite review applied (accounts by name+currency, rand accounts stay updatable, no history conversion, fresh-rate gate). vera-fx: PASS, 2 non-blocking findings fixed (frozen rate in Type-in-R mode; spend currency cleared when family currency matches). 122/122 tests, tsc + build clean, demo browser-tested at 400×860.
 
+- 2026-11-17: Sow & Grow — Money school (6 lessons, quiz, +5 XP once) + Faith, hope and love (78 WEB verses, verse of the day, 6 unscored reflections incl. tithing, churches, other faiths; per-person hide) + Help pill + Ask prompt (money basics, faith guardrails, approved verses) + rename. Kryptonite review applied. vera-learn: FAIL (laziness/poverty verses could be verse of the day above a missed task; Oriental Orthodox history) → fixed (daily:false + guard test; 451 split) → PASS. 139/139 tests, tsc + build clean, browser-tested at 400×860.
+
 status: approved

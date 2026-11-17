@@ -1,4 +1,4 @@
-// Pocket Money UI kit. Import from 'src/components/ui' (e.g. `import { Button, Card } from '../../components/ui'`).
+// Sow & Grow UI kit. Import from 'src/components/ui' (e.g. `import { Button, Card } from '../../components/ui'`).
 export { cx, buttonClass, inputClass, inputShellClass, cardClass, type ButtonVariant, type ButtonSize } from './styles';
 export { Icon, GoogleLogo, type IconName, type IconProps } from './Icon';
 export { Button, LinkButton, IconButton, type ButtonProps, type LinkButtonProps } from './Button';

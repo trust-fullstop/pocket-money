@@ -5,6 +5,7 @@ import { useFeatures } from '../../lib/features';
 import { formatDate } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { EventOccurrence, Member, TaskInstance } from '../../lib/types';
+import { VerseOfTheDay } from '../faith/VerseCard';
 import { ComingUp, Greeting, HomeSection, KidGlanceCard } from './shared';
 import { eventsWindow, progressByMember } from './lib';
 
@@ -40,6 +41,8 @@ function GrandparentHomeInner({ me, today, tz, stamp }: { me: Member; today: str
   return (
     <>
       <Greeting hello="Hello" name={me.display_name} sub={formatDate(today, { long: true })} />
+
+      <VerseOfTheDay className="mt-4" />
 
       <HomeSection title="The kids today">
         {kids.length === 0 ? (

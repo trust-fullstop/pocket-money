@@ -8,6 +8,7 @@ import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
 import { addDays, plural } from '../../lib/format';
 import type { Member, TaskInstance } from '../../lib/types';
+import { VerseLine } from '../faith/VerseCard';
 import { ApprovalsList } from './Approvals';
 import { useDelayed, useFetch, useTaskCtx } from './hooks';
 import { byDueAsc, byDueDesc, byUrgency, dayWord, isActive, isFinished, joinWords, kidsFirst, weekEnd } from './lib';
@@ -53,6 +54,15 @@ function useParam<T extends string>(name: string, allowed: readonly T[], fallbac
 function Loading({ big }: { big?: boolean }) {
   const show = useDelayed(true);
   return show ? <SkeletonRows rows={3} big={big} /> : null;
+}
+
+/** Colossians 3:23 at the bottom of a calm list: not next to missed tasks and what they cost ("Earlier", "Not done").
+ *  mb: when scrolled to the end, it sits above the floating Spotted button, not next to it. */
+function WorkVerse({ show = true }: { show?: boolean }) {
+  const [params] = useSearchParams();
+  const outcomes = params.get('time') === 'earlier' || (params.get('status') ?? '').split(',').includes('notdone');
+  if (!show || outcomes) return null;
+  return <VerseLine id="work-heartily" className="mb-8 mt-8 border-t border-line px-1 pt-4" />;
 }
 
 /** Amber card "Dad did your challenge!" → the "to check" list (kids and grandparents). */
@@ -179,6 +189,7 @@ function KidHome() {
         tabs={[{ value: 'today', label: 'Today' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'done', label: 'Done' }]}
       />
       <TabPanel idBase="tasks-kid" value={tab}>{body}</TabPanel>
+      <WorkVerse show={tab !== 'done'} />
     </div>
   );
 }
@@ -240,6 +251,7 @@ function GrandparentHome() {
         tabs={[{ value: 'mine', label: feat.challenges ? 'My challenges' : 'Challenges' }, { value: 'kids', label: 'Kids’ tasks' }]}
       />
       <TabPanel idBase="tasks-gp" value={tab}>{body}</TabPanel>
+      <WorkVerse show={tab === 'kids'} />
     </div>
   );
 }
@@ -282,6 +294,7 @@ function ManagerHome() {
         ]}
       />
       <TabPanel idBase="tasks-m" value={tab}>{body}</TabPanel>
+      <WorkVerse show={tab === 'person'} />
     </div>
   );
 }

@@ -111,7 +111,7 @@ function FeaturesForm({ family, refresh, askNote }: { family: Family; refresh: (
               Everything
             </Button>
           </div>
-          <LinkButton to="/help" variant="ghost" size="sm" icon="info" className="mt-2">How Pocket Money works</LinkButton>
+          <LinkButton to="/help" variant="ghost" size="sm" icon="info" className="mt-2">How Sow & Grow works</LinkButton>
         </Card>
 
         {FEATURE_GROUPS.map((g) => (
@@ -230,9 +230,9 @@ function ReadOnly({ family }: { family: Family }) {
       <div className="space-y-6">
         <Card tone="accent">
           <p className="font-semibold">
-            <span aria-hidden="true">🌱</span> These are the parts of Pocket Money your family uses. A parent can switch more on once everyone gets the idea.
+            <span aria-hidden="true">🌱</span> These are the parts of Sow & Grow your family uses. A parent can switch more on once everyone gets the idea.
           </p>
-          <LinkButton to="/help" variant="ghost" size="sm" icon="info" className="mt-2">How Pocket Money works</LinkButton>
+          <LinkButton to="/help" variant="ghost" size="sm" icon="info" className="mt-2">How Sow & Grow works</LinkButton>
         </Card>
         {FEATURE_GROUPS.map((g) => (
           <Section key={g.key} title={<><span aria-hidden="true">{g.emoji}</span> {g.title}</>}>

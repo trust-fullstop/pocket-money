@@ -1,6 +1,8 @@
-# Pocket Money
+# Sow & Grow
 
-A private family app for pocket money and family life. Kids earn **money, time and points** for doing what they said they would, face a clear **consequence** when they don't, and get rewarded for **saving**. The family shares a calendar, reminders, emergency cards and challenges that go both ways.
+*Formerly Pocket Money. Live at https://pocketmoney.nl-dot.com.*
+
+A private family app about family life, responsibility, saving and faith ("whatever a man sows, that he will also reap", Galatians 6:7). Kids earn **money, time and points** for doing what they said they would, face a clear **consequence** when they don't, and get rewarded for **saving**. The family shares a calendar, reminders, emergency cards and challenges that go both ways.
 
 - 📱 It is a mobile-first web app (PWA): open it in the phone browser and choose **Add to Home Screen**.
 - 👨‍👩‍👧‍👦 Blended families are the normal case: owner, parents, **bonus parents**, guardians, grandparents and kids aged 0 to 21. Everyone can have a custom relationship label ("Bonus dad", "Oma").
@@ -35,7 +37,9 @@ The demo keeps its data in your browser (IndexedDB) only.
 | Spotted | A parent photographs something good or bad, picks the child and gives a ➕ reward or ➖ consequence (money, time or points) with a reason. Grandparents can give gifts |
 | Family life | Calendar, reminders and birthdays, emergency card (blood type, allergies, medication, contacts, Life360 link), device list, themes, characters and avatars |
 | Start small | **Family → Features**: parents switch each part on or off, with "Start small" and "Everything" presets. Switched-off parts disappear for everyone, and the server refuses them too |
-| Help | "How Pocket Money works" (purpose, start here, a card per feature, FAQ), plus the **Ask Pocket** helper (Claude). Parents can read all questions |
+| Help | A **Help** button in the header: "How Sow & Grow works" (purpose, start here, a card per feature, FAQ), plus the **Ask Pocket** helper (Claude). Parents can read all questions |
+| Money school | Short lessons for kids: why this app, how to earn more, why save, how to save (jars), how interest works (calculator: the family's savings bonus vs a real bank), saving for a goal. Each lesson ends with a small quiz; kids get +5 XP the first time. Parents see what each kid finished |
+| Faith, hope and love | Optional: a Bible verse of the day (World English Bible, public domain), reflections on faith and money, giving and provision, and parents and children, plus links that open each verse in the YouVersion Bible App. Each person can hide the verses for themselves |
 
 **Not yet** (honest list): push notifications, automatic Wi-Fi device scanning (a browser cannot do it; a small home-PC helper is planned), the Revolut connection (Revolut has no personal API), and one person belonging to two families.
 
@@ -91,7 +95,7 @@ Limits: 20 questions per person per day and 150 per family per day.
 1. On your phone, open the site and choose **Create our family**.
 2. Go to **Me → Sign-in & devices** and link Google or set a username and password, so you can't lose access.
 3. Go to **Family → Add member** for each person. Show them the QR code; they scan it with their phone camera.
-4. Go to **Family → Rules** to set the interest rate, the saver bonus and so on. Go to **Money → (kid) → Weekly pocket money** to set allowances.
+4. Go to **Family → Rules** to set the interest rate, the saver bonus and so on. Go to **Money → (kid) → Pocket money** (every week or every month) to set allowances.
 
 ### Free-tier notes
 

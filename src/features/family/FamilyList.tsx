@@ -7,6 +7,7 @@ import { useFeatures } from '../../lib/features';
 import { memberRoleLabel, plural, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { Member } from '../../lib/types';
+import { VerseLine } from '../faith/VerseCard';
 import { FEATURE_TOTAL, countOn } from './featureList';
 import { InviteScreen } from './InviteScreen';
 import { ROLE_GROUPS, ageFrom, canManageLogin } from './perms';
@@ -130,6 +131,9 @@ export default function FamilyList() {
           </Card>
         </Section>
       </div>
+
+      {/* mb: when scrolled to the end, the verse sits above the floating Spotted button, not next to it. */}
+      <VerseLine id="sets-the-lonely" className="mb-12 mt-8 border-t border-line px-1 pt-4" />
 
       {qrFor && <InviteScreen member={qrFor} purpose="join" onClose={() => setQrFor(null)} />}
     </>

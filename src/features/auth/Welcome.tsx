@@ -49,7 +49,7 @@ function Hero() {
       )}
       <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
         <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="size-28 drop-shadow-md" />
-        <h1 className="mt-4 text-4xl font-extrabold tracking-tight">Pocket Money</h1>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-tight">Sow & Grow</h1>
         <p className="mt-2 text-lg text-muted">Earn it, save it, share family life.</p>
         <ul className="mt-5 flex flex-wrap justify-center gap-2 text-[14px] font-semibold" aria-label="What you can do">
           <li className="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">✅ Chores &amp; challenges</li>

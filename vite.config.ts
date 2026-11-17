@@ -16,9 +16,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Pocket Money',
-        short_name: 'Pocket Money',
-        description: 'Earn it, save it, share family life.',
+        name: 'Sow & Grow',
+        short_name: 'Sow & Grow',
+        description: 'Do your part, see it grow: family life, responsibility, saving and faith.',
         theme_color: '#0f766e',
         background_color: '#f4f5f7',
         display: 'standalone',

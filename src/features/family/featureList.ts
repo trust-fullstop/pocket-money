@@ -37,7 +37,9 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     ],
   },
   {
-    key: 'helper', title: 'Helper', emoji: '💡', items: [
+    key: 'helper', title: 'Learning and help', emoji: '💡', items: [
+      { key: 'learn', emoji: '🎓', label: 'Money school', line: 'Short lessons: why and how to save, how interest works, earning and spending wisely.' },
+      { key: 'faith', emoji: '🕊️', label: 'Faith, hope and love', line: 'A Bible verse of the day, faith-and-money reflections and links to the Bible App. Each person can hide verses.' },
       { key: 'ask', emoji: '💬', label: 'Ask Pocket', line: 'Kids can ask how the app works. Parents can read all questions.' },
     ],
   },
@@ -47,7 +49,7 @@ export const FEATURE_INFO = Object.fromEntries(
   FEATURE_GROUPS.flatMap((g) => g.items).map((i) => [i.key, i]),
 ) as Record<FeatureKey, FeatureInfo>;
 
-/** All 16 switches, in the order they appear on the Features page. */
+/** All 18 switches, in the order they appear on the Features page. */
 export const FEATURE_KEYS: FeatureKey[] = FEATURE_GROUPS.flatMap((g) => g.items.map((i) => i.key));
 export const FEATURE_TOTAL = FEATURE_KEYS.length;
 

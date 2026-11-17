@@ -34,16 +34,17 @@ export function AppShell() {
         <header className="mx-auto flex h-14 w-full max-w-md items-center gap-2 px-4">
           <Link to="/" className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl">
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-7 shrink-0" />
-            <span className="truncate text-lg font-extrabold">{family?.name ?? 'Pocket Money'}</span>
+            <span className="truncate text-lg font-extrabold">{family?.name ?? 'Sow & Grow'}</span>
           </Link>
           <NavLink
-            to="/help" aria-label="Help and questions" title="Help and questions"
+            to="/help" aria-label="Help, Money school and questions" title="Help, Money school and questions"
             className={({ isActive }) => cx(
-              'grid size-11 shrink-0 place-items-center rounded-full transition',
-              isActive ? 'bg-accent-soft text-accent-ink' : 'text-muted hover:bg-surface-2 hover:text-ink',
+              'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 font-semibold transition',
+              isActive ? 'border border-transparent bg-accent-soft text-accent-ink' : 'border border-line bg-surface text-ink hover:bg-surface-2',
             )}
           >
-            <Icon name="help" size={26} />
+            <Icon name="help" size={22} />
+            <span aria-hidden="true">Help</span>
           </NavLink>
           <Link
             to="/me" aria-label={`Me: ${me?.display_name ?? ''} – profile, look and sign-in`}
@@ -54,7 +55,14 @@ export function AppShell() {
         </header>
       </div>
 
-      <main id="main" className="mx-auto w-full max-w-md flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+6.5rem)]">
+      <main
+        id="main"
+        className={cx(
+          'mx-auto w-full max-w-md flex-1 px-4',
+          // Extra room under the content when the floating Spotted button shows, so the last item (e.g. a verse) can scroll clear of it.
+          showSpot ? 'pb-[calc(env(safe-area-inset-bottom)+10.5rem)]' : 'pb-[calc(env(safe-area-inset-bottom)+6.5rem)]',
+        )}
+      >
         <Suspense fallback={<PageSpinner />}>
           <Outlet />
         </Suspense>

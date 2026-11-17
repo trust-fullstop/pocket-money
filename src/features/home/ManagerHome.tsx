@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Badge, Button, Card, EmptyState, Icon, LinkButton, cx } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, Icon, LinkButton, ListRow, cx } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
 import { formatDate, plural } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { EventOccurrence, Member, TaskInstance } from '../../lib/types';
 import { EventEditSheet } from '../calendar/EventSheets';
+import { VerseOfTheDay } from '../faith/VerseCard';
 import { ComingUp, FamilyTaskRow, Greeting, HomeSection, KidGlanceCard, Loaded } from './shared';
 import { eventsWindow, progressByMember } from './lib';
 
@@ -38,6 +39,8 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
         requests={features.on('requests') ? state?.counts.requests ?? 0 : 0}
       />
 
+      <VerseOfTheDay className="mt-4" />
+
       <HomeSection title="Kids at a glance">
         {kids.length === 0 ? (
           <Card>
@@ -63,6 +66,17 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
           </div>
         )}
       </HomeSection>
+
+      {features.on('learn') && kids.length > 0 && (
+        <Card padded={false} className="mt-3 overflow-hidden">
+          <ListRow
+            to="/help/learn/progress"
+            left={<span className="grid size-11 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">🎓</span>}
+            title="Money school"
+            subtitle="See what the kids learned"
+          />
+        </Card>
+      )}
 
       <HomeSection title="Today across the family" link={{ to: '/tasks', label: 'See all' }}>
         <Loaded load={insts} rows={3}>

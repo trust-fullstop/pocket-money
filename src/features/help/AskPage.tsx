@@ -61,6 +61,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function AskChat({ meId, name, isManager }: { meId: string; name: string; isManager: boolean }) {
   const { now, refresh } = useApp();
+  const features = useFeatures();
   const toast = useToast();
   const history = useLoad(() => api.listAsks(meId, 50), [meId]);
   const [extra, setExtra] = useState<Bubble[]>([]);   // asked during this visit (until the history has them)
@@ -102,7 +103,7 @@ function AskChat({ meId, name, isManager }: { meId: string; name: string; isMana
       if (code === 'ask_not_configured') {
         // The AI helper isn't set up yet: still give the built-in answer, so the question isn't wasted.
         setProblem('not_configured');
-        setExtra((x) => [...x, { key: localKey, question: q, answer: localAnswer(q), status: 'answered', created_at: created, note: 'Quick answer from the Help pages' }]);
+        setExtra((x) => [...x, { key: localKey, question: q, answer: localAnswer(q, features.on), status: 'answered', created_at: created, note: 'Quick answer from the Help pages' }]);
       } else if (code === 'ask_limit' || code === 'feature_off') {
         setProblem(code === 'ask_limit' ? 'limit' : 'off');
         setText(q);
