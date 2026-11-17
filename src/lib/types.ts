@@ -66,7 +66,25 @@ export interface FamilySettings {
   catchup_days: number;
   default_evidence: Evidence;
   spend_currency: string | null;  // currency the kids spend in (e.g. 'ZAR'); null = same as the family currency
-  features: Features;              // which parts of the app are switched on (parent admin → Features)
+  spot_rules?: SpotRules;          // fixed Spotted amounts (Family rules → Spotted); missing on old data = defaults
+  features: Features;               // which parts of the app are switched on (parent admin → Features)
+}
+
+/** One Spotted amount: what a reward gives or a consequence costs (all ≥ 0; money in cents). */
+export interface SpotAmount { cents: number; minutes: number; points: number }
+/** Family rule: Spotted is a quick report, these amounts are filled in automatically. */
+export interface SpotRules { reward: SpotAmount; consequence: SpotAmount }
+/** Same as app.default_spot_rules() on the server. */
+export const DEFAULT_SPOT_RULES: SpotRules = {
+  reward: { cents: 500, minutes: 0, points: 10 },
+  consequence: { cents: 500, minutes: 0, points: 10 },
+};
+/** The family's Spotted amounts, with the defaults filled in when the family never set them. */
+export function familySpotRules(settings: Partial<FamilySettings> | null | undefined): SpotRules {
+  const r = settings?.spot_rules;
+  const one = (a: Partial<SpotAmount> | undefined, b: SpotAmount): SpotAmount =>
+    ({ cents: a?.cents ?? b.cents, minutes: a?.minutes ?? b.minutes, points: a?.points ?? b.points });
+  return { reward: one(r?.reward, DEFAULT_SPOT_RULES.reward), consequence: one(r?.consequence, DEFAULT_SPOT_RULES.consequence) };
 }
 
 /** Parts of the app a parent can switch on/off. Chores + the spending pot are always on (the core). */

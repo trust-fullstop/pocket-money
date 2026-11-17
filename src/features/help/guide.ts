@@ -1,5 +1,5 @@
 // Help page content: one short card per switched-on part of the app, plus small text helpers for Ask Pocket.
-import type { FamilySettings, FeatureKey } from '../../lib/types';
+import { familySpotRules, type FamilySettings, type FeatureKey } from '../../lib/types';
 
 export interface GuideCard {
   key: FeatureKey | 'tasks';
@@ -95,9 +95,12 @@ export function featureGuide(
     },
     on('spotted') && {
       key: 'spotted', emoji: '📸', title: 'Spotted',
-      what: 'A grown-up notices something and records it on the spot.',
-      why: 'Good moments get noticed, not only chores. There’s always a reason you can read.',
-      example: `Helped carry the shopping: +${m(100)}. Bike left in the rain: −${m(50)}.`,
+      what: 'A grown-up notices something and records it on the spot: a reward or a consequence, with what happened. The amount is a fixed family rule.',
+      why: 'Good moments get noticed, not only chores. There’s always a reason you can read, and the same rule for everyone.',
+      example: (() => {
+        const r = familySpotRules(settings);
+        return `Helped carry the shopping: +${m(r.reward.cents)}. Bike left in the rain: −${m(r.consequence.cents)}.`;
+      })(),
     },
     time && {
       key: 'time', emoji: '⏱️', title: 'Time',

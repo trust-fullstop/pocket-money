@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Button, Card, EmptyState, Icon, Input, LinkButton, ListRow, PageHeader, Segmented, Select, Sheet, Spinner, Toggle,
+  AmountInput, Button, Card, EmptyState, Icon, Input, LinkButton, ListRow, PageHeader, Segmented, Select, Sheet, Spinner, Toggle,
   useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
 import { friendlyError, toAppError } from '../../lib/errors';
 import { useFeatures } from '../../lib/features';
-import { money, timeAgo } from '../../lib/format';
+import { minutes as minutesText, money, timeAgo } from '../../lib/format';
 import { currencyWord, spendCurrencyOf } from '../../lib/fx';
 import { useApp, useLoad } from '../../lib/session';
-import type { Evidence, Family, FamilySettings } from '../../lib/types';
+import { familySpotRules, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules } from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
 
 const CURRENCIES: { code: string; label: string }[] = [
@@ -33,6 +33,7 @@ interface Draft {
   interest: string; saverBonus: string; noSavingsPenalty: string;
   lateGrace: string; challengeCap: string; catchup: string;
   gpMoney: boolean; managersAddAdults: boolean; emergency: FamilySettings['emergency_visibility']; evidence: Evidence;
+  spotRules: SpotRules;
 }
 type FieldKey = keyof FamilySettings | 'name' | 'currency' | 'timezone';
 
@@ -51,6 +52,7 @@ const draftFrom = (f: Family): Draft => ({
   managersAddAdults: !!f.settings.managers_add_adults,
   emergency: f.settings.emergency_visibility ?? 'family',
   evidence: f.settings.default_evidence ?? 'photo_or_note',
+  spotRules: spotRulesOf(f),
 });
 
 /** Parses a number field; returns [value, error]. */
@@ -119,6 +121,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
     if (d.managersAddAdults !== !!fs.managers_add_adults) s.managers_add_adults = d.managersAddAdults;
     if (d.emergency !== fs.emergency_visibility) s.emergency_visibility = d.emergency;
     if (d.evidence !== fs.default_evidence) s.default_evidence = d.evidence;
+    if (JSON.stringify(d.spotRules) !== JSON.stringify(spotRulesOf(family))) s.spot_rules = d.spotRules;
     // "Same as the family currency" (or the same code) = off
     const spend = d.spendCurrency && d.spendCurrency !== d.currency ? d.spendCurrency : null;
     if (spend !== (spendCurrencyOf(family) ?? null) || (spend === null && fs.spend_currency)) s.spend_currency = spend;
@@ -164,6 +167,9 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
   const showSaverRules = features.on('saver_rules');
   const showChallengeCap = features.on('challenges');
   const showEmergency = features.on('emergency');
+  const showSpotted = features.on('spotted');
+  const setRule = (dir: keyof SpotRules, patch: Partial<SpotAmount>) =>
+    set({ spotRules: { ...d.spotRules, [dir]: { ...d.spotRules[dir], ...patch } } });
   const someHidden = !(showInterest && showSaverRules && showChallengeCap && showEmergency);
 
   return (
@@ -270,6 +276,24 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
                 />
               </>
             )}
+          </SettingsCard>
+        )}
+
+        {showSpotted && (
+          <SettingsCard title="Spotted" emoji="📸">
+            <p className="text-[15px] text-muted">
+              Spotted is a quick report: who, reward or consequence, and what happened. These amounts are filled in for you.
+              You can still change the amount in Spotted when something is bigger.
+            </p>
+            <SpotRuleFields
+              title="➕ A reward gives" value={d.spotRules.reward} onChange={(v) => setRule('reward', v)}
+              time={features.on('time')} points={features.on('points')}
+            />
+            <SpotRuleFields
+              title="➖ A consequence costs" value={d.spotRules.consequence} onChange={(v) => setRule('consequence', v)}
+              time={features.on('time')} points={features.on('points')}
+            />
+            {serverErr.spot_rules && <p role="alert" className="text-[15px] font-semibold text-bad">{serverErr.spot_rules}</p>}
           </SettingsCard>
         )}
 
@@ -395,6 +419,39 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
       {sheet === 'audit' && <AuditSheet onClose={() => setSheet(null)} />}
       {sheet === 'delete' && <DeleteFamilySheet family={family} signOut={signOut} onClose={() => setSheet(null)} />}
     </>
+  );
+}
+
+/** The family's Spotted amounts (spot_rules), with the defaults filled in when the family never set them. */
+function spotRulesOf(f: Pick<Family, 'settings'>): SpotRules {
+  return familySpotRules(f.settings);
+}
+
+/** Money (+ time and points when those parts are on) for one Spotted direction. */
+function SpotRuleFields({ title, value, onChange, time, points }: {
+  title: string; value: SpotAmount; onChange: (v: Partial<SpotAmount>) => void; time: boolean; points: boolean;
+}) {
+  return (
+    <fieldset className="space-y-3 rounded-2xl border border-line/70 p-3">
+      <legend className="px-1 text-[15px] font-bold">{title}</legend>
+      <AmountInput kind="money" label="Money" value={value.cents || null} onChange={(v) => onChange({ cents: v ?? 0 })} max={100_000} chips={[]} />
+      {time && <AmountInput kind="time" label="Time" value={value.minutes || null} onChange={(v) => onChange({ minutes: v ?? 0 })} max={1440} chips={[15, 30]} />}
+      {points && <AmountInput kind="points" label="Points" value={value.points || null} onChange={(v) => onChange({ points: v ?? 0 })} max={10_000} chips={[5, 10, 20]} />}
+      {((!time && value.minutes > 0) || (!points && value.points > 0)) && (
+        <p className="flex items-center justify-between gap-2 text-[14px] text-muted">
+          <span>
+            Also {[!time && value.minutes > 0 && minutesText(value.minutes), !points && value.points > 0 && `${value.points} points`].filter(Boolean).join(' and ')}
+            {' '}once {!time && value.minutes > 0 && !points && value.points > 0 ? 'Time and Points are' : !time && value.minutes > 0 ? 'Time is' : 'Points are'} switched on.
+          </span>
+          <button
+            type="button" className="min-h-11 shrink-0 font-semibold text-accent-ink underline underline-offset-2"
+            onClick={() => onChange({ ...(!time ? { minutes: 0 } : {}), ...(!points ? { points: 0 } : {}) })}
+          >
+            Remove
+          </button>
+        </p>
+      )}
+    </fieldset>
   );
 }
 

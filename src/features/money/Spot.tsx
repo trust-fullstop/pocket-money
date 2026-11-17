@@ -1,7 +1,9 @@
-// /money/spot — Spotted: camera first → who → ➕ Reward / ➖ Consequence → amounts → why → check → send.
-// Grandparents send a 🎁 Gift (money only). Kids can't open it.
+// /money/spot — Spotted: camera first → who → ➕ Reward / ➖ Consequence → what happened → check → send.
+// Spotted is a quick report: for parents the amount comes from the family rules (Family rules → Spotted), shown on the
+// check screen and sent exactly as shown; "Different amount this time?" opens the amount fields.
+// Grandparents send a 🎁 Gift (money only, they choose the amount). Kids can't open it.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
   AmountInput, Avatar, Button, Card, EmptyState, LinkButton, MemberPicker, PageHeader, PageSpinner, PhotoCapture, Segmented, Sheet,
   Textarea, cx, useToast,
@@ -11,7 +13,7 @@ import { useFeatures } from '../../lib/features';
 import { amount, minutes, money } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp } from '../../lib/session';
-import type { Currency, MoneyLabel, SpotInput, TimeLabel, Transaction, TxKind } from '../../lib/types';
+import { familySpotRules, type Currency, type MoneyLabel, type SpotInput, type TimeLabel, type Transaction, type TxKind } from '../../lib/types';
 import { TxRow } from './History';
 import { canSeeMoney, clip, isFeatureOff, moneyError } from './moneyUtils';
 import { NotForYou, QuickChips, SheetActions } from './parts';
@@ -42,7 +44,9 @@ export function SpotPage() {
   const [cents, setCents] = useState<number | null>(null);
   const [mins, setMins] = useState<number | null>(null);
   const [pts, setPts] = useState<number | null>(null);
-  const [moneyLabel, setMoneyLabel] = useState<MoneyLabel>('extra');
+  // Parents: false = the amount comes from the family rules; true = typed in ("Different amount this time?").
+  const [custom, setCustom] = useState(false);
+  const [moneyLabel, setMoneyLabel] = useState<MoneyLabel>('reward');
   const [timeLabel, setTimeLabel] = useState<TimeLabel>('fun');
   const [reason, setReason] = useState('');
   const [confirm, setConfirm] = useState(false);
@@ -83,16 +87,22 @@ export function SpotPage() {
   const timeOn = !amG && features.on('time');
   const pointsOn = !amG && features.on('points');
   const extras = [timeOn && 'time', pointsOn && 'points'].filter(Boolean) as string[];
-  const c = cents ?? 0;
-  const m = timeOn ? mins ?? 0 : 0;
-  const p = pointsOn ? pts ?? 0 : 0;
+  // The family rule for the chosen direction (parts that are switched off don't count).
+  const rules = familySpotRules(family.settings);
+  const rule = dir === 'minus' ? rules.consequence : rules.reward;
+  const fromRule = !amG && !custom;
+  const ruleTotal = rule.cents + (timeOn ? rule.minutes : 0) + (pointsOn ? rule.points : 0);
+  const c = fromRule ? rule.cents : cents ?? 0;
+  const m = !timeOn ? 0 : fromRule ? rule.minutes : mins ?? 0;
+  const p = !pointsOn ? 0 : fromRule ? rule.points : pts ?? 0;
   const hasAmount = c + m + p > 0;
   const why = reason.trim();
   const missing = [
     !kid && 'who',
     !dir && 'reward or consequence',
-    !hasAmount && (extras.length === 0 ? 'an amount' : extras.length === 1 ? `money or ${extras[0]}` : 'money, time or points'),
-    !why && 'why',
+    !hasAmount && (fromRule ? 'an amount (set it in Family rules → Spotted, or choose a different amount)'
+      : extras.length === 0 ? 'an amount' : extras.length === 1 ? `money or ${extras[0]}` : 'money, time or points'),
+    !why && 'what happened',
   ].filter(Boolean) as string[];
   const ready = missing.length === 0;
   const kind: TxKind = amG ? 'gift' : dir === 'minus' ? 'fine' : 'bonus';
@@ -105,10 +115,21 @@ export function SpotPage() {
     { currency: 'points' as const, value: p },
   ].filter((x) => x.value > 0);
   const signed = parts.map((x) => amount(x.currency, sign * x.value, cur, { sign: true })).join(' · ');
+  const ruleSigned = [
+    { currency: 'money' as const, value: rule.cents },
+    { currency: 'time' as const, value: timeOn ? rule.minutes : 0 },
+    { currency: 'points' as const, value: pointsOn ? rule.points : 0 },
+  ].filter((x) => x.value > 0).map((x) => amount(x.currency, sign * x.value, cur, { sign: true })).join(' · ');
+  const startCustom = () => {
+    setCents(rule.cents || null);
+    setMins(timeOn ? rule.minutes || null : null);
+    setPts(pointsOn ? rule.points || null : null);
+    setCustom(true);
+  };
 
   const reset = () => {
     choosePhoto(null); setSkipPhoto(false); setKidId(initialKid); setDir(amG ? 'plus' : null);
-    setCents(null); setMins(null); setPts(null); setMoneyLabel('extra'); setTimeLabel('fun'); setReason('');
+    setCents(null); setMins(null); setPts(null); setCustom(false); setMoneyLabel('reward'); setTimeLabel('fun'); setReason('');
     setConfirm(false); setSendError(null); setDone(null);
     window.scrollTo({ top: 0 });
   };
@@ -261,7 +282,7 @@ export function SpotPage() {
               const good = d === 'plus';
               return (
                 <button
-                  key={d} type="button" aria-pressed={on} onClick={() => { setDir(d); if (reason && !(good ? PLUS_REASONS : MINUS_REASONS).includes(reason) && (good ? MINUS_REASONS : PLUS_REASONS).includes(reason)) setReason(''); }}
+                  key={d} type="button" aria-pressed={on} onClick={() => { if (custom && d !== dir) setCustom(false); setDir(d); if (reason && !(good ? PLUS_REASONS : MINUS_REASONS).includes(reason) && (good ? MINUS_REASONS : PLUS_REASONS).includes(reason)) setReason(''); }}
                   className={cx(
                     'flex min-h-16 items-center justify-center gap-2 rounded-2xl border-2 px-2 text-lg font-extrabold transition active:scale-[0.98]',
                     good
@@ -275,12 +296,31 @@ export function SpotPage() {
             })}
           </div>
         )}
+        {!amG && dir && !custom && (
+          <div className={cx('space-y-1 rounded-2xl px-4 py-3', dir === 'minus' ? 'bg-warn-soft' : 'bg-good-soft')} aria-live="polite">
+            {ruleTotal > 0 ? (
+              <p className={cx('text-[16px] font-bold', dir === 'minus' ? 'text-warn' : 'text-good')}>
+                {dir === 'minus' ? 'Costs' : 'Gives'} {ruleSigned}
+                <span className="block text-[14px] font-semibold text-muted">From the family rules</span>
+              </p>
+            ) : (
+              <p className="text-[15px] font-semibold">
+                No amount set for a {dir === 'minus' ? 'consequence' : 'reward'} yet.{' '}
+                <Link to="/family/settings" className="text-accent-ink underline underline-offset-2">Set it in Family rules</Link>
+              </p>
+            )}
+            <button type="button" onClick={startCustom} className="min-h-11 text-[15px] font-semibold text-accent-ink underline underline-offset-2">
+              Different amount this time?
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* 4. Amounts */}
+      {/* 4. Amounts — gifts, or a different amount this time */}
+      {(amG || custom) && (
       <section aria-labelledby="spot-amount" className="space-y-3">
         <h2 id="spot-amount" className="px-1 text-[15px] font-bold">
-          4. {amG ? 'How much?' : dir === 'minus' ? 'What does it cost?' : 'What do they get?'} <span className="font-normal text-muted">{extras.length > 0 ? '(at least one)' : ''}</span>
+          4. {amG ? 'How much?' : dir === 'minus' ? 'What does it cost this time?' : 'What do they get this time?'} <span className="font-normal text-muted">{extras.length > 0 ? '(at least one)' : ''}</span>
         </h2>
         <Card className="space-y-3">
           <AmountInput
@@ -311,12 +351,18 @@ export function SpotPage() {
             </>
           )}
           {pointsOn && <AmountInput kind="points" label="Points" optional value={pts} onChange={setPts} max={10_000} chips={[5, 10, 20]} />}
+          {custom && (
+            <button type="button" onClick={() => setCustom(false)} className="min-h-11 text-[15px] font-semibold text-accent-ink underline underline-offset-2">
+              Use the family rule{ruleTotal > 0 ? ` (${ruleSigned})` : ''}
+            </button>
+          )}
         </Card>
       </section>
+      )}
 
-      {/* 5. Why */}
+      {/* Why */}
       <section aria-labelledby="spot-why" className="space-y-2">
-        <h2 id="spot-why" className="px-1 text-[15px] font-bold">5. Why?</h2>
+        <h2 id="spot-why" className="px-1 text-[15px] font-bold">{amG || custom ? 5 : 4}. What happened?</h2>
         <Textarea
           label={amG ? 'A message' : 'What happened?'} rows={2} maxLength={80} value={reason}
           onChange={(e) => setReason(e.target.value)}

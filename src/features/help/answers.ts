@@ -54,8 +54,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'spotted',
     q: 'What is “Spotted”?',
-    en: 'Spotted is when a grown-up notices something and records it on the spot, often with a photo. Something good, like helping Grandma with her shopping: +€1. Something not OK, like leaving your bike in the rain: −€0.50. There’s always a reason you can read. Grandparents can only give gifts. 🎁',
-    nl: 'Spotted is als een volwassene iets ziet en het meteen vastlegt, vaak met een foto. Iets goeds, zoals oma helpen met de boodschappen: +€1. Iets wat niet OK is, zoals je fiets in de regen laten staan: −€0,50. Er staat altijd een reden bij die je kunt lezen. Opa en oma kunnen alleen cadeaus geven. 🎁',
+    en: 'Spotted is when a grown-up notices something and records it on the spot, often with a photo. Something good, like helping Grandma with her shopping, is a reward. Something not OK, like leaving your bike in the rain, is a consequence. The amount is a fixed family rule, the same for everyone, and there’s always a reason you can read. Grandparents can only give gifts. 🎁',
+    nl: 'Spotted is als een volwassene iets ziet en het meteen vastlegt, vaak met een foto. Iets goeds, zoals oma helpen met de boodschappen, is een beloning. Iets wat niet OK is, zoals je fiets in de regen laten staan, is een gevolg. Het bedrag is een vaste gezinsregel, voor iedereen hetzelfde, en er staat altijd een reden bij die je kunt lezen. Opa en oma kunnen alleen cadeaus geven. 🎁',
     keys: ['*spotted', '*spot', '*gespot', 'caught', 'betrapt', 'noticed', 'gezien', 'bonus', 'gift', 'gifts', 'cadeau', 'present'],
     feature: 'spotted',
   },
