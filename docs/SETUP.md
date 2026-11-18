@@ -1,5 +1,7 @@
 # Set up Sow & Grow for your family
 
+> Stuck, or prefer some help? Email **[trust@racecar.foundation](mailto:trust@racecar.foundation)** and someone will get back to you.
+
 This guide is for the person in your family who's comfortable with a laptop and a few accounts. You need about **20 minutes**, and it costs **€0**: the app runs on the free plans of **Supabase** (database, sign-in and photos) and **Cloudflare Pages** (the website).
 
 One copy of the app is for **one family**. After you create your family, nobody else can create one on your copy; others can only join yours with a QR code you show them.

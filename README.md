@@ -134,7 +134,9 @@ Parents can see which lessons each child has finished.
 
 ## Use Sow & Grow in your family
 
-Sow & Grow is free and open source. Each family runs its own private copy. Setting one up takes about 20 minutes and costs nothing: see **[docs/SETUP.md](docs/SETUP.md)**. If you'd rather have help, or have ideas, [open an issue](https://github.com/trust-fullstop/pocket-money/issues).
+Sow & Grow is free and open source. Each family runs its own private copy. Setting one up takes about 20 minutes and costs nothing: see **[docs/SETUP.md](docs/SETUP.md)**. Have ideas or found a problem? [Open an issue](https://github.com/trust-fullstop/pocket-money/issues).
+
+📬 **Want more information, or help getting started?** Send an email to **[trust@racecar.foundation](mailto:trust@racecar.foundation)** and someone will get back to you.
 
 **Not yet:** push notifications, automatic Wi-Fi device scanning, and an automatic bank connection.
 
