@@ -13,7 +13,7 @@ It runs in the phone browser and can be added to the home screen (PWA). There is
 
 ## 2. Who uses it
 
-A **family network** is one shared space. Blended and divorced families are the normal case: several households, several sets of parents and **bonus parents**. The family this was written for has three kids aged 14, 12 and 12.
+A **family network** is one shared space. Blended and divorced families are the normal case: several households, several sets of parents and **bonus parents**. It was first written for a real blended family with teenagers.
 
 | Role | Typical person | Can do |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ The app nudges unsecured accounts ("Secure your account so you don't lose your m
 - Money is virtual: a ledger. Parents pay out real cash or transfers when a spend request is approved.
 - Balances are never typed in. Every change is a ledger row with a readable reason, who did it and when.
 - A negative spending balance shows as **"owes"** (for example, "Sam owes €1.50").
-- **A second currency** (Family rules → "Also show money in", e.g. Dad pays in EUR and the kids in South Africa buy in rand, or the family counts in rand and Dad thinks in euro). The ledger stays in the family currency. The app shows "≈ R 373" next to money, a "💱 Euro and rand" card in the wallet (today's rate, pocket money / spending / savings converted, a two-way calculator), and "Type in R" / "Type in €" for pocket money, spend and savings requests and goals (stored in the family currency at today's rate, frozen while typing). Rates: ECB reference rates via Frankfurter (free, no key), fallback open.er-api.com, fetched by the device and cached for 6 hours; no family data is sent. Real bank balances remember their own currency.
+- **A second currency** (Family rules → "Also show money in", e.g. a parent pays in EUR while the kids buy in rand, or the other way round). The ledger stays in the family currency. The app shows "≈ R 373" next to money, a "💱 Euro and rand" card in the wallet (today's rate, pocket money / spending / savings converted, a two-way calculator), and "Type in R" / "Type in €" for pocket money, spend and savings requests and goals (stored in the family currency at today's rate, frozen while typing). Rates: ECB reference rates via Frankfurter (free, no key), fallback open.er-api.com, fetched by the device and cached for 6 hours; no family data is sent. Real bank balances remember their own currency.
 
 ## 5. Features
 

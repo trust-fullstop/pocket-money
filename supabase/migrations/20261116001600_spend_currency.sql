@@ -1,4 +1,4 @@
--- The kids spend in another currency (e.g. Dad pays in EUR, the kids live in South Africa and buy things in rand).
+-- The kids spend in another currency (e.g. a parent pays in EUR, the kids buy things in rand). (Comment-only edit after apply.)
 -- 1. Family rule `spend_currency` (null = off). The app keeps counting in the family currency; the client shows
 --    today's exchange rate next to amounts. The ledger never stores converted amounts.
 -- 2. Real bank balances remember their currency (a kid's account can be in rand).

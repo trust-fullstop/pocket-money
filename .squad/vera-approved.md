@@ -12,4 +12,6 @@
 
 - 2026-11-17 (evening): Spotted amounts from family rules (spot_rules, migration 20261116001800; client resolves the rule and sends exactly what the confirm sheet shows; public.spot unchanged). Kryptonite review applied (no server-side implicit amounts; hidden time/points shown with Remove). vera-spot: PASS, 1 non-blocking fixed (switching direction leaves custom mode). 144/144 tests, browser-tested.
 
+- 2026-11-18: Public repo: family-facing README (faith at the heart), docs/SETUP.md + docs/DEVELOPMENT.md, demo screenshots, MIT LICENSE, personal details removed from tracked files. vera-readme-2: FAIL (4: setup route, Ask privacy claim, kids' ages/country, ALLOWED_ORIGINS) -> fixed -> PASS (+2 nits fixed). No secrets in files or history. 144/144 tests.
+
 status: approved
