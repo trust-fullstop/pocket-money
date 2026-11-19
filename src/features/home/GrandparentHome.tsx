@@ -8,6 +8,7 @@ import type { EventOccurrence, Member, TaskInstance } from '../../lib/types';
 import { VerseOfTheDay } from '../faith/VerseCard';
 import { ComingUp, Greeting, HomeSection, KidGlanceCard } from './shared';
 import { eventsWindow, progressByMember } from './lib';
+import { NeedsCard } from './NeedsCard';
 
 export default function GrandparentHome() {
   const { me, family, state } = useApp();
@@ -68,6 +69,8 @@ function GrandparentHomeInner({ me, today, tz, stamp }: { me: Member; today: str
           </div>
         )}
       </HomeSection>
+
+      <NeedsCard stamp={stamp} />
 
       <ComingUp events={events} max={5} />
 

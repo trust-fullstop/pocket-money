@@ -106,7 +106,7 @@ export default function HelpHome() {
           <Step n={2} title="Do it, then add a photo">
             Tap the task, do the job and take a photo of the result. Send it. Sometimes a note is enough.
           </Step>
-          <Step n={3} title="Watch your wallet" action={isKid && <LinkButton to="/money" variant="secondary" size="sm">Open Money</LinkButton>}>
+          <Step n={3} title="Watch your money" action={isKid && <LinkButton to="/money" variant="secondary" size="sm">Open Money</LinkButton>}>
             A grown-up checks it and says OK. Your reward lands in Money{on('points') ? ', and your points go up' : ''}. 🎉
           </Step>
         </ol>
@@ -161,7 +161,7 @@ export default function HelpHome() {
             Every change shows who did it and why, so parents in different homes stay in sync. Mistakes can be undone, never hidden.
           </Tip>
           <Tip emoji="👪">
-            Bonus parents can do everything parents can. Grandparents give gifts{on('challenges') ? ' and set fun challenges' : ''}.
+            Bonus parents and guardians can do everything parents can. Grandparents, aunts, uncles and godparents give gifts{on('challenges') ? ' and set fun challenges' : ''}.
           </Tip>
           {on('ask') && <Tip emoji="💬">Ask Pocket answers the kids’ questions about the app. Parents can read every question.</Tip>}
           {learnOn && (

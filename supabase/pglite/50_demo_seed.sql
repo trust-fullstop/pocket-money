@@ -30,7 +30,7 @@ declare
   fam uuid; dad uuid; mum uuid; anna uuid; oma uuid; sam uuid; mia uuid; leo uuid;
   mids uuid[]; uids uuid[];
   r jsonb; rec record; d date; rel int; n_days int; v_ts timestamptz; v_user uuid; v_approver uuid; v_req uuid;
-  v_tx uuid; v_inst uuid; i int := 0;
+  v_tx uuid; v_inst uuid; i int := 0; v_shoes uuid; v_bag uuid;
 begin
   if exists (select 1 from public.member_logins where user_id = u_dad) then
     raise notice 'demo seed already present';
@@ -48,7 +48,7 @@ begin
   perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('features',
     jsonb_build_object('challenges', true, 'spotted', true, 'allowance', true, 'requests', true, 'savings', true,
       'interest', true, 'saver_rules', true, 'goals', true, 'targets', true, 'time', true, 'points', true,
-      'calendar', true, 'emergency', true, 'devices', true, 'ask', true, 'learn', true, 'faith', true),
+      'calendar', true, 'emergency', true, 'devices', true, 'ask', true, 'learn', true, 'faith', true, 'needs', true),
     'spend_currency', 'ZAR')));  -- the demo kids spend in rand: shows today's EUR → ZAR rate
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
@@ -287,6 +287,30 @@ begin
       if app.bal(mia, 'savings') >= 300 then
         perform public.create_request(p_kind => 'withdraw', p_amount => 300, p_label => 'Fair', p_note => 'Sweets at the fair 🍭');
       end if;
+    end if;
+
+    -- "What we need" (grown-ups only): shoes bought by Oma, a bag Mum is getting, two still open
+    if rel = n_days - 6 then
+      perform pg_temp.seed_at(u_mum, app.local_ts(d, '20:30', tz));
+      v_shoes := (public.add_need(p_member => sam, p_item => 'School shoes', p_occasion => 'New term',
+        p_details => 'Size 5, black, with velcro')->>'id')::uuid;
+      perform pg_temp.seed_at(u_dad, app.local_ts(d, '21:00', tz));
+      v_bag := (public.add_need(p_member => leo, p_item => 'School bag', p_occasion => 'New term',
+        p_details => 'The zip broke. A backpack with a laptop pocket.')->>'id')::uuid;
+    elsif rel = n_days - 5 then
+      perform pg_temp.seed_at(u_oma, app.local_ts(d, '10:00', tz));
+      perform public.claim_need(p_id => v_shoes);
+      perform pg_temp.seed_at(u_mum, app.local_ts(d, '12:15', tz));
+      perform public.claim_need(p_id => v_bag);
+    elsif rel = n_days - 3 then
+      perform pg_temp.seed_at(u_oma, app.local_ts(d, '14:05', tz));
+      perform public.complete_need(p_id => v_shoes, p_note => 'Bought at the shoe shop in town, size 5. They are in the hall cupboard.');
+      perform pg_temp.seed_at(u_oma, app.local_ts(d, '19:00', tz));
+      perform public.add_need(p_member => mia, p_item => 'Art set', p_occasion => 'Birthday',
+        p_details => 'Watercolours and good brushes 🎨');
+    elsif rel = n_days - 2 then
+      perform pg_temp.seed_at(u_anna, app.local_ts(d, '20:00', tz));
+      perform public.add_need(p_member => leo, p_item => 'Football boots', p_occasion => 'Christmas', p_details => 'Size 42, for grass');
     end if;
 
     -- the jobs of the day

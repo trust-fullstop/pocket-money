@@ -14,8 +14,8 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     key: 'money', title: 'Money', emoji: '💶', items: [
       { key: 'allowance', emoji: '📅', label: 'Pocket money', line: 'A set amount is paid automatically every week or every month.' },
       { key: 'requests', emoji: '🙋', label: 'Requests', line: 'Kids ask before they spend money or use time, and a parent says yes or no.' },
-      { key: 'spotted', emoji: '📸', label: 'Spotted', line: 'An on-the-spot reward or consequence with a photo. Grandparents can send gifts.' },
-      { key: 'savings', emoji: '🐷', label: 'Savings', line: 'A savings pot next to spending money, so kids learn to put some aside.' },
+      { key: 'spotted', emoji: '📸', label: 'Spotted', line: 'An on-the-spot reward or consequence with a photo. Grandparents and other family can send gifts.' },
+      { key: 'savings', emoji: '🐷', label: 'Savings', line: 'A savings pot next to the Wallet, so kids learn to put some aside.' },
       { key: 'interest', emoji: '📈', label: 'Interest', line: 'Savings grow a little every week, so waiting pays off.' },
       { key: 'saver_rules', emoji: '⭐', label: 'Saver rules', line: 'Bonus points for saving, and an optional penalty for saving nothing.' },
       { key: 'goals', emoji: '🎯', label: 'Savings goals', line: 'Save up for something and see how many weeks are left.' },
@@ -34,6 +34,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { key: 'calendar', emoji: '🗓️', label: 'Calendar', line: 'Family events, reminders and birthdays in one place.' },
       { key: 'emergency', emoji: '🆘', label: 'Emergency card', line: 'Blood type, allergies, medication and who to call.' },
       { key: 'devices', emoji: '📱', label: 'Devices', line: 'A list of the phones, tablets and consoles at home.' },
+      { key: 'needs', emoji: '🛍️', label: 'What we need', line: 'Grown-ups note what each child needs (school shoes, a bag…) and tick it off when it is bought.' },
     ],
   },
   {
@@ -49,7 +50,7 @@ export const FEATURE_INFO = Object.fromEntries(
   FEATURE_GROUPS.flatMap((g) => g.items).map((i) => [i.key, i]),
 ) as Record<FeatureKey, FeatureInfo>;
 
-/** All 18 switches, in the order they appear on the Features page. */
+/** All 19 switches, in the order they appear on the Features page. */
 export const FEATURE_KEYS: FeatureKey[] = FEATURE_GROUPS.flatMap((g) => g.items.map((i) => i.key));
 export const FEATURE_TOTAL = FEATURE_KEYS.length;
 

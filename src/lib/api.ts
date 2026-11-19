@@ -3,7 +3,7 @@
 import { backend } from './backend';
 import type {
   AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Invite,
-  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput,
+  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Need, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput,
   TaskInstance, TickResult, Transaction, Wallet,
 } from './types';
 
@@ -101,6 +101,27 @@ export const api = {
   listLessonsDone: () => rpc<LessonDone[]>('list_lessons_done'),
   /** Mark a lesson finished (once). Kids get +10 XP the first time when points are switched on. */
   finishLesson: (lesson: string) => rpc<FinishLessonResult>('finish_lesson', { p_lesson: lesson }),
+
+  // ---- What we need (grown-ups only; kids get not_allowed) ----
+  /** 'active' = open + someone is getting it (oldest first); 'done' = bought in the last year (newest first). */
+  listNeeds: (status: 'active' | 'done' | 'all' = 'active') => rpc<Need[]>('list_needs', { p_status: status }),
+  /** NEED_DEFAULT_OCCASIONS first, then the family's own occasions A→Z. */
+  listNeedOccasions: () => rpc<string[]>('list_need_occasions'),
+  addNeed: (memberId: string, item: string, occasion: string, details?: string | null) =>
+    rpc<Need>('add_need', { p_member: memberId, p_item: item, p_occasion: occasion, p_details: details ?? null }),
+  /** Whoever added it, or a manager, while it is still open. */
+  updateNeed: (id: string, item: string, occasion: string, details?: string | null) =>
+    rpc<Need>('update_need', { p_id: id, p_item: item, p_occasion: occasion, p_details: details ?? null }),
+  /** "I'll get it" (open → claimed). */
+  claimNeed: (id: string) => rpc<Need>('claim_need', { p_id: id }),
+  /** Claimed → open again: the person getting it, or a manager. */
+  releaseNeed: (id: string) => rpc<Need>('release_need', { p_id: id }),
+  /** Bought: anyone while open; once claimed, only that person or a manager. */
+  completeNeed: (id: string, note?: string | null) => rpc<Need>('complete_need', { p_id: id, p_note: note ?? null }),
+  /** Done → open again (clears the claim and the purchase): whoever bought it, or a manager. */
+  reopenNeed: (id: string) => rpc<Need>('reopen_need', { p_id: id }),
+  /** Not needed any more: whoever added it, or a manager. */
+  cancelNeed: (id: string) => rpc<Need>('cancel_need', { p_id: id }),
 
   // ---- ask (AI helper) ----
   /** Questions asked: managers see everyone's (or one member's), others only their own. Newest first. */

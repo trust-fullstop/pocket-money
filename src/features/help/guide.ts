@@ -37,7 +37,7 @@ export function featureGuide(
     },
     on('allowance') && {
       key: 'allowance', emoji: '💰', title: 'Pocket money',
-      what: 'A set amount lands in your Spending all by itself: every week on a set day, or every month on a set date.'
+      what: 'A set amount lands in your Wallet all by itself: every week on a set day, or every month on a set date.'
         + (mine?.allowance ? ` Yours: ${mine.allowance}.` : ''),
       why: 'A fixed amount teaches you to plan ahead.',
       example: on('savings')
@@ -48,7 +48,7 @@ export function featureGuide(
       key: 'requests', emoji: '🙋', title: 'Asking to spend',
       what: 'Want to buy something? Ask in Money.',
       why: 'A parent says OK and pays you in real life. The app keeps the score.',
-      example: `“A game for ${m(800)}?” OK! Then −${m(800)} from Spending.${time ? ' Or ask to use 30 min of game time.' : ''}`,
+      example: `“A game for ${m(800)}?” OK! Then −${m(800)} from your Wallet.${time ? ' Or ask to use 30 min of game time.' : ''}`,
     },
     on('savings') && {
       key: 'savings', emoji: '🐷', title: 'Savings',
@@ -85,7 +85,7 @@ export function featureGuide(
       key: 'bank', emoji: '🏦', title: 'Real bank balance',
       what: 'Type in what your real bank account (e.g. Revolut) says, so you see it next to the app.',
       why: 'The app and the bank are two different things. Seeing both helps you keep track.',
-      example: `Revolut says ${m(12345)}: Money → Update balance → ${m(12345)}. It doesn’t change your Sow & Grow wallet.`,
+      example: `Revolut says ${m(12345)}: Money → Update balance → ${m(12345)}. It doesn’t change your money in Sow & Grow.`,
     },
     on('challenges') && {
       key: 'challenges', emoji: '🤝', title: 'Challenges',

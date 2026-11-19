@@ -49,7 +49,7 @@ export function addableRoles(me: Who, opts: Opts = {}): Exclude<Role, 'owner'>[]
 export const ROLE_GROUPS: { key: 'adults' | 'kids' | 'grandparents'; title: string; roles: Role[] }[] = [
   { key: 'adults', title: 'Adults', roles: ['owner', 'parent', 'step_parent', 'guardian'] },
   { key: 'kids', title: 'Kids', roles: ['kid'] },
-  { key: 'grandparents', title: 'Grandparents', roles: ['grandparent'] },
+  { key: 'grandparents', title: 'Grandparents and other family', roles: ['grandparent'] },
 ];
 
 export const DEFAULT_AVATAR: Record<Exclude<Role, 'owner'>, string> = {

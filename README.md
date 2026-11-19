@@ -23,7 +23,7 @@ Sow & Grow started with a dad of a blended family, with two homes in two countri
 - **What you do has a result.** Do your part and you see it grow. Leave it, and it costs you a little. Not as punishment, but as the way life works.
 - **Money is something we look after.** Earning, saving, giving and waiting for something good are learned with small amounts, long before the big ones.
 - **Faith belongs in everyday life.** Including how we handle money, time and the gifts God gives us.
-- **Family is a team.** Parents, bonus parents and grandparents all play a part, and children can challenge their parents too.
+- **Family is a team.** Parents, bonus parents, grandparents, aunts and uncles all play a part, and children can challenge their parents too.
 
 So Sow & Grow is not a chore chart and not a punishment app. It's a small, daily practice of responsibility, generosity and grace for the whole family.
 
@@ -69,7 +69,7 @@ We thought hard about this, especially for families where not everyone believes 
 
 > *"As each has received a gift, employ it in serving one another, as good managers of the grace of God."* — 1 Peter 4:10
 
-- **Money.** Children have a **Spending** pot and a **Savings** pot.
+- **Money.** Children have two pots: a **Wallet** 👛 and **Savings** 🐷.
   - Pocket money arrives automatically, every week or every month.
   - They earn more with jobs done well, and ask before spending.
   - They save towards a goal and watch it grow with a savings bonus.
@@ -108,9 +108,14 @@ Parents can see which lessons each child has finished.
 - Pocket money, family rules, and an activity log of who changed what, so parents in different homes stay in step.
 - **Start small:** switch on one part at a time as your family gets used to it.
 
-**For bonus parents and grandparents**
+**For bonus parents, grandparents and other family**
 - Bonus parents can do everything parents can.
-- Grandparents can send gifts and set fun challenges.
+- Grandparents, aunts, uncles and godparents can send gifts and set fun challenges. They can see the children, and the children's money if your family rules allow it.
+
+**🛍️ What we need** (for the grown-ups)
+- Note what each child needs, such as school shoes, a school bag, stationery or a lunch box, for an occasion: new term, birthday, Christmas, or one you make up.
+- Any adult, including grandparents, aunts and uncles, can tap **"I'll get it"** so nobody buys the same thing twice, then **"Bought"**. Everyone sees who bought it and when.
+- Children can't see this list, so surprises stay surprises.
 
 **For the whole family**
 - A shared calendar with reminders and birthdays.
@@ -120,7 +125,7 @@ Parents can see which lessons each child has finished.
 
 ## 🏠 Built for real families
 
-- **Blended families are normal here.** Parents, *bonus parents*, guardians and grandparents, with your own labels ("Bonus dad", "Oma"). Children from 0 to 21.
+- **Blended families are normal here.** Parents, *bonus parents*, guardians, grandparents and other family like aunts, uncles and godparents, with your own labels ("Bonus dad", "Oma", "Godmother"). Children from 0 to 21.
 - **Joining is easy:** scan a QR code. No email addresses needed, which is ideal for children.
 - **Two homes, two countries:** an optional second currency with today's exchange rate.
 - **On every phone:** open it in the browser and choose *Add to Home Screen*. It works like an app.
@@ -128,7 +133,7 @@ Parents can see which lessons each child has finished.
 ## 🔒 Privacy
 
 - Each copy of the app belongs to **one family**. Nobody else can join without a QR code from a parent.
-- Children see only their own wallet. Siblings can't see each other's money, and photos are private to the family.
+- Children see only their own money. Siblings can't see each other's money, and photos are private to the family.
 - No ads and no tracking. Your family's data lives in your own database.
 - The **Ask Pocket** helper (optional) sends Anthropic (Claude) only the question as typed, plus the asker's role, relationship label and age, the family's currency and which parts of the app are on. It never sends names, the family name or balances. Questions are kept in your own database, and parents can read them.
 

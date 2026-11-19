@@ -6,7 +6,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
-import { allowanceText, formatDate, formatWhen, memberRoleLabel, money, plural, roleLabel, todayISO, life360Href } from '../../lib/format';
+import { allowanceText, formatDate, formatWhen, memberRoleLabel, money, plural, roleChoiceLabel, todayISO, life360Href } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { AskEntry, Member, Profile } from '../../lib/types';
@@ -93,7 +93,7 @@ export default function MemberDetail() {
     }
     if (canChangeRole(me, m)) {
       manageRows.push(
-        <ListRow key="role" onClick={() => setSheet('role')} left={<RowIcon icon="swap" />} title="Change role" subtitle={roleLabel(m.role)} />,
+        <ListRow key="role" onClick={() => setSheet('role')} left={<RowIcon icon="swap" />} title="Change role" subtitle={roleChoiceLabel(m.role)} />,
       );
     }
     if (m.role === 'kid' && features.on('allowance') && canSetAllowance(me, m)) {
@@ -158,8 +158,8 @@ export default function MemberDetail() {
             left={<RowIcon icon="money" />}
             title="Money & history"
             subtitle={features.on('savings')
-              ? `Spending ${money(balances.spending, family.currency)} · Savings ${money(balances.savings, family.currency)}`
-              : `Spending ${money(balances.spending, family.currency)}`}
+              ? `Wallet ${money(balances.spending, family.currency)} · Savings ${money(balances.savings, family.currency)}`
+              : `Wallet ${money(balances.spending, family.currency)}`}
           />
         </Card>
       )}

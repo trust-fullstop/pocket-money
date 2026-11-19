@@ -16,4 +16,6 @@
 
 - 2026-11-19: Refresh on open (updates.ts: check on open/visible/30 min; reload only when fresh + no unsaved work, else UpdateBar; never while hidden; skipWaiting+clientsClaim; _headers no-cache for sw.js; preloadError reload), Consequence/Reward wording, task 'time already passed' warning. vera-update-4 FAIL (3) -> fixed -> vera-update-5 PASS. 144/144 tests.
 
+- 2026-11-19 (evening): 'What we need' (feature needs, migration 20261116001900; adults only, atomic claim/done, audit) + aunts/uncles/godparents on the grandparent role (AddMember guardian bug fixed) + Spending -> Wallet, 'My money' heading. Kryptonite review applied. vera-needs: PASS (2 non-blocking fixed: Enter double-submit guard; Bought after someone else claimed refreshes). 162/162 tests.
+
 status: approved

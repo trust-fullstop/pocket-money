@@ -321,7 +321,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
               step={1}
               value={d.challengeCap}
               onChange={(e) => set({ challengeCap: e.target.value })}
-              hint="Most points a kid or grandparent can promise in a challenge."
+              hint="Most points a kid, grandparent or other family member can promise in a challenge."
               error={capErr ?? serverErr.challenge_points_cap}
             />
           )}
@@ -363,13 +363,14 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
               checked={d.managersAddAdults}
               onChange={(v) => set({ managersAddAdults: v })}
               label="Other parents can add adults"
-              description="Off: only you (the owner) can add parents, bonus parents and guardians. Kids and grandparents can always be added by any parent."
+              description="Off: only you (the owner) can add parents, bonus parents and guardians. Kids, grandparents and other family can always be added by any parent."
             />
           )}
           <Toggle
             checked={d.gpMoney}
             onChange={(v) => set({ gpMoney: v })}
-            label="Grandparents can see the kids’ money"
+            label="Grandparents and other family can see the kids’ money"
+            description="Like aunts, uncles and godparents."
           />
           {showEmergency && (
             <div>

@@ -106,7 +106,8 @@ export type FeatureKey =
   | 'ask'          // "Ask Pocket" AI helper for questions (Claude), off until a parent turns it on
   | 'bank'         // real bank balance (e.g. Revolut) typed in by a parent or the kid — information only
   | 'learn'        // Money school: short lessons about saving, interest, earning and spending (+ XP once per lesson)
-  | 'faith';       // Faith, hope and love: verse of the day, faith reflections, Bible App links (each person can hide verses)
+  | 'faith'        // Faith, hope and love: verse of the day, faith reflections, Bible App links (each person can hide verses)
+  | 'needs';       // What we need: grown-ups note what each kid needs and tick it off when bought (kids never see it)
 export type Features = Record<FeatureKey, boolean>;
 /** Features that only work when another feature is on. */
 export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest: 'savings', saver_rules: 'savings', goals: 'savings' };
@@ -114,12 +115,12 @@ export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest
 export const START_SMALL: Features = {
   challenges: false, spotted: true, allowance: true, requests: true, savings: false, interest: false, saver_rules: false,
   goals: false, targets: false, time: false, points: true, calendar: true, emergency: true, devices: false, ask: false,
-  bank: true, learn: true, faith: false,
+  bank: true, learn: true, faith: false, needs: true,
 };
 export const EVERYTHING: Features = {
   challenges: true, spotted: true, allowance: true, requests: true, savings: true, interest: true, saver_rules: true,
   goals: true, targets: true, time: true, points: true, calendar: true, emergency: true, devices: true, ask: false,
-  bank: true, learn: true, faith: true,
+  bank: true, learn: true, faith: true, needs: true,
 };
 /** Is a feature effectively on (respecting FEATURE_NEEDS)? Missing keys count as on (older data). */
 export function featureOn(f: Partial<Features> | undefined | null, key: FeatureKey): boolean {
@@ -295,6 +296,33 @@ export interface DeviceInput {
   phone_number?: string | null; mac?: string | null; ip?: string | null; notes?: string | null;
 }
 export interface Device extends Required<Omit<DeviceInput, 'id'>> { id: string; created_at: string }
+
+/** "What we need": something a kid needs, noted by a grown-up. Kids never see these (surprises stay surprises). */
+export type NeedStatus = 'open' | 'claimed' | 'done' | 'cancelled';
+export const NEED_DEFAULT_OCCASIONS = ['Anytime', 'New term', 'Birthday', 'Christmas'] as const;
+export interface Need {
+  id: string;
+  member_id: string;
+  item: string;
+  details: string | null;
+  occasion: string;
+  status: NeedStatus;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  done_by: string | null;
+  done_at: string | null;
+  done_note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  /** What the caller may do now (worked out by the server). */
+  can_edit: boolean;
+  can_claim: boolean;
+  can_release: boolean;
+  can_complete: boolean;
+  can_reopen: boolean;
+  can_cancel: boolean;
+}
 
 export interface TickResult {
   instances_created: number; missed: number; weeks_closed: number; months_closed: number;

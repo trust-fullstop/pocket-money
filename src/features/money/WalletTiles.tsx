@@ -1,5 +1,5 @@
-// Balance tiles: Spending 👛 · Savings 🐷 · Time ⏱️ · Points ✨. Self-contained, reusable (Home, Family…).
-// A negative spending balance reads "Owes €1.50" with ⚠️ in the warning style — never a bare red minus.
+// Balance tiles: Wallet 👛 · Savings 🐷 · Time ⏱️ · Points ✨. Self-contained, reusable (Home, Family…).
+// A negative wallet balance reads "Owes €1.50" with ⚠️ in the warning style — never a bare red minus.
 // Tiles whose part is switched off (Family → Features) are left out; the grid adapts to 1–4 tiles.
 import { FxNote, cx } from '../../components/ui';
 import { useFeatures } from '../../lib/features';
@@ -22,13 +22,13 @@ export interface WalletTilesProps {
 }
 
 const META: Record<BalanceKey, { emoji: string; label: string }> = {
-  spending: { emoji: '👛', label: 'Spending' },
+  spending: { emoji: '👛', label: 'Wallet' },
   savings: { emoji: '🐷', label: 'Savings' },
   time: { emoji: '⏱️', label: 'Time' },
   points: { emoji: '✨', label: 'Points' },
 };
 
-/** The feature switch behind each pot (Spending is always on). */
+/** The feature switch behind each pot (the Wallet is always on). */
 const POT_FEATURE: Partial<Record<BalanceKey, FeatureKey>> = { savings: 'savings', time: 'time', points: 'points' };
 
 /** Text for one balance ("€12.50", "Owes €1.50", "1 h 15 min", "85 XP"). */

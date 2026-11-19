@@ -66,7 +66,7 @@ export const MONEY_LABELS: Record<MoneyLabel, Glyph> = {
 };
 
 export const POTS: Record<Pot, Glyph> = {
-  spending: { emoji: '👛', label: 'Spending' },
+  spending: { emoji: '👛', label: 'Wallet' },
   savings: { emoji: '🐷', label: 'Savings' },
   time: { emoji: '⏱️', label: 'Time' },
   points: { emoji: '✨', label: 'Points' },

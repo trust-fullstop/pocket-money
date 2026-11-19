@@ -71,7 +71,7 @@ export interface BankCardProps {
   onFeatureOff: () => Promise<void>;
 }
 
-/** "🏦 Real bank account": latest balance per account, a clear "not the app wallet" note, Update balance and History. */
+/** "🏦 Real bank account": latest balance per account, a clear "not the money in the app" note, Update balance and History. */
 export function BankCard({ memberId, self, name, canEdit, cur, onFeatureOff }: BankCardProps) {
   const { me, family, membersById, now } = useApp();
   const toast = useToast();
@@ -125,7 +125,7 @@ export function BankCard({ memberId, self, name, canEdit, cur, onFeatureOff }: B
       </CardTitle>
       <p className="flex gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[14px]">
         <Icon name="info" size={18} className="mt-0.5 shrink-0 text-muted" />
-        <span>{self ? 'This is your real bank account — not your app wallet.' : `This is ${name}’s real bank account — not the app wallet.`}</span>
+        <span>{self ? 'This is your real bank account — not your money in the app.' : `This is ${name}’s real bank account — not the money in the app.`}</span>
       </p>
 
       {data.loading ? (
@@ -319,7 +319,7 @@ function BankSheet({ memberId, self, name, cur, today, currencies, accounts, las
             Saves <strong>{clip(label, 40)}</strong>: <BankAmount cents={signed} cur={currency} /> {asOf ? onDay(asOf, today) : ''}
           </p>
         )}
-        <p className="text-[14px] text-muted">Only for looking. It doesn’t change {self ? 'your' : `${name}’s`} app wallet.</p>
+        <p className="text-[14px] text-muted">Only for looking. It doesn’t change {self ? 'your' : `${name}’s`} money in the app.</p>
         {error && <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{error}</p>}
       </div>
     </Sheet>

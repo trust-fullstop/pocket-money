@@ -150,7 +150,7 @@ function JarsWidget({ ctx }: { ctx: LessonCtx }) {
       </p>
 
       <p className="text-[15px] leading-relaxed text-muted">
-        This is a learning tool only. In the app you have Spending and Savings. Giving you do in real life.
+        This is a learning tool only. In the app you have two pots: Wallet and Savings. Giving you do in real life.
       </p>
     </WidgetBox>
   );

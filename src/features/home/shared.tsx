@@ -210,7 +210,7 @@ export function ComingUp({ events, max, forMember, title = 'Coming up' }: {
   );
 }
 
-/** Spending / Savings / Time in a row (Savings and Time only when switched on). Negative spending shows "Owes" in orange. */
+/** Wallet / Savings / Time in a row (Savings and Time only when switched on). Negative spending shows "Owes" in orange. */
 export function MiniBalances({ b, size = 'md' }: { b: Balances; size?: 'sm' | 'md' }) {
   const { family } = useApp();
   const features = useFeatures();
@@ -222,7 +222,7 @@ export function MiniBalances({ b, size = 'md' }: { b: Balances; size?: 'sm' | 'm
   return (
     <div className={cx('grid gap-2', gridCols(1 + Number(savings) + Number(time)), cls)}>
       <Stat
-        label={owes ? 'Owes' : 'Spending'}
+        label={owes ? 'Owes' : 'Wallet'}
         value={<>{money(owes ? -b.spending : b.spending, cur)}{owes && <span aria-hidden="true"> ⚠️</span>}</>}
         tone={owes ? 'warn' : undefined}
       />

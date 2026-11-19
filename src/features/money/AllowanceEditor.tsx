@@ -111,7 +111,7 @@ export function AllowanceSheet({ member, onClose, onSaved }: AllowanceSheetProps
   return (
     <Sheet
       open onClose={onClose} title={`${name}’s pocket money 💰`}
-      description="Paid into Spending automatically, every week or every month."
+      description="Paid into the Wallet automatically, every week or every month."
       footer={
         <SheetActions onCancel={onClose}>
           <Button size="lg" icon="check" loading={busy} onClick={save}>Save</Button>
@@ -167,7 +167,7 @@ export function AllowanceSheet({ member, onClose, onSaved }: AllowanceSheetProps
           )}
         </p>
         {v > 0 && (
-          <p className="text-[14px] text-muted">It lands in {name}’s Spending at midnight, marked “Pocket money”.</p>
+          <p className="text-[14px] text-muted">It lands in {name}’s Wallet at midnight, marked “Pocket money”.</p>
         )}
         {error && <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{error}</p>}
       </div>

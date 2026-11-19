@@ -4,7 +4,7 @@ import { Avatar, Badge, Button, Card, EmptyState, Icon, Input, LinkButton, PageH
 import { api } from '../../lib/api';
 import { backend } from '../../lib/backend';
 import { AppError, friendlyError, type ErrorCode } from '../../lib/errors';
-import { deviceLabel, deviceTimeZone, extractJoinCode, formatWhen, roleLabel } from '../../lib/format';
+import { deviceLabel, deviceTimeZone, extractJoinCode, formatWhen, roleChoiceLabel } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { InvitePreview } from '../../lib/types';
 import { AuthShell } from './AuthShell';
@@ -134,7 +134,7 @@ function JoinPreview({ code }: { code: string }) {
           Join <strong className="font-extrabold">{preview.family_name}</strong> as
         </p>
         <h2 className="text-3xl font-extrabold leading-tight">{preview.display_name}</h2>
-        <Badge tone="accent">{roleLabel(preview.role)}</Badge>
+        <Badge tone="accent">{roleChoiceLabel(preview.role)}</Badge>
         {preview.expires_at && (
           <p className="mt-2 text-sm text-muted">Code valid until {formatWhen(preview.expires_at, deviceTimeZone())}</p>
         )}

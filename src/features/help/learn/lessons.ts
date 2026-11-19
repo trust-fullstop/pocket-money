@@ -28,7 +28,7 @@ const purpose = core(
     const pts = on('points');
     const pm = pctMonthOf(ctx);
     const saving: Block[] = [{ kind: 'text', text: 'Money you don’t spend today is still there tomorrow. That’s **saving**.' }];
-    if (on('savings')) saving.push({ kind: 'text', text: 'In the app you have two pots: **Spending** 👛 and **Savings** 🐷.' });
+    if (on('savings')) saving.push({ kind: 'text', text: 'In the app you have two pots: **Wallet** 👛 and **Savings** 🐷.' });
     if (bonusOn(ctx)) {
       saving.push({
         kind: 'example',

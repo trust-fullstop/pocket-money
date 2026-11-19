@@ -170,6 +170,9 @@ export const ROLE_LABELS: Record<Role, string> = {
   owner: 'Owner', parent: 'Parent', step_parent: 'Bonus parent', guardian: 'Guardian', grandparent: 'Grandparent', kid: 'Kid',
 };
 export const roleLabel = (role: Role | string | null | undefined) => (role ? ROLE_LABELS[role as Role] ?? role : '');
+/** Role name where no relation label is shown (role pickers, the join screen): aunts, uncles and godparents share the grandparent role. */
+export const roleChoiceLabel = (role: Role | string | null | undefined) =>
+  (role === 'grandparent' ? 'Grandparent or other family' : roleLabel(role));
 /** What the family calls someone: their custom relationship ("Bonus dad") or else the role label. */
 export const memberRoleLabel = (m: { role: Role | string; relation?: string | null } | null | undefined) =>
   (m ? m.relation?.trim() || roleLabel(m.role) : '');

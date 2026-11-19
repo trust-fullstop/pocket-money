@@ -10,7 +10,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export interface FxRow { label: string; cents: number }
 
-/** Today's rate + rows (e.g. pocket money, spending) in both currencies + a calculator. Null when the rule is off. */
+/** Today's rate + rows (e.g. pocket money, wallet) in both currencies + a calculator. Null when the rule is off. */
 export function FxCard({ rows }: { rows: FxRow[] }) {
   const fx = useFx();
   const titleId = useId();

@@ -42,7 +42,7 @@ export function FeatureOff({ feature }: { feature: FeatureKey }) {
             : 'A parent can switch it on later.'}
           action={isManager
             ? <LinkButton to="/family/features" icon="settings">Family features</LinkButton>
-            : <LinkButton to={back} variant="secondary" icon="back">{memberId ? 'Back to the wallet' : 'Back to Money'}</LinkButton>}
+            : <LinkButton to={back} variant="secondary" icon="back">{memberId ? 'Back' : 'Back to Money'}</LinkButton>}
         />
       </Card>
     </div>
@@ -82,7 +82,7 @@ export function DeltaChip({ currency, value, cur, tone, extra }: { currency: Cur
 export function NotForYou({ message, action }: { message?: string; action?: ReactNode }) {
   return (
     <EmptyState
-      emoji="🔒" title="That's not for you" message={message ?? 'This wallet belongs to someone else.'}
+      emoji="🔒" title="That's not for you" message={message ?? 'This money belongs to someone else.'}
       action={action ?? <LinkButton to="/" icon="home">Go home</LinkButton>}
     />
   );

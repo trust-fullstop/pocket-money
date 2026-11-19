@@ -30,6 +30,10 @@ export default function FamilyList() {
     return Object.fromEntries(pairs) as Record<string, number | null>;
   }, [countKey, state?.now]);
 
+  // "What we need" is for grown-ups only (kids never see it, so surprises stay surprises).
+  const needsOn = !!me && me.role !== 'kid' && features.on('needs');
+  const openNeeds = useLoad(() => (needsOn ? api.listNeeds('active') : Promise.resolve(null)), [needsOn, state?.now]);
+
   if (!me) return null;
 
   const groups = ROLE_GROUPS
@@ -60,6 +64,19 @@ export default function FamilyList() {
       ) : null}
 
       <div className="space-y-6">
+        {needsOn && (
+          <Card padded={false} className="overflow-hidden">
+            <ListRow
+              to="/family/needs"
+              left={<span className="grid size-10 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">🛍️</span>}
+              title="What we need"
+              subtitle={openNeeds.data
+                ? `${openNeeds.data.length ? `${openNeeds.data.length} open` : 'Nothing open'} · only grown-ups see this`
+                : 'Only grown-ups see this'}
+            />
+          </Card>
+        )}
+
         {groups.map((g) => (
           <Section key={g.key} title={g.title}>
             <Card padded={false} className="overflow-hidden">

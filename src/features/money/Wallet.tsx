@@ -1,5 +1,5 @@
-// /money/:memberId — one wallet: balances, level, owed banner, actions, waiting requests, real bank balance, tallies,
-// goals, targets and the history ("What happened").
+// /money/:memberId — one person's money ("My money" / "Sam's money"): the 👛 Wallet and 🐷 Savings pots, level, owed banner,
+// actions, waiting requests, real bank balance, tallies, goals, targets and the history ("What happened").
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
@@ -54,19 +54,20 @@ export function WalletPage() {
   const changed = async () => { await Promise.all([refresh(), w.reload()]); };
   const close = () => setSheet(null);
 
+  // "My money" / "Sam's money": the page holds every pot, and "Wallet" is the name of one of them.
   const title = member ? (
     <span className="flex min-w-0 items-center gap-2.5">
       <Avatar member={member} size="sm" />
-      <span className="truncate">{self ? 'My wallet' : name}</span>
+      <span className="truncate">{self ? 'My money' : `${name}’s money`}</span>
     </span>
-  ) : 'Wallet';
+  ) : 'Money';
 
   if (w.loading) {
     return (
       <div className="space-y-4" aria-busy="true">
         <PageHeader title={title} back={back} />
         {skeleton && <SkeletonRows rows={5} />}
-        <span className="sr-only" role="status">Loading the wallet…</span>
+        <span className="sr-only" role="status">Loading the money…</span>
       </div>
     );
   }
@@ -83,14 +84,14 @@ export function WalletPage() {
         </div>
       );
     }
-    return <NotForYou message={me?.role === 'kid' ? 'This wallet belongs to someone else. You can see your own wallet.' : undefined}
-      action={me?.role === 'kid' ? <LinkButton to={`/money/${me.id}`} icon="money">My wallet</LinkButton> : undefined} />;
+    return <NotForYou message={me?.role === 'kid' ? 'This money belongs to someone else. You can see your own money.' : undefined}
+      action={me?.role === 'kid' ? <LinkButton to={`/money/${me.id}`} icon="money">My money</LinkButton> : undefined} />;
   }
   if (w.code === 'not_found' || w.code === 'invalid') {
     return (
       <div className="space-y-4">
-        <PageHeader title="Wallet" back="/money" />
-        <EmptyState emoji="🔍" title="We couldn't find that wallet" message="Maybe this person left the family." action={<LinkButton to="/money" icon="back">Back to Money</LinkButton>} />
+        <PageHeader title="Money" back="/money" />
+        <EmptyState emoji="🔍" title="We couldn't find that person's money" message="Maybe this person left the family." action={<LinkButton to="/money" icon="back">Back to Money</LinkButton>} />
       </div>
     );
   }
@@ -111,7 +112,7 @@ export function WalletPage() {
   const spotHref = `/money/spot?member=${memberId}`;
   const fxRows: FxRow[] = [
     ...(on.allowance && allowance > 0 ? [{ label: 'Pocket money', cents: allowance }] : []),
-    ...(b.spending > 0 ? [{ label: 'Spending', cents: b.spending }] : []),
+    ...(b.spending > 0 ? [{ label: 'Wallet', cents: b.spending }] : []),
     ...(on.savings && b.savings > 0 ? [{ label: 'Savings', cents: b.savings }] : []),
   ];
 
@@ -149,7 +150,7 @@ export function WalletPage() {
     <div className={cx('space-y-4', w.refreshing && 'transition-opacity')} aria-busy={w.refreshing || undefined}>
       <PageHeader
         title={title} back={back}
-        subtitle={amGrandparent ? (on.spotted ? 'You can look, and send a gift.' : 'You can have a look.') : managerOfKid ? `${name} sees the same wallet.` : undefined}
+        subtitle={amGrandparent ? (on.spotted ? 'You can look, and send a gift.' : 'You can have a look.') : managerOfKid ? `${name} sees the same page.` : undefined}
         right={menu.length > 0 ? <IconButton icon="settings" label={`More for ${name}`} onClick={() => setSheet('menu')} /> : undefined}
       />
 
@@ -244,7 +245,7 @@ export function WalletPage() {
         <AllowanceSheet member={member} onClose={close} onSaved={changed} />
       )}
       {sheet === 'menu' && menu.length > 0 && (
-        <Sheet open onClose={close} title={`${name}’s wallet`}>
+        <Sheet open onClose={close} title={`${name}’s money`}>
           <ul className="-mx-2 divide-y divide-line">
             {menu.map(({ key, emoji, label, to, onClick }) => (
               <li key={key}>

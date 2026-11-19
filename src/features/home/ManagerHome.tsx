@@ -9,6 +9,7 @@ import { EventEditSheet } from '../calendar/EventSheets';
 import { VerseOfTheDay } from '../faith/VerseCard';
 import { ComingUp, FamilyTaskRow, Greeting, HomeSection, KidGlanceCard, Loaded } from './shared';
 import { eventsWindow, progressByMember } from './lib';
+import { NeedsCard } from './NeedsCard';
 
 export default function ManagerHome() {
   const { me, family, state } = useApp();
@@ -77,6 +78,8 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
           />
         </Card>
       )}
+
+      <NeedsCard stamp={stamp} />
 
       <HomeSection title="Today across the family" link={{ to: '/tasks', label: 'See all' }}>
         <Loaded load={insts} rows={3}>

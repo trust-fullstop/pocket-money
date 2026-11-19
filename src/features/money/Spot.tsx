@@ -1,7 +1,7 @@
 // /money/spot — Spotted: camera first → who → ➕ Reward / ➖ Consequence → what happened → check → send.
 // Spotted is a quick report: for parents the amount comes from the family rules (Family rules → Spotted), shown on the
 // check screen and sent exactly as shown; "Different amount this time?" opens the amount fields.
-// Grandparents send a 🎁 Gift (money only, they choose the amount). Kids can't open it.
+// Grandparents and other family (aunts, uncles, godparents) send a 🎁 Gift (money only, they choose the amount). Kids can't open it.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -79,7 +79,7 @@ export function SpotPage() {
 
   if (!me || !family) return <PageSpinner />;
   if (me.role === 'kid' || (!isManager && !amG)) {
-    return <NotForYou message="Only grown-ups can use Spotted." action={<LinkButton to={`/money/${me.id}`} icon="money">My wallet</LinkButton>} />;
+    return <NotForYou message="Only grown-ups can use Spotted." action={<LinkButton to={`/money/${me.id}`} icon="money">My money</LinkButton>} />;
   }
 
   const cur = family.currency;
@@ -205,7 +205,7 @@ export function SpotPage() {
         <PageHeader title={amG ? 'Send a gift 🎁' : 'Spotted 📸'} back />
         <Card tone="good" className="space-y-3 text-center" role="status">
           <p className="text-4xl" aria-hidden="true">{amG ? '🎁' : '✨'}</p>
-          <p className="text-lg font-bold">Sent! {done} will see it in their wallet.</p>
+          <p className="text-lg font-bold">Sent! {done} will see it in Money.</p>
           <div className="flex gap-2">
             <Button variant="secondary" size="lg" className="flex-1" onClick={() => navigate(-1)}>Close</Button>
             <Button size="lg" className="flex-1" icon="camera" onClick={reset}>{amG ? 'Another gift' : 'Spot another'}</Button>
@@ -244,7 +244,7 @@ export function SpotPage() {
     <div className="space-y-5">
       <PageHeader
         title={amG ? 'Send a gift 🎁' : 'Spotted 📸'} back
-        subtitle={amG ? 'A little something for a grandchild.' : 'Saw something good — or not so good? Note it now.'}
+        subtitle={amG ? 'A little something for the kids.' : 'Saw something good — or not so good? Note it now.'}
       />
 
       {/* 1. Photo */}
@@ -259,7 +259,7 @@ export function SpotPage() {
           <>
             <PhotoCapture
               label="📷 Take photo" value={photo} onChange={choosePhoto}
-              hint={amG ? `${kid ? name : 'Your grandchild'}, the parents and you can see this photo.` : `Only ${kid ? name : 'the child'}, parents and you can see this photo.`}
+              hint={amG ? `${kid ? name : 'The child'}, the parents and you can see this photo.` : `Only ${kid ? name : 'the child'}, parents and you can see this photo.`}
             />
             {!photo && <Button variant="secondary" block onClick={() => setSkipPhoto(true)}>Skip photo</Button>}
           </>
@@ -400,7 +400,7 @@ export function SpotPage() {
         >
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-[15px] font-semibold text-muted">
-              <Avatar member={kid} size="xs" /> {name}’s wallet · What happened
+              <Avatar member={kid} size="xs" /> {name}’s money · What happened
             </div>
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line/70 bg-surface" aria-label="Preview">
               {rows.map((r) => <li key={r.id}><TxRow tx={r} cur={cur} viewerId={kid.id} photoSrc={preview} /></li>)}
@@ -411,7 +411,7 @@ export function SpotPage() {
             {owes.map((o) => (
               <p key={o} className="rounded-xl bg-warn-soft px-3 py-2 text-[15px] font-semibold text-warn"><span aria-hidden="true">⚠️ </span>{o}</p>
             ))}
-            {amG && !canSeeMoney(me, kid, family) && <p className="text-[14px] text-muted">You won’t see {name}’s wallet afterwards — money is private in this family.</p>}
+            {amG && !canSeeMoney(me, kid, family) && <p className="text-[14px] text-muted">You won’t see {name}’s money afterwards: money is private in this family.</p>}
             {sendError && <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{sendError}</p>}
           </div>
         </Sheet>

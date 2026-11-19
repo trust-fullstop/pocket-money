@@ -84,6 +84,23 @@ describe('demo seed', () => {
     const tasks = await as(db, DEMO(1))<any[]>('list_tasks');
     expect(tasks.filter((t) => t.title === 'Wash the car')).toHaveLength(2);
   });
+
+  it('has "What we need": shoes bought by Oma, a bag Mum is getting, two open; kids see none of it', async () => {
+    const dad = as(db, DEMO(1));
+    const st = await dad<any>('get_state');
+    const name = (id: string | null) => st.members.find((m: any) => m.id === id)?.display_name ?? null;
+    const active = await dad<any[]>('list_needs');
+    expect(active.map((n) => [name(n.member_id), n.item, n.occasion, n.status, name(n.claimed_by)])).toEqual([
+      ['Leo', 'School bag', 'New term', 'claimed', 'Mum'],
+      ['Mia', 'Art set', 'Birthday', 'open', null],
+      ['Leo', 'Football boots', 'Christmas', 'open', null],
+    ]);
+    const done = await dad<any[]>('list_needs', { p_status: 'done' });
+    expect(done.map((n) => [name(n.member_id), n.item, name(n.done_by), !!n.done_note])).toEqual([['Sam', 'School shoes', 'Oma', true]]);
+    for (const kid of [5, 6, 7]) {
+      await expect(as(db, DEMO(kid))('list_needs')).rejects.toMatchObject({ code: 'not_allowed' });
+    }
+  });
 });
 
 describe('demo seed works at any time of the week', () => {

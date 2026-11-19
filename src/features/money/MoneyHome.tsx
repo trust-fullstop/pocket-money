@@ -1,4 +1,4 @@
-// /money — kids go straight to their wallet; grown-ups pick a child (cards with balances).
+// /money — kids go straight to their own money page; grown-ups pick a child (cards with balances).
 // Switched-off parts (Family → Features) are left out: tiles, level badge, requests, gifts.
 import { Link, Navigate } from 'react-router';
 import { Avatar, Badge, Card, EmptyState, Icon, LinkButton, PageHeader, PageSpinner, cx } from '../../components/ui';
@@ -43,7 +43,7 @@ function SelfRow({ me }: { me: Member }) {
   return (
     <Link to={`/money/${me.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl border border-line/70 bg-surface px-3.5 py-2.5 shadow-sm transition hover:bg-surface-2">
       <Avatar member={me} size="sm" />
-      <span className="flex-1 font-semibold">My wallet</span>
+      <span className="flex-1 font-semibold">My money</span>
       <Icon name="chevron-right" className="size-5 text-muted" />
     </Link>
   );
@@ -87,7 +87,7 @@ export function MoneyHome() {
     <div className="space-y-4">
       <PageHeader
         title="Money"
-        subtitle={kids.length ? (amG ? (giftsOn ? 'Have a look — and send a gift if you like.' : 'Have a look at how they’re doing.') : 'Tap a child to see their wallet.') : undefined}
+        subtitle={kids.length ? (amG ? (giftsOn ? 'Have a look at how the kids are doing, and send a gift if you like.' : 'Have a look at how the kids are doing.') : 'Tap a child to see their money.') : undefined}
       />
 
       {isManager && waiting > 0 && (
@@ -104,7 +104,7 @@ export function MoneyHome() {
       {kids.length === 0 ? (
         <Card>
           <EmptyState
-            emoji="🧒" title="No kids yet" message="Wallets appear here once a child joins the family."
+            emoji="🧒" title="No kids yet" message="Their money shows here once a child joins the family."
             action={isManager ? <LinkButton to="/family/add" icon="plus">Add a child</LinkButton> : undefined}
           />
         </Card>
@@ -120,7 +120,7 @@ export function MoneyHome() {
           {otherAdults.map((m) => (
             <Link key={m.id} to={`/money/${m.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl border border-line/70 bg-surface px-3.5 py-2.5 shadow-sm transition hover:bg-surface-2">
               <Avatar member={m} size="sm" />
-              <span className="flex-1 font-semibold">{m.display_name}’s wallet</span>
+              <span className="flex-1 font-semibold">{m.display_name}’s money</span>
               <Icon name="chevron-right" className="size-5 text-muted" />
             </Link>
           ))}

@@ -151,7 +151,7 @@ function BalanceTiles({ meId, b, currency, features }: { meId: string; b: Balanc
     <div className={cx('grid gap-2', gridCols(1 + Number(savings) + Number(time)))}>
       <Link to={`/money/${meId}`} className={cx(tile, owes && 'border-warn/50 bg-warn-soft')}>
         <Stat
-          label={<><span aria-hidden="true">👛</span> {owes ? 'Owes' : 'Spending'}</>}
+          label={<><span aria-hidden="true">👛</span> {owes ? 'Owes' : 'Wallet'}</>}
           value={<>{money(owes ? -b.spending : b.spending, currency)}{owes && <span aria-hidden="true"> ⚠️</span>}</>}
           sub={b.spending !== 0 ? <FxNote cents={Math.abs(b.spending)} currency={currency} /> : undefined}
           tone={owes ? 'warn' : undefined}

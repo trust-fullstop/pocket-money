@@ -14,7 +14,7 @@ export const SETTING_LABEL: Record<string, string> = {
   no_savings_penalty_points: 'no-savings penalty',
   late_grace_minutes: 'late grace time',
   challenge_points_cap: 'challenge points cap',
-  grandparents_see_money: 'grandparents see money',
+  grandparents_see_money: 'grandparents and other family see money',
   managers_add_adults: 'who can add adults',
   emergency_visibility: 'emergency card visibility',
   catchup_days: 'catch-up days',
@@ -49,6 +49,7 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     return (id && byId[id]?.display_name) || str(d[nameKey]) || 'someone who left';
   };
   const title = str(d.title) ? `“${str(d.title)}”` : 'a task';
+  const need = () => (str(d.item) ? `“${str(d.item)}”` : 'something');
   const amounts = () => {
     const parts: string[] = [];
     if (num(d.cents)) parts.push(money(Math.abs(num(d.cents)), currency));
@@ -104,7 +105,7 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'spot.gift': return k('🎁', `Sent ${who()} a gift${amounts()}`);
     case 'tx.reverse': return k('↩️', `Undid a ${KIND_WORD[str(d.kind) ?? ''] ?? str(d.kind) ?? 'transaction'} for ${who()}${str(d.reason) ? ` — ${str(d.reason)}` : ''}`);
     case 'money.transfer':
-      return k('🐷', `Moved ${money(num(d.amount), currency)} to ${str(d.to) === 'spending' ? 'spending' : 'savings'} for ${who()}`);
+      return k('🐷', `Moved ${money(num(d.amount), currency)} to ${str(d.to) === 'spending' ? 'wallet' : 'savings'} for ${who()}`);
     case 'bank.set': return k('🏦', `Updated ${who()}’s real bank balance${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'request.create': return k('🙋', 'Made a request');
@@ -123,6 +124,13 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'device.create': return k('📱', `Added the device “${str(d.name) ?? '?'}”`);
     case 'device.update': return k('📱', `Changed the device “${str(d.name) ?? '?'}”`);
     case 'device.delete': return k('📱', `Deleted the device “${str(d.name) ?? '?'}”`);
+    case 'need.add': return k('🛍️', `Added ${need()} for ${who()}${str(d.occasion) ? ` (${str(d.occasion)})` : ''}`);
+    case 'need.update': return k('✏️', `Changed ${need()} for ${who()}`);
+    case 'need.claim': return k('🙋', `Will get ${need()} for ${who()}`);
+    case 'need.release': return k('↪️', `Is no longer getting ${need()} for ${who()}`);
+    case 'need.done': return k('✅', `Bought ${need()} for ${who()}`);
+    case 'need.reopen': return k('↩️', `Reopened ${need()} for ${who()}`);
+    case 'need.cancel': return k('🗑️', `Cancelled ${need()} for ${who()}`);
     default: return { emoji: '•', text: e.action, known: false };
   }
 }

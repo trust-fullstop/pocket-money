@@ -37,8 +37,8 @@ function Sentence({ r, cur, self }: { r: MoneyRequest; cur: string; self: boolea
 
 /** What approving does, in one line, for the manager. */
 function effectLine(r: MoneyRequest, name: string, cur: string): string {
-  if (r.kind === 'spend') return `Approving takes ${money(r.amount, cur)} from ${name}’s spending. Pay ${name} in real life.`;
-  if (r.kind === 'withdraw') return `Approving moves ${money(r.amount, cur)} from ${name}’s savings to spending.`;
+  if (r.kind === 'spend') return `Approving takes ${money(r.amount, cur)} from ${name}’s wallet. Pay ${name} in real life.`;
+  if (r.kind === 'withdraw') return `Approving moves ${money(r.amount, cur)} from ${name}’s savings to the wallet.`;
   return `Approving takes ${minutes(r.amount)} off ${name}’s time.`;
 }
 
@@ -48,7 +48,7 @@ function shortLine(r: MoneyRequest, b: Balances | undefined, name: string, cur: 
   const have = r.kind === 'spend' ? b.spending : r.kind === 'withdraw' ? b.savings : b.time;
   if (have >= r.amount) return null;
   const left = r.kind === 'time' ? minutes(Math.max(0, have)) : money(Math.max(0, have), cur);
-  const pot = r.kind === 'spend' ? 'to spend' : r.kind === 'withdraw' ? 'in savings' : 'of time';
+  const pot = r.kind === 'spend' ? 'in the wallet' : r.kind === 'withdraw' ? 'in savings' : 'of time';
   return `${name} only has ${left} ${pot} now. Say no or wait.`;
 }
 
@@ -201,7 +201,7 @@ function DeclineSheet({ req, name, cur, onClose, onChanged }: { req: MoneyReques
   };
   return (
     <Sheet
-      open onClose={onClose} title="Say no?" description={`${name} will see “Not this time” and your note. Nothing changes in the wallet.`}
+      open onClose={onClose} title="Say no?" description={`${name} will see “Not this time” and your note. Their money stays the same.`}
       footer={
         <SheetActions onCancel={onClose}>
           <Button size="lg" loading={busy} onClick={run}>Say no</Button>
@@ -234,7 +234,7 @@ export function RequestsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Requests" back="/money"
-        subtitle={isManager ? 'Say yes or no. Spending money is paid in real life.' : 'What you asked for, and what the grown-ups said.'}
+        subtitle={isManager ? 'Say yes or no. You pay for what they buy in real life.' : 'What you asked for, and what the grown-ups said.'}
       />
       <Segmented<'pending' | 'all'>
         label="Show" value={view} onChange={setView}
@@ -253,7 +253,7 @@ export function RequestsPage() {
             message={view === 'pending'
               ? (isManager ? 'Nothing is waiting.' : 'Ask for something from your wallet.')
               : 'Decided requests from the last 60 days show up here.'}
-            action={!isManager && me ? <LinkButton to={`/money/${me.id}`} icon="money">Open my wallet</LinkButton> : undefined}
+            action={!isManager && me ? <LinkButton to={`/money/${me.id}`} icon="money">Go to my money</LinkButton> : undefined}
           />
         </Card>
       ) : (

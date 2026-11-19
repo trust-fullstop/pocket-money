@@ -101,7 +101,7 @@ function FeaturesForm({ family, refresh, askNote }: { family: Family; refresh: (
         <Card tone="accent">
           <h2 className="text-lg font-extrabold leading-snug"><span aria-hidden="true">🌱</span> {INTRO}</h2>
           <p className="mt-1 text-[15px]">
-            Chores and spending money are always on. Switching something off hides it for everyone — you can switch it back on any time.
+            Chores and the 👛 Wallet are always on. Switching something off hides it for everyone — you can switch it back on any time.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Button variant="secondary" icon={inUse('small') ? 'check' : undefined} disabled={busy} onClick={() => pick('small')}>

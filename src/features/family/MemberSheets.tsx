@@ -5,7 +5,7 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError, toAppError } from '../../lib/errors';
-import { roleLabel, timeAgo } from '../../lib/format';
+import { roleChoiceLabel, roleLabel, timeAgo } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
 import { useApp, type LoadResult } from '../../lib/session';
 import { ACCENTS, CHARACTERS, type AccentKey } from '../../lib/theme';
@@ -243,11 +243,16 @@ export function RoleSheet({ member, onClose }: SheetBase) {
           label="Role"
           value={role}
           onChange={(e) => setRole(e.target.value as Role)}
-          options={ROLE_CHOICES.map((r) => ({ value: r, label: r === 'owner' ? 'Owner (hand over to them)' : roleLabel(r) }))}
+          options={ROLE_CHOICES.map((r) => ({ value: r, label: r === 'owner' ? 'Owner (hand over to them)' : roleChoiceLabel(r) }))}
         />
+        {role === 'guardian' && member.role !== 'guardian' && (
+          <p className="rounded-xl bg-warn-soft px-3 py-2 text-[15px] font-semibold text-warn" role="status">
+            <span aria-hidden="true">⚠️ </span>Guardian: can do everything a parent can.
+          </p>
+        )}
         <ul className="space-y-1 text-[14px] text-muted">
           <li><strong className="text-ink">Parent, bonus parent, guardian:</strong> approve tasks, pay out money, change rules.</li>
-          <li><strong className="text-ink">Grandparent:</strong> cheers, gifts and small challenges.</li>
+          <li><strong className="text-ink">Grandparents and other family</strong> (aunts, uncles, godparents): gifts and fun challenges.</li>
           <li><strong className="text-ink">Kid:</strong> does tasks and earns.</li>
         </ul>
       </div>

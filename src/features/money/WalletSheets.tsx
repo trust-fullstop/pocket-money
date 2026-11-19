@@ -43,7 +43,7 @@ function OverLine({ text }: { text: string | null }) {
   return <p className="rounded-xl bg-warn-soft px-3 py-2 text-[15px] font-semibold text-warn" aria-live="polite"><span aria-hidden="true">⚠️ </span>{text}</p>;
 }
 
-/** Move money between Spending and Savings. Kids: to savings only; managers may choose the direction. */
+/** Move money between the Wallet and Savings. Kids: to savings only; managers may choose the direction. */
 export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChanged, canToSpending, initialTo = 'savings' }: BaseProps & {
   canToSpending: boolean; initialTo?: 'savings' | 'spending';
 }) {
@@ -98,7 +98,7 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
         {canToSpending && (
           <Segmented<'savings' | 'spending'>
             label="Where to" value={to} onChange={(v) => { setTo(v); setError(null); }}
-            options={[{ value: 'savings', label: '👛 → 🐷 To savings' }, { value: 'spending', label: '🐷 → 👛 To spending' }]}
+            options={[{ value: 'savings', label: '👛 → 🐷 To savings' }, { value: 'spending', label: '🐷 → 👛 To wallet' }]}
           />
         )}
         <AmountInput kind="money" label="How much?" value={cents} onChange={(v) => { setCents(v); setError(null); }} max={10_000_000} />
@@ -113,7 +113,7 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
         {to === 'savings' && self && (
           <p className="text-[14px] text-muted">
             {features.on('interest') ? 'Savings grow over time. ' : ''}
-            {features.on('requests') ? 'To take money out later, you ask a grown-up.' : 'A grown-up can move it back to spending later.'}
+            {features.on('requests') ? 'To take money out later, you ask a grown-up.' : 'A grown-up can move it back to your wallet later.'}
           </p>
         )}
         <ErrorLine error={error} />
@@ -122,7 +122,7 @@ export function MoveSheet({ memberId, name, self, balances, cur, onClose, onChan
   );
 }
 
-/** Ask to spend money from Spending (a grown-up approves and pays in real life). */
+/** Ask to spend money from the Wallet (a grown-up approves and pays in real life). */
 export function AskSpendSheet({ balances, cur, onClose, onChanged }: BaseProps) {
   const toast = useToast();
   const [label, setLabel] = useState('');
@@ -169,14 +169,14 @@ export function AskSpendSheet({ balances, cur, onClose, onChanged }: BaseProps) 
         <AmountInput kind="money" label="It costs" value={cents} onChange={setCents} max={10_000_000} error={amountErr} fxEntry />
         <OverLine text={overText} />
         <Textarea label="Why?" optional rows={2} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-        <p className="text-[14px] text-muted">A grown-up says yes or no. If yes, it comes off your Spending and they pay in real life.</p>
+        <p className="text-[14px] text-muted">A grown-up says yes or no. If yes, it comes off your Wallet and they pay in real life.</p>
         <ErrorLine error={error} />
       </div>
     </Sheet>
   );
 }
 
-/** Ask to take money out of Savings (moves to Spending once approved). */
+/** Ask to take money out of Savings (moves to the Wallet once approved). */
 export function WithdrawSheet({ balances, cur, onClose, onChanged }: BaseProps) {
   const toast = useToast();
   const [cents, setCents] = useState<number | null>(null);
@@ -222,7 +222,7 @@ export function WithdrawSheet({ balances, cur, onClose, onChanged }: BaseProps) 
         <OverLine text={overText} />
         <Input label="What for?" optional value={label} maxLength={60} placeholder="A new bike" onChange={(e) => setLabel(e.target.value)} autoComplete="off" />
         <Textarea label="Anything else?" optional rows={2} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-        <p className="text-[14px] text-muted">If a grown-up says yes, the money moves from Savings 🐷 to Spending 👛.</p>
+        <p className="text-[14px] text-muted">If a grown-up says yes, the money moves from Savings 🐷 to your Wallet 👛.</p>
         <ErrorLine error={error} />
       </div>
     </Sheet>

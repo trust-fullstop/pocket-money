@@ -54,7 +54,7 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
   const moneyLines: Line[] = [
     line('earned', '✅', 'Earned', earnedFrom, t.money_earned, m, 'plus', true),
     line('lost', '⚠️', 'Lost', on('spotted') ? 'Fines and tasks not done in time' : 'Tasks not done in time', t.money_lost, m, 'minus', true),
-    ...(on('savings') ? [line('saved', '🐷', savedOut ? 'Taken out of savings' : 'Saved', savedOut ? 'Moved back to spending' : 'Moved into savings', t.money_saved, m, 'neutral', false)] : []),
+    ...(on('savings') ? [line('saved', '🐷', savedOut ? 'Taken out of savings' : 'Saved', savedOut ? 'Moved back to the wallet' : 'Moved into savings', t.money_saved, m, 'neutral', false)] : []),
     line('spent', '🛍️', 'Spent', 'Things bought', t.money_spent, m, 'neutral', false),
     ...(on('interest') ? [line('interest', '🌱', 'Interest', 'Savings grew by themselves (counted in Earned)', t.interest, m, 'plus', true)] : []),
   ];

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { cx } from './styles';
 
-/** Label over a big value, e.g. <Stat label="Spending" value={money(1250, 'EUR')} sub="+€2 this week" />. */
+/** Label over a big value, e.g. <Stat label="Wallet" value={money(1250, 'EUR')} sub="+€2 this week" />. */
 export function Stat({ label, value, sub, icon, tone, className }: {
   label: ReactNode; value: ReactNode; sub?: ReactNode; icon?: IconName; tone?: 'good' | 'bad' | 'warn' | 'accent'; className?: string;
 }) {

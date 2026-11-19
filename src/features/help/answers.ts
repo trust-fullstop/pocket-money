@@ -54,8 +54,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'spotted',
     q: 'What is “Spotted”?',
-    en: 'Spotted is when a grown-up notices something and records it on the spot, often with a photo. Something good, like helping Grandma with her shopping, is a reward. Something not OK, like leaving your bike in the rain, is a consequence. The amount is a fixed family rule, the same for everyone, and there’s always a reason you can read. Grandparents can only give gifts. 🎁',
-    nl: 'Spotted is als een volwassene iets ziet en het meteen vastlegt, vaak met een foto. Iets goeds, zoals oma helpen met de boodschappen, is een beloning. Iets wat niet OK is, zoals je fiets in de regen laten staan, is een gevolg. Het bedrag is een vaste gezinsregel, voor iedereen hetzelfde, en er staat altijd een reden bij die je kunt lezen. Opa en oma kunnen alleen cadeaus geven. 🎁',
+    en: 'Spotted is when a grown-up notices something and records it on the spot, often with a photo. Something good, like helping Grandma with her shopping, is a reward. Something not OK, like leaving your bike in the rain, is a consequence.     The amount is a fixed family rule, the same for everyone, and there’s always a reason you can read. Grandparents and other family, like aunts, uncles and godparents, can only give gifts. 🎁',
+        nl: 'Spotted is als een volwassene iets ziet en het meteen vastlegt, vaak met een foto. Iets goeds, zoals oma helpen met de boodschappen, is een beloning. Iets wat niet OK is, zoals je fiets in de regen laten staan, is een gevolg. Het bedrag is een vaste gezinsregel, voor iedereen hetzelfde, en er staat altijd een reden bij die je kunt lezen. Opa, oma en andere familie, zoals tantes, ooms en peetouders, kunnen alleen cadeaus geven. 🎁',
     keys: ['*spotted', '*spot', '*gespot', 'caught', 'betrapt', 'noticed', 'gezien', 'bonus', 'gift', 'gifts', 'cadeau', 'present'],
     feature: 'spotted',
   },
@@ -119,11 +119,11 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'savings',
     q: 'How does saving work?',
-    en: 'You have two pots: Spending 👛 and Savings 🐷. You can move money to Savings any time. There it stays safe for later. Want to take some out? Ask for it in Money and a parent says OK.',
-    nl: 'Je hebt twee potjes: Spending 👛 (uitgeven) en Savings 🐷 (sparen). Je kunt altijd geld naar Savings zetten. Daar blijft het veilig voor later. Wil je er iets uit halen? Vraag het in Money en een ouder zegt OK.',
+    en: 'You have two pots: Wallet 👛 and Savings 🐷. You can move money to Savings any time. There it stays safe for later. Want to take some out? Ask for it in Money and a parent says OK.',
+    nl: 'Je hebt twee potjes: Wallet 👛 (portemonnee) en Savings 🐷 (sparen). Je kunt altijd geld naar Savings zetten. Daar blijft het veilig voor later. Wil je er iets uit halen? Vraag het in Money en een ouder zegt OK.',
     keys: [
       '*save', '*saved', '*saving', '*sparen', '*spaar', '*gespaard', 'piggy', 'pot', 'pots', 'potje', 'withdraw', 'opnemen',
-      'take out', 'eruit halen', 'move money', 'transfer', 'overzetten',
+      'take out', 'eruit halen', 'move money', 'transfer', 'overzetten', 'wallet', 'portemonnee',
     ],
     feature: 'savings',
   },
@@ -146,8 +146,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'requests',
     q: 'How do I ask to spend my money?',
-    en: 'Go to Money and make a request: “I want to buy a game for €8”. A parent says yes or no. If it’s yes, the €8 comes off your Spending and the parent pays you in real life (cash or a bank transfer). The money in the app is like a bank book.',
-    nl: 'Ga naar Money en doe een verzoek: “Ik wil een game kopen voor €8”. Een ouder zegt ja of nee. Bij ja gaat de €8 van je Spending af en betaalt je ouder je echt uit (contant of overmaken). Het geld in de app is als een spaarboekje.',
+    en: 'Go to Money and make a request: “I want to buy a game for €8”. A parent says yes or no.     If it’s yes, the €8 comes off your Wallet and the parent pays you in real life (cash or a bank transfer). The money in the app is like a bank book.',
+        nl: 'Ga naar Money en doe een verzoek: “Ik wil een game kopen voor €8”. Een ouder zegt ja of nee. Bij ja gaat de €8 van je Wallet af en betaalt je ouder je echt uit (contant of overmaken). Het geld in de app is als een spaarboekje.',
     keys: [
       '*buy', '*spend', '*kopen', '*uitgeven', 'request', 'requests', 'verzoek', 'can i buy', 'mag ik', 'pay out', 'paid out',
       'uitbetalen', 'real money', 'echt geld', 'cash', 'contant', 'bank', 'shop', 'winkel', 'want to buy', 'wil kopen',
@@ -187,8 +187,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'privacy',
     q: 'Who can see my money?',
-    en: 'Your parents and bonus parents can see your money, tasks and questions. Grandparents may see how you’re doing, but they can only give, never take. Your brothers and sisters can’t see your wallet. Nobody outside the family can see anything. 🔒',
-    nl: 'Je ouders en bonusouders kunnen je geld, taken en vragen zien. Opa en oma kunnen soms zien hoe het gaat, maar ze kunnen alleen geven, nooit afpakken. Je broers en zussen zien jouw portemonnee niet. Niemand buiten het gezin kan iets zien. 🔒',
+    en: 'Your parents and bonus parents can see your money, tasks and questions. Grandparents and other family, like aunts, uncles and godparents, may see how you’re doing, but they can only give, never take. Your brothers and sisters can’t see your money. Nobody outside the family can see anything. 🔒',
+    nl: 'Je ouders en bonusouders kunnen je geld, taken en vragen zien. Opa, oma en andere familie, zoals tantes, ooms en peetouders, kunnen soms zien hoe het gaat, maar ze kunnen alleen geven, nooit afpakken. Je broers en zussen zien jouw geld niet. Niemand buiten het gezin kan iets zien. 🔒',
     keys: [
       '*who can see', '*wie kan', '*wie ziet', 'can see', 'kan zien', 'see my', 'mijn geld zien', '*privacy', 'private', 'prive',
       'secret', 'geheim', 'read my', 'lezen',
@@ -197,8 +197,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'allowance',
     q: 'When do I get pocket money?',
-    en: 'Your parents can set pocket money for you: every week on a set day (say €5 every Monday) or every month on a set date (say €20 on the 1st). 💰 It goes into your Spending automatically at midnight — you don’t have to do anything for it. Money shows how much you get and when. Plan it well: spend some, save some.',
-    nl: 'Je ouders kunnen zakgeld voor je instellen: elke week op een vaste dag (bijvoorbeeld €5 elke maandag) of elke maand op een vaste datum (bijvoorbeeld €20 op de 1e). 💰 Het komt om middernacht vanzelf in je Spending — je hoeft er niks voor te doen. In Money zie je hoeveel je krijgt en wanneer. Plan het goed: een deel uitgeven, een deel sparen.',
+    en: 'Your parents can set pocket money for you: every week on a set day (say €5 every Monday) or every month on a set date (say €20 on the 1st).     💰 It goes into your Wallet automatically at midnight — you don’t have to do anything for it. Money shows how much you get and when. Plan it well: spend some, save some.',
+        nl: 'Je ouders kunnen zakgeld voor je instellen: elke week op een vaste dag (bijvoorbeeld €5 elke maandag) of elke maand op een vaste datum (bijvoorbeeld €20 op de 1e). 💰 Het komt om middernacht vanzelf in je Wallet — je hoeft er niks voor te doen. In Money zie je hoeveel je krijgt en wanneer. Plan het goed: een deel uitgeven, een deel sparen.',
     keys: [
       '*allowance', '*zakgeld', 'weekly money', 'every week', 'elke week', 'weekgeld', 'when do i get', 'wanneer krijg', 'get paid',
       'pocket money', 'every month', 'elke maand', 'per month', 'per maand', 'monthly', 'maandelijks', 'maandgeld', 'weekly', 'wekelijks',
@@ -208,8 +208,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'bank',
     q: 'What is the real bank balance?',
-    en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”. It’s only for looking: it doesn’t change the money in your Sow & Grow wallet, and the app never touches your bank.',
-    nl: 'Sommige kinderen hebben ook een echte bankrekening, zoals Revolut. 🏦 Jij (of een ouder) kunt invullen wat de bank-app zegt: open Money, zoek “Real bank account” en tik op Update balance. Sta je rood? Zet dan “Overdrawn (negative)” aan. Het is alleen om te kijken: het verandert het geld in je Sow & Grow-portemonnee niet, en de app komt nooit aan je bank.',
+    en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”.     It’s only for looking: it doesn’t change your money in Sow & Grow, and the app never touches your bank.',
+        nl: 'Sommige kinderen hebben ook een echte bankrekening, zoals Revolut. 🏦 Jij (of een ouder) kunt invullen wat de bank-app zegt: open Money, zoek “Real bank account” en tik op Update balance. Sta je rood? Zet dan “Overdrawn (negative)” aan. Het is alleen om te kijken: het verandert je geld in Sow & Grow niet, en de app komt nooit aan je bank.',
     keys: [
       '*bank', '*banks', '*revolut', '*rekening', '*bankrekening', '*saldo', 'banksaldo', 'banking', 'bank account', 'bank balance',
       'bank app', 'banking app', 'real bank', 'echte bank', 'echte rekening', 'overdrawn', 'rood staan', 'sta ik rood', 'bunq', 'rabobank',
@@ -219,8 +219,8 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'exchange',
     q: 'How much is my money in rand?',
-    en: 'The app counts in one currency, but money can come in euro and the shop can be in rand. 💱 When a parent picks “Also show money in” (Family rules), Money shows today’s rate, like €1 = R 18.66, and the other currency next to your money (“≈ R 373”). There’s a calculator in your wallet, and when you ask to spend or set a goal you can type in the other currency. Banks and Revolut use their own rate, so the shop can be a little different.',
-    nl: 'De app rekent in één munt, maar geld kan in euro komen en de winkel kan in rand zijn. 💱 Als een ouder “Also show money in” kiest (Family rules), laat Money de koers van vandaag zien, zoals €1 = R 18,66, en de andere munt naast je geld (“≈ R 373”). In je portemonnee staat een rekenmachine, en als je vraagt om iets te kopen of een doel maakt kun je in de andere munt typen. Banken en Revolut gebruiken hun eigen koers, dus in de winkel kan het een beetje anders zijn.',
+    en: 'The app counts in one currency, but money can come in euro and the shop can be in rand. 💱 When a parent picks “Also show money in” (Family rules), Money shows today’s rate, like €1 = R 18.66, and the other currency next to your money (“≈ R 373”).     There’s a calculator on your Money page, and when you ask to spend or set a goal you can type in the other currency. Banks and Revolut use their own rate, so the shop can be a little different.',
+        nl: 'De app rekent in één munt, maar geld kan in euro komen en de winkel kan in rand zijn. 💱 Als een ouder “Also show money in” kiest (Family rules), laat Money de koers van vandaag zien, zoals €1 = R 18,66, en de andere munt naast je geld (“≈ R 373”). Op je Money-pagina staat een rekenmachine, en als je vraagt om iets te kopen of een doel maakt kun je in de andere munt typen. Banken en Revolut gebruiken hun eigen koers, dus in de winkel kan het een beetje anders zijn.',
     keys: [
       '*rand', '*rands', '*exchange', '*exchange rate', '*wisselkoers', '*koers', '*zar', 'convert', 'omrekenen', 'south africa',
       'south african', 'zuid afrika', 'currency', 'valuta', 'in rand', 'how much in', 'hoeveel in', 'euro to rand', 'euro naar rand',
