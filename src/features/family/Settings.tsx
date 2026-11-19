@@ -11,6 +11,7 @@ import { minutes as minutesText, money, timeAgo } from '../../lib/format';
 import { currencyWord, spendCurrencyOf } from '../../lib/fx';
 import { useApp, useLoad } from '../../lib/session';
 import { useHoldUpdates } from '../../lib/updates';
+import { BUILD_COMMIT, BUILD_TIME, versionName } from '../../lib/version';
 import { familySpotRules, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules } from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
 
@@ -395,6 +396,8 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
           />
         </Card>
 
+        <AboutCard tz={family.timezone} />
+
         {isOwner && (
           <Card className="!border-2 !border-bad/40">
             <h2 className="flex items-center gap-2 text-lg font-extrabold text-bad">
@@ -454,6 +457,33 @@ function SpotRuleFields({ title, value, onChange, time, points }: {
         </p>
       )}
     </fieldset>
+  );
+}
+
+/** "About this app": when this version was released, its version name and commit (to check every phone is up to date). */
+function AboutCard({ tz }: { tz: string }) {
+  const when = BUILD_TIME ? new Date(BUILD_TIME) : null;
+  const date = when
+    ? new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).format(when)
+    : 'Not a released version';
+  const time = when ? new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(when) : '';
+  return (
+    <Card>
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <span aria-hidden="true">🌱</span> About this app
+      </h2>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[15px]">
+        <dt className="text-muted">Last updated</dt>
+        <dd className="font-semibold">{date}{time && <span className="font-normal text-muted"> at {time}</span>}</dd>
+        <dt className="text-muted">Version</dt>
+        <dd className="font-semibold tabular-nums">
+          {versionName()}{BUILD_COMMIT && <span className="font-normal text-muted"> ({BUILD_COMMIT})</span>}
+        </dd>
+      </dl>
+      <p className="mt-2 text-sm text-muted">
+        Everyone gets the newest version automatically when they open the app. Compare this date on each phone to check.
+      </p>
+    </Card>
   );
 }
 
