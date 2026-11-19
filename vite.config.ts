@@ -14,6 +14,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered from src/lib/updates.ts (checks for a new version when the app comes to the front).
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Sow & Grow',
@@ -32,6 +34,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new version takes over straight away (src/lib/updates.ts decides when the page reloads).
+        skipWaiting: true,
+        clientsClaim: true,
         navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         // The in-browser demo database (PGlite: ~15 MB of wasm/data) is never precached:

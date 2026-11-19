@@ -1,5 +1,6 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useHoldUpdates } from '../../lib/updates';
 import { Icon } from './Icon';
 import { useOverlay } from './overlay';
 import { cx } from './styles';
@@ -24,6 +25,7 @@ export function Sheet({ open, onClose, title, description, children, footer, hid
   const titleId = useId();
   const descId = useId();
   useOverlay(open, onClose, panel);
+  useHoldUpdates(open);
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">

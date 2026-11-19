@@ -10,8 +10,8 @@ export interface TxMeta { emoji: string; label: string; tone: TxTone }
 export const TX_META: Record<TxKind, TxMeta> = {
   task_reward: { emoji: '✅', label: 'Task done', tone: 'plus' },
   task_penalty: { emoji: '⏰', label: 'Not done in time', tone: 'minus' },
-  bonus: { emoji: '🌟', label: 'Bonus', tone: 'plus' },
-  fine: { emoji: '⚠️', label: 'Fine', tone: 'minus' },
+  bonus: { emoji: '🌟', label: 'Reward', tone: 'plus' },
+  fine: { emoji: '⚠️', label: 'Consequence', tone: 'minus' },
   gift: { emoji: '🎁', label: 'Gift', tone: 'plus' },
   transfer: { emoji: '🔄', label: 'Moved', tone: 'neutral' },
   interest: { emoji: '🌱', label: 'Savings grew', tone: 'plus' },

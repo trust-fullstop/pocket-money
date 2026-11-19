@@ -12,6 +12,7 @@ import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
 import { amount, minutes, money } from '../../lib/format';
 import { uploadPhoto } from '../../lib/photos';
+import { useHoldUpdates } from '../../lib/updates';
 import { useApp } from '../../lib/session';
 import { familySpotRules, type Currency, type MoneyLabel, type SpotInput, type TimeLabel, type Transaction, type TxKind } from '../../lib/types';
 import { TxRow } from './History';
@@ -58,6 +59,7 @@ export function SpotPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const previewRef = useRef<string | null>(null);
   useEffect(() => () => { if (previewRef.current) URL.revokeObjectURL(previewRef.current); }, []);
+  useHoldUpdates(!!(photo || dir || reason.trim() || custom) && !done);
 
   const choosePhoto = (b: Blob | null) => {
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
@@ -324,7 +326,7 @@ export function SpotPage() {
         </h2>
         <Card className="space-y-3">
           <AmountInput
-            kind="money" label={amG ? 'Money' : dir === 'minus' ? 'Money (a fine)' : 'Money'} optional={extras.length > 0}
+            kind="money" label={amG ? 'Money' : dir === 'minus' ? 'Money (consequence)' : 'Money'} optional={extras.length > 0}
             value={cents} onChange={setCents} max={100_000} chips={[50, 100, 200]}
           />
           {!amG && dir !== 'minus' && (cents ?? 0) > 0 && (

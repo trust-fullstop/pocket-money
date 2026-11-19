@@ -7,6 +7,7 @@ import {
 import { api } from '../../lib/api';
 import { friendlyError, toAppError } from '../../lib/errors';
 import { uploadPhoto } from '../../lib/photos';
+import { useHoldUpdates } from '../../lib/updates';
 import type { Member, TaskInstance } from '../../lib/types';
 import { isManager as isManagerRole } from '../../lib/types';
 import { ExcuseSheet, SendBackSheet } from './decide';
@@ -293,6 +294,7 @@ function DoIt({ inst, big, online, onSent, onStale }: {
   const [error, setError] = useState<string | null>(null);
   const [failed, setFailed] = useState<'before' | 'after' | null>(null);
   const uploaded = useRef(new Map<Blob, string>());
+  useHoldUpdates(!!(before || after || note.trim()));
 
   const hasPhoto = !!(before || after);
   const valid = inst.evidence === 'photo' ? hasPhoto : inst.evidence === 'photo_or_note' ? hasPhoto || !!note.trim() : true;

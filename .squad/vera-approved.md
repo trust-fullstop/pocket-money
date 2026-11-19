@@ -14,4 +14,6 @@
 
 - 2026-11-18: Public repo: family-facing README (faith at the heart), docs/SETUP.md + docs/DEVELOPMENT.md, demo screenshots, MIT LICENSE, personal details removed from tracked files. vera-readme-2: FAIL (4: setup route, Ask privacy claim, kids' ages/country, ALLOWED_ORIGINS) -> fixed -> PASS (+2 nits fixed). No secrets in files or history. 144/144 tests.
 
+- 2026-11-19: Refresh on open (updates.ts: check on open/visible/30 min; reload only when fresh + no unsaved work, else UpdateBar; never while hidden; skipWaiting+clientsClaim; _headers no-cache for sw.js; preloadError reload), Consequence/Reward wording, task 'time already passed' warning. vera-update-4 FAIL (3) -> fixed -> vera-update-5 PASS. 144/144 tests.
+
 status: approved

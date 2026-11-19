@@ -10,6 +10,7 @@ import { useFeatures } from '../../lib/features';
 import { minutes as minutesText, money, timeAgo } from '../../lib/format';
 import { currencyWord, spendCurrencyOf } from '../../lib/fx';
 import { useApp, useLoad } from '../../lib/session';
+import { useHoldUpdates } from '../../lib/updates';
 import { familySpotRules, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules } from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
 
@@ -130,6 +131,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
   }, [d, family, interest, saverBonus, penalty, cap, catchup, interestErr, saverErr, penaltyErr, capErr, catchupErr]);
 
   const dirty = JSON.stringify(d) !== JSON.stringify(base);
+  useHoldUpdates(dirty);
 
   useEffect(() => {
     if (!dirty) return;

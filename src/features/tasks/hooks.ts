@@ -8,6 +8,7 @@ import { AppError, friendlyError, toAppError } from '../../lib/errors';
 import { useFeatures } from '../../lib/features';
 import { todayISO } from '../../lib/format';
 import { useApp } from '../../lib/session';
+import { useHoldUpdates } from '../../lib/updates';
 import type { TaskInstance } from '../../lib/types';
 import { joinWords, penaltyParts, rewardParts, type PenaltyFields, type RewardFields, type Shown } from './lib';
 
@@ -159,6 +160,7 @@ export function useLeaveGuard(active: boolean) {
     title: 'Leave without saving?', message: 'What you typed will be lost.',
     confirmLabel: 'Leave', cancelLabel: 'Keep editing', danger: true,
   }), [confirm]);
+  useHoldUpdates(active);
 
   useEffect(() => {
     if (!active) return;

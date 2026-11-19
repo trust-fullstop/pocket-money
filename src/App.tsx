@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router';
 import { AppLock } from './components/AppLock';
 import { AppShell } from './components/AppShell';
+import { UpdateBar } from './components/UpdateBar';
 import { Button, EmptyState, LinkButton, UIProvider } from './components/ui';
 import { backend } from './lib/backend';
 import { cloudConfigured, switchMode } from './lib/backend/select';
@@ -29,6 +30,7 @@ export function App() {
             <Root />
           </AppLock>
         </AppProvider>
+        <UpdateBar />
       </UIProvider>
     </BrowserRouter>
   );

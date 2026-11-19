@@ -5,6 +5,9 @@ import { App } from './App';
 import { api } from './lib/api';
 import { backend } from './lib/backend';
 import { initBackend } from './lib/backend/select';
+import { startUpdates } from './lib/updates';
+
+startUpdates();
 
 const root = createRoot(document.getElementById('root')!);
 

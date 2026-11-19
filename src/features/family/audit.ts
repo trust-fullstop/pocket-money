@@ -35,6 +35,8 @@ const MEMBER_FIELD: Record<string, string> = {
 };
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined);
+/** Ledger kinds in words for the activity log ("Undid a consequence for Eva"). */
+const KIND_WORD: Record<string, string> = { fine: 'consequence', bonus: 'reward', task_penalty: 'missed-task consequence', task_reward: 'task reward' };
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const list = (items: string[]) =>
   items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
@@ -97,10 +99,10 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'task.approve': return k('✅', `Approved ${title}${str(d.assignee) ? ` for ${who('assignee')}` : ''}`);
     case 'task.reject': return k('↩️', `Sent back ${title}${str(d.assignee) ? ` to ${who('assignee')}` : ''}`);
     case 'task.excuse': return k('🙏', `Excused ${title}`);
-    case 'spot.bonus': return k('⭐', `Gave ${who()} a bonus${amounts()}`);
-    case 'spot.fine': return k('⚠️', `Gave ${who()} a fine${amounts()}`);
+    case 'spot.bonus': return k('⭐', `Spotted: gave ${who()} a reward${amounts()}`);
+    case 'spot.fine': return k('⚠️', `Spotted: gave ${who()} a consequence${amounts()}`);
     case 'spot.gift': return k('🎁', `Sent ${who()} a gift${amounts()}`);
-    case 'tx.reverse': return k('↩️', `Undid a ${str(d.kind) ?? 'transaction'} for ${who()}${str(d.reason) ? ` — ${str(d.reason)}` : ''}`);
+    case 'tx.reverse': return k('↩️', `Undid a ${KIND_WORD[str(d.kind) ?? ''] ?? str(d.kind) ?? 'transaction'} for ${who()}${str(d.reason) ? ` — ${str(d.reason)}` : ''}`);
     case 'money.transfer':
       return k('🐷', `Moved ${money(num(d.amount), currency)} to ${str(d.to) === 'spending' ? 'spending' : 'savings'} for ${who()}`);
     case 'bank.set': return k('🏦', `Updated ${who()}’s real bank balance${str(d.label) ? ` (${str(d.label)})` : ''}`);

@@ -11,7 +11,7 @@ import { addDays, formatTime } from '../../lib/format';
 import type { Evidence, Member, Repeat, Task, TaskInput, TaskKind, TimeLabel } from '../../lib/types';
 import { useDelayed, useFetch, useLeaveGuard, useOnline, useTaskCtx } from './hooks';
 import {
-  DAY_SHORT, EVIDENCE, TASK_EMOJIS, TIME_LABELS, dayWord, joinWords, nextDueDay, repeatSummary, repeatText, type RepeatRule,
+  DAY_SHORT, EVIDENCE, TASK_EMOJIS, TIME_LABELS, dayWord, joinWords, nextDueDay, occursOn, repeatSummary, repeatText, type RepeatRule,
 } from './lib';
 import {
   AmountPill, BackHeader, ChallengesOff, Disclosure, LoadError, NotForYou, OfflineNote, SkeletonRows, StickyBar,
@@ -499,6 +499,9 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
   };
   const needDays = v.repeat === 'days' && v.repeat_days.length === 0;
   const next = needDays ? null : nextDueDay(rule, today, nowHHMM);
+  // Today would be a day for it, but its time has already gone: say so clearly (no task is made for a past time).
+  const todayPassed = !editing && !needDays && rule.start_on <= today && occursOn(rule, today) && rule.due_time <= nowHHMM
+    && (!rule.end_on || today <= rule.end_on);
   const nextLine = showEnd && !needDays
     ? next
       ? `${editing ? 'Next one' : 'First one'}: ${dayWord(next, tz, now())} at ${rule.due_time}`
@@ -512,6 +515,12 @@ function TaskForm({ preset, edit }: { preset?: string | null; edit?: Task[] }) {
         {needDays ? 'Pick the days it repeats on.' : repeatSummary(rule, today, tz, now())}
       </p>
       {nextLine && <p className="text-sm text-muted">{nextLine}</p>}
+      {showEnd && todayPassed && next && (
+        <p className="mt-1.5 rounded-xl bg-warn-soft px-2.5 py-1.5 text-sm font-semibold text-warn">
+          <span aria-hidden="true">⏰ </span>{rule.due_time} has already passed today, so there’s none today.
+          {' '}Pick a later time if it should be done today.
+        </p>
+      )}
     </div>
   );
 
