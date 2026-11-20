@@ -26,3 +26,6 @@ dist-ssr
 .screens/
 .env
 .env.local
+
+# Local session telemetry (never publish)
+.squad/telemetry/
