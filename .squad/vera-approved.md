@@ -18,4 +18,6 @@
 
 - 2026-11-19 (evening): 'What we need' (feature needs, migration 20261116001900; adults only, atomic claim/done, audit) + aunts/uncles/godparents on the grandparent role (AddMember guardian bug fixed) + Spending -> Wallet, 'My money' heading. Kryptonite review applied. vera-needs: PASS (2 non-blocking fixed: Enter double-submit guard; Bought after someone else claimed refreshes). 162/162 tests.
 
+- 2026-11-20: Pay-out overview (migration 20261116002000: kind 'payout', payout_summary, record_payout full-balance + idempotent; tally/no-savings exclude payouts). EUR shown prominently with rate. Kryptonite review applied. vera-payout FAIL (no-savings rule disabled after first payout) -> fixed (only this week's payout added back) -> PASS. 172/172 tests.
+
 status: approved

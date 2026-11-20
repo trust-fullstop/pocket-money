@@ -121,6 +121,19 @@ export default function FamilyList() {
           </Section>
         ))}
 
+        {isManager && (
+          <Section title="Money">
+            <Card padded={false} className="overflow-hidden">
+              <ListRow
+                to="/family/payout"
+                left={<span className="grid size-10 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">💸</span>}
+                title="Pay-out"
+                subtitle="What to pay each child"
+              />
+            </Card>
+          </Section>
+        )}
+
         <Section title={isManager ? 'Manage' : undefined}>
           <Card padded={false} className="divide-y divide-line overflow-hidden">
             <ListRow

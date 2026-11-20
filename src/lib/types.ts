@@ -216,7 +216,7 @@ export interface TaskInstance {
 
 // ---------- ledger ----------
 export type TxKind = 'task_reward' | 'task_penalty' | 'bonus' | 'fine' | 'gift' | 'transfer' | 'interest' | 'spend'
-  | 'time_use' | 'prize' | 'saver_bonus' | 'no_savings_penalty' | 'excuse' | 'reversal' | 'allowance';
+  | 'time_use' | 'prize' | 'saver_bonus' | 'no_savings_penalty' | 'excuse' | 'reversal' | 'allowance' | 'payout';
 
 export interface Transaction {
   id: string; member_id: string; currency: Currency; pot: Pot; amount: number; kind: TxKind;
@@ -225,6 +225,39 @@ export interface Transaction {
   reversed_by: string | null; effective_at: string; created_at: string; created_by: string | null;
   can_reverse: boolean;
 }
+
+/**
+ * One kid on the pay-out overview (payout_summary, managers only). All amounts in family-currency cents.
+ * The cycle runs since the latest pay-out that was not undone; start + allowance + rewards + consequences + other = wallet.
+ */
+export interface PayoutRow {
+  member_id: string;
+  wallet_cents: number;
+  /** max(wallet, 0): what "Paid ✅" settles. */
+  to_pay_cents: number;
+  /** > 0 when the wallet is below zero (it comes off next time). */
+  owes_cents: number;
+  last_payout_at: string | null;
+  last_payout_cents: number | null;
+  /** last_payout_at, or when the kid joined. */
+  since: string;
+  /** Carried over from before the cycle. */
+  start_cents: number;
+  allowance_cents: number;
+  /** Tasks done, rewards, prizes, gifts, excused fines. */
+  rewards_cents: number;
+  /** Fines, missed tasks (≤ 0). */
+  consequences_cents: number;
+  /** Spent with OK, moved to or from savings. */
+  other_cents: number;
+  allowance_cents_per_period: number | null;
+  allowance_period: 'week' | 'month' | null;
+  allowance_day: number | null;
+  /** Local date (YYYY-MM-DD) of the latest pocket money. */
+  last_allowance_on: string | null;
+}
+
+export interface PayoutResult { id: string; member_id: string; amount_cents: number; paid_at: string }
 
 export interface SpotInput {
   member_id: string;

@@ -36,7 +36,11 @@ const MEMBER_FIELD: Record<string, string> = {
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined);
 /** Ledger kinds in words for the activity log ("Undid a consequence for Eva"). */
-const KIND_WORD: Record<string, string> = { fine: 'consequence', bonus: 'reward', task_penalty: 'missed-task consequence', task_reward: 'task reward' };
+const KIND_WORD: Record<string, string> = {
+  fine: 'consequence', bonus: 'reward', task_penalty: 'missed-task consequence', task_reward: 'task reward', payout: 'pay-out',
+};
+/** The "≈ €13.13" part of a pay-out note ("≈ €13.13 at €1 = R 18.66 (ECB, 20 Nov 2026)"), if any. */
+const approxOf = (note: unknown) => str(note)?.match(/^≈\s*(.+?)\s+at\s/)?.[1];
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const list = (items: string[]) =>
   items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
@@ -106,6 +110,10 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'tx.reverse': return k('↩️', `Undid a ${KIND_WORD[str(d.kind) ?? ''] ?? str(d.kind) ?? 'transaction'} for ${who()}${str(d.reason) ? ` — ${str(d.reason)}` : ''}`);
     case 'money.transfer':
       return k('🐷', `Moved ${money(num(d.amount), currency)} to ${str(d.to) === 'spending' ? 'wallet' : 'savings'} for ${who()}`);
+    case 'payout.record': {
+      const approx = approxOf(d.note);
+      return k('🏦', `Paid ${money(num(d.amount), currency, { whole: true })} out to ${who()}’s bank${approx ? ` (≈ ${approx})` : ''}`);
+    }
     case 'bank.set': return k('🏦', `Updated ${who()}’s real bank balance${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'request.create': return k('🙋', 'Made a request');

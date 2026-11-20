@@ -86,6 +86,7 @@ export default function AddMember() {
   const [relationError, setRelationError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ id: string; name: string; avatar: string; invite: Invite } | null>(null);
+  const sending = useRef(false);
 
   if (!me || !isManager) {
     return (
@@ -114,7 +115,6 @@ export default function AddMember() {
     if (p.custom) focusRelation();
   };
 
-  const sending = useRef(false);
   const submit = async () => {
     if (sending.current) return;
     const clean = name.trim();

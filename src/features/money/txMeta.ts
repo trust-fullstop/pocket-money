@@ -23,6 +23,7 @@ export const TX_META: Record<TxKind, TxMeta> = {
   excuse: { emoji: '🤝', label: 'Excused (given back)', tone: 'plus' },
   reversal: { emoji: '↩️', label: 'Undone', tone: 'neutral' },
   allowance: { emoji: '💰', label: 'Pocket money', tone: 'plus' },
+  payout: { emoji: '🏦', label: 'Paid out', tone: 'neutral' },
 };
 
 /** Meta for a kind (unknown kinds fall back to a neutral bullet with the raw name). */

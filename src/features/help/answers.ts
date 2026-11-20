@@ -206,6 +206,16 @@ export const FAQ: FaqEntry[] = [
     feature: 'allowance',
   },
   {
+    id: 'payout',
+    q: 'How does paying out work?',
+    en: 'A parent paid your wallet into your real bank account, so your wallet starts again from zero. 🏦 In Money → History it says “Paid out”. The money isn’t gone: it’s in your bank now. Your savings stay where they are.',
+    nl: 'Een ouder heeft het geld uit je wallet op je echte bankrekening gezet, dus je wallet begint weer bij nul. 🏦 In Money → History staat dan “Paid out”. Het geld is niet weg: het staat nu op je bank. Je spaargeld blijft gewoon staan.',
+    keys: [
+      '*paid out', '*pay out', '*paying out', '*payout', '*uitbetaald', '*uitbetalen', '*uitbetaling', 'back to zero', 'from zero',
+      'wallet empty', 'wallet is empty', 'terug naar nul', 'weer bij nul', 'wallet leeg', 'where did my money go', 'waar is mijn geld',
+    ],
+  },
+  {
     id: 'bank',
     q: 'What is the real bank balance?',
     en: 'Some kids also have a real bank account, like Revolut. 🏦 You (or a parent) can type in what the banking app says: open Money, find “Real bank account” and tap Update balance. In the red? Switch on “Overdrawn (negative)”.     It’s only for looking: it doesn’t change your money in Sow & Grow, and the app never touches your bank.',

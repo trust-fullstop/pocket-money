@@ -3,7 +3,8 @@
 import { backend } from './backend';
 import type {
   AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Invite,
-  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Need, Pot, RequestKind, Role, SpotInput, Target, TargetInput, Task, TaskInput,
+  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role, SpotInput, Target, TargetInput,
+  Task, TaskInput,
   TaskInstance, TickResult, Transaction, Wallet,
 } from './types';
 
@@ -67,6 +68,13 @@ export const api = {
   reverseTransaction: (txId: string, reason: string) => rpc<Ok>('reverse_transaction', { p_tx: txId, p_reason: reason }),
   transfer: (memberId: string, amountCents: number, toPot: Extract<Pot, 'spending' | 'savings'>) =>
     rpc<Ok & { balances: Balances }>('transfer', { p_member: memberId, p_amount: amountCents, p_to: toPot }),
+
+  // ---- pay-out to the kids' real bank accounts (managers) ----
+  /** Per kid: the wallet now and how it was built up since the last pay-out (catches up pocket money first). */
+  payoutSummary: () => rpc<PayoutRow[]>('payout_summary'),
+  /** Settles the whole wallet. expectedCents = the amount shown; requestId = one crypto.randomUUID() per confirm sheet. */
+  recordPayout: (memberId: string, expectedCents: number, requestId: string, note?: string | null) =>
+    rpc<PayoutResult>('record_payout', { p_member: memberId, p_expected_cents: expectedCents, p_request: requestId, p_note: note ?? null }),
 
   // ---- requests, goals, targets ----
   createRequest: (kind: RequestKind, amount: number, label: string | null, note: string | null) =>

@@ -11,6 +11,7 @@ import { FeatureGate } from './FeatureGate';
 import Features from './Features';
 import MemberDetail from './MemberDetail';
 import Needs from './Needs';
+import Payout from './Payout';
 import Settings from './Settings';
 
 /** Pages kids must never see (e.g. "What we need": surprises stay surprises). The server refuses kids too. */
@@ -31,6 +32,24 @@ function GrownUpsOnly({ title, children }: { title: string; children: ReactNode 
   );
 }
 
+/** Pages only managers (owner and parents) use, e.g. the pay-out to the kids' bank accounts. The server refuses others too. */
+function ParentsOnly({ title, children }: { title: string; children: ReactNode }) {
+  const { me, isManager } = useApp();
+  if (!me) return null;
+  if (isManager) return <>{children}</>;
+  return (
+    <>
+      <PageHeader title={title} back="/family" />
+      <EmptyState
+        emoji="🏦"
+        title="This is for the parents"
+        message="Only the parents who look after the money can see this page."
+        action={<LinkButton to="/" icon="home">Back home</LinkButton>}
+      />
+    </>
+  );
+}
+
 export default function FamilyModule() {
   return (
     <Routes>
@@ -45,6 +64,7 @@ export default function FamilyModule() {
           </GrownUpsOnly>
         }
       />
+      <Route path="payout" element={<ParentsOnly title="💸 Pay-out"><Payout /></ParentsOnly>} />
       <Route path="features" element={<Features />} />
       <Route path="settings" element={<Settings />} />
       <Route path=":memberId" element={<MemberDetail />} />

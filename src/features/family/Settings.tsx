@@ -230,7 +230,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
             value={d.timezone}
             onChange={(e) => set({ timezone: e.target.value })}
             options={zones.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))}
-            hint="Task deadlines, the weekly pay-out and the calendar use this."
+            hint="Task deadlines, pocket money days and the calendar use this."
             error={serverErr.timezone}
           />
         </SettingsCard>
