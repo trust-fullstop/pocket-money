@@ -159,7 +159,7 @@ export interface AppState {
   members: Member[];
   balances: Record<string, Balances>;   // only members the caller may see
   /** loans: loan requests waiting for a yes or no (managers only, 0 for everyone else or when loans are off). */
-  counts: { approvals: number; requests: number; my_requests: number; loans?: number };
+  counts: { approvals: number; requests: number; my_requests: number; loans?: number; initiatives?: number };
   today: string;                        // YYYY-MM-DD in family timezone
   now: string;
 }
@@ -263,6 +263,21 @@ export interface Loan {
 }
 export interface LoanRequestInput {
   member: string; amount: number; purpose: string; plan: LoanPlan; installment?: number | null;
+}
+
+// ---------- proud moments ("Look what I did ⭐") ----------
+export type InitiativeStatus = 'waiting' | 'rewarded' | 'thanked' | 'talk' | 'cancelled';
+export type InitiativeDecision = 'reward' | 'thanks' | 'talk';
+/** Something good a kid did on their own initiative, waiting for (or decided by) a parent. */
+export interface Initiative {
+  id: string; member_id: string;
+  what: string;
+  photo_path: string | null;
+  status: InitiativeStatus;
+  decided_by: string | null; decided_at: string | null; decision_note: string | null;
+  reward_cents: number; reward_minutes: number; reward_points: number;
+  created_at: string;
+  can_decide: boolean; can_cancel: boolean;
 }
 
 /**

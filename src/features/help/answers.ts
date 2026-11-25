@@ -60,6 +60,14 @@ export const FAQ: FaqEntry[] = [
     feature: 'spotted',
   },
   {
+    id: 'proud',
+    q: 'What if I did something good on my own?',
+    en: 'Show it! Tap ⭐ I did something good on Home or in My money. Take a photo if you can (a photo helps the grown-ups see it) and say what you did. A parent has a look: you may get the family’s Spotted reward, a thank-you 💛, or “Let’s talk about it 💬” with a note. You can see the answer in My proud moments.',
+    nl: 'Laat het zien! Tik op ⭐ I did something good op Home of bij My money. Maak een foto als het kan (zo zien de volwassenen het beter) en zeg wat je deed. Een ouder kijkt ernaar: je krijgt misschien de Spotted-beloning van het gezin, een bedankje 💛, of “Laten we erover praten 💬” met een briefje. Het antwoord zie je bij My proud moments.',
+    keys: ['*proud', '*trots', 'own initiative', 'eigen initiatief', 'on my own', 'without being asked', 'zonder dat het gevraagd', 'look what i did', 'did something good', 'iets goeds gedaan'],
+    feature: 'spotted',
+  },
+  {
     id: 'fines',
     q: 'Why did money come off my wallet?',
     en: 'Money only comes off with a reason, and you can always read it in Money → History. Usually a task wasn’t done in time, or a grown-up spotted something not OK (a fine). Every line says why and who did it. Think it’s a mistake? Ask a parent — they can undo it.',

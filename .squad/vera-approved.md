@@ -22,4 +22,6 @@
 
 - 2026-11-25: Loans (feature loans, migration 20261116002100): kid asks with own plan (per pocket money / all next), parent approves / offers fee / records directly; repayments from actual pocket-money rows, never overdraw; pay back now; forgive; dedicated undo; private from grandparents (masked kind 'adjustment'); pay-out loan bucket; tally=spent; no-savings adds back this week's repayment. Kryptonite review applied. vera-loans FAIL (deadlock via family FOR UPDATE; masked kind leak; undo vs newer loan) -> fixed -> PASS. 197/197 tests.
 
+- 2026-11-25 (evening): Proud moments 'Look what I did' (migration 20261116002200: kid submits with optional photo; parent rewards (family Spotted rule, override needs a note) / thanks / let's talk; idempotent, locked, unique-source; get_state counts.initiatives; remove_member cancels waiting). Kryptonite review applied. vera-proud PASS. 211/211 tests (seed hang-guard raised to 60 s).
+
 status: approved

@@ -2,7 +2,8 @@
 // Each function maps 1:1 to a public SQL function in supabase/migrations (param names prefixed p_).
 import { backend } from './backend';
 import type {
-  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Invite,
+  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Initiative,
+  InitiativeDecision, Invite,
   InvitePreview, LessonDone, LoginDevice, Loan, LoanRequestInput, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role,
   SpotInput, Target, TargetInput,
   Task, TaskInput,
@@ -95,6 +96,20 @@ export const api = {
   reverseLoanRepayment: (txId: string, reason: string) => rpc<Loan>('reverse_loan_repayment', { p_tx: txId, p_reason: reason }),
   /** Kids: their own loans. Parents: every kid's, or one kid's. Others: not_allowed. */
   listLoans: (memberId?: string | null) => rpc<Loan[]>('list_loans', { p_member: memberId ?? null }),
+
+  // ---- proud moments ("Look what I did ⭐": a kid shows something good they did on their own) ----
+  /** Kids, for themselves. The same requestId twice returns the first row (safe to retry). */
+  submitInitiative: (what: string, photoPath: string | null, requestId: string) =>
+    rpc<Initiative>('submit_initiative', { p_what: what, p_photo: photoPath, p_request: requestId }),
+  /** Kids: their own. Managers: every kid's. 'waiting' (oldest first), 'done' (last 90 days) or 'all'. */
+  listInitiatives: (status: 'waiting' | 'done' | 'all' = 'waiting') => rpc<Initiative[]>('list_initiatives', { p_status: status }),
+  /** Managers: reward (posts bonus rows), thanks (nothing posted) or talk (needs a note). */
+  decideInitiative: (id: string, decision: InitiativeDecision, reward: { cents?: number; minutes?: number; points?: number } = {},
+    note?: string | null) =>
+    rpc<Initiative>('decide_initiative', { p_id: id, p_decision: decision, p_cents: reward.cents ?? 0,
+      p_minutes: reward.minutes ?? 0, p_points: reward.points ?? 0, p_note: note ?? null }),
+  /** The kid takes it back while it still waits. */
+  cancelInitiative: (id: string) => rpc<Initiative>('cancel_initiative', { p_id: id }),
 
   // ---- requests, goals, targets ----
   createRequest: (kind: RequestKind, amount: number, label: string | null, note: string | null) =>

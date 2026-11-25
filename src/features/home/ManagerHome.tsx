@@ -39,6 +39,7 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
         approvals={state?.counts.approvals ?? 0}
         requests={features.on('requests') ? state?.counts.requests ?? 0 : 0}
         loans={state?.counts.loans ?? 0}
+        initiatives={state?.counts.initiatives ?? 0}
       />
 
       <VerseOfTheDay className="mt-4" />
@@ -109,8 +110,8 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
   );
 }
 
-function WaitingBanner({ approvals, requests, loans }: { approvals: number; requests: number; loans: number }) {
-  if (approvals + requests + loans === 0) {
+function WaitingBanner({ approvals, requests, loans, initiatives }: { approvals: number; requests: number; loans: number; initiatives: number }) {
+  if (approvals + requests + loans + initiatives === 0) {
     return (
       <p className="mt-4 flex min-h-11 items-center gap-2 rounded-2xl bg-good-soft px-4 font-semibold text-good">
         <Icon name="check" size={20} /> All caught up
@@ -119,6 +120,7 @@ function WaitingBanner({ approvals, requests, loans }: { approvals: number; requ
   }
   const parts = [
     approvals > 0 ? plural(approvals, 'task') + ' to check' : '',
+    initiatives > 0 ? plural(initiatives, 'proud moment') + ' ⭐' : '',
     requests > 0 ? plural(requests, 'request') : '',
     loans > 0 ? plural(loans, 'loan request') : '',
   ].filter(Boolean);
@@ -130,6 +132,9 @@ function WaitingBanner({ approvals, requests, loans }: { approvals: number; requ
       <p className="mt-0.5 text-[15px] font-semibold">{parts.join(' · ')}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {approvals > 0 && <LinkButton to="/tasks/approvals" icon="check">Check tasks</LinkButton>}
+        {initiatives > 0 && (
+          <LinkButton to="/money/proud/check" variant={approvals > 0 ? 'secondary' : 'primary'} icon="star">Proud moments</LinkButton>
+        )}
         {requests + loans > 0 && <LinkButton to="/money/requests" variant="secondary" icon="money">See requests</LinkButton>}
       </div>
     </Card>

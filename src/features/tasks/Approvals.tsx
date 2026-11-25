@@ -5,6 +5,7 @@ import { Avatar, Button, Card, EmptyState, LinkButton } from '../../components/u
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
 import type { TaskInstance } from '../../lib/types';
+import { ProudCheckList } from '../money/ProudCheck';
 import { SendBackSheet } from './decide';
 import { useDelayed, useFetch, useOnline, useTaskActions, useTaskCtx } from './hooks';
 import { byDueAsc, whenText } from './lib';
@@ -12,7 +13,9 @@ import { BackHeader, ChallengesOff, EvidencePhotos, LoadError, OfflineNote, Rewa
 
 /** The list of submitted tasks I can check, with one-tap Approve and a Send back sheet. */
 export function ApprovalsList({ big }: { big?: boolean }) {
-  const { state, feat } = useTaskCtx();
+  const { state, feat, isManager } = useTaskCtx();
+  // Parents also see the kids' proud moments ("Look what I did ⭐") on top; they stay decidable when Spotted is off.
+  const proud = isManager ? state?.counts.initiatives ?? 0 : 0;
   // Re-loads quietly whenever the app state refreshes (after any change, or when coming back to the app).
   const q = useFetch(() => api.listApprovals(), ['approvals'], state);
   const { reload, setData } = q;
@@ -44,15 +47,20 @@ export function ApprovalsList({ big }: { big?: boolean }) {
     setData((d) => d?.filter((x) => x.id !== id));
   };
 
-  if (q.error && !q.data) return <LoadError message={friendlyError(q.error)} onRetry={reload} />;
-  if (q.loading) return skeleton ? <SkeletonRows rows={2} big={big} /> : null;
+  const proudSection = proud > 0 ? <ProudCheckList title /> : null;
+  if (q.error && !q.data) return <>{proudSection}<LoadError message={friendlyError(q.error)} onRetry={reload} /></>;
+  if (q.loading) return <>{proudSection}{skeleton ? <SkeletonRows rows={2} big={big} /> : null}</>;
 
   return (
     <div className="space-y-3">
+      {proudSection}
       {!online && <OfflineNote />}
+      {proud > 0 && <h2 className="px-1 pt-2 text-lg font-bold"><span aria-hidden="true">✅ </span>Tasks to check</h2>}
       {items.length === 0 ? (
         <div ref={emptyRef} tabIndex={-1} className="outline-none">
-          <EmptyState emoji="🎉" title="All checked!" message="Nothing is waiting for you." />
+          {proud > 0
+            ? <EmptyState className="!py-4" emoji="🎉" title="No tasks to check" message="Only the proud moments above are waiting." />
+            : <EmptyState emoji="🎉" title="All checked!" message="Nothing is waiting for you." />}
         </div>
       ) : (
         <ul ref={listRef} className="space-y-3" aria-label="Waiting to be checked">
@@ -126,14 +134,15 @@ function ApprovalCard({ inst, big, online, onSendBack, onDone, onChanged }: {
 
 /** /tasks/approvals — the queue as its own page (kids' and grandparents' challenges to check; works for everyone). */
 export function ApprovalsPage() {
-  const { isKid, isManager, approvalsCount, feat } = useTaskCtx();
+  const { isKid, isManager, approvalsCount, feat, state } = useTaskCtx();
   // Kids and grandparents only ever check challenges they set.
   const off = !isManager && !feat.challenges;
+  const waiting = approvalsCount + (isManager ? state?.counts.initiatives ?? 0 : 0);
   return (
     <div className="space-y-4 pb-4">
       <BackHeader
         title={isManager ? 'Approvals' : 'To check'}
-        subtitle={approvalsCount && !off ? `${approvalsCount} waiting for you` : undefined}
+        subtitle={waiting && !off ? `${waiting} waiting for you` : undefined}
       />
       {off ? <ChallengesOff /> : (
         <>

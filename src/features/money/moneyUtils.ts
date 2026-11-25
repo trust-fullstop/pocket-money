@@ -1,7 +1,7 @@
 // Small non-UI helpers for the Money feature: data loading with error codes, formatting words, goal ETA, errors.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { friendlyError, toAppError, type ErrorCode } from '../../lib/errors';
-import { amount, formatWhen, money, timeAgo } from '../../lib/format';
+import { amount, formatWhen, minutes, money, points, timeAgo } from '../../lib/format';
 import type { Currency, Family, Loan, Member } from '../../lib/types';
 import { isManager } from '../../lib/types';
 
@@ -114,6 +114,10 @@ export function moneyError(e: unknown, insufficient?: string): string {
   if (a.code === 'invalid' && a.detail === 'purpose') return 'Say what the loan is for (up to 80 letters).';
   if (a.code === 'not_allowed' && a.detail === 'use_loan_tools') return 'Undo loan repayments from the loan card.';
   if (a.code === 'not_allowed' && a.detail === 'forgiven') return 'This loan was forgiven, so its repayments stay.';
+  if (a.code === 'invalid' && a.detail === 'too_many_waiting') return 'You already have 3 proud moments waiting. Wait for a grown-up first.';
+  if (a.code === 'invalid' && a.detail === 'too_many_today') return 'That’s 5 proud moments today! Show the next one tomorrow.';
+  if (a.code === 'invalid' && a.detail === 'what') return 'Say what you did (up to 200 letters).';
+  if (a.code === 'invalid' && a.detail === 'photo_path') return 'The photo didn’t work. Try another one, or send without a photo.';
   return friendlyError(e);
 }
 
@@ -157,4 +161,24 @@ export function whenText(iso: string, tz: string, now: Date): string {
   const age = now.getTime() - new Date(iso).getTime();
   if (age >= 0 && age < 86_400_000) return timeAgo(iso, now);
   return formatWhen(iso, tz, now);
+}
+
+/** "€5 · 15 min · 10 XP" (only the parts above 0; `sign` adds a "+"). */
+export function rewardWords(r: { cents: number; minutes: number; points: number }, cur: string, sign = false): string {
+  const plus = sign ? '+' : '';
+  return [
+    r.cents > 0 && plus + money(r.cents, cur, { whole: true }),
+    r.minutes > 0 && plus + minutes(r.minutes),
+    r.points > 0 && plus + points(r.points),
+  ].filter(Boolean).join(' · ');
+}
+
+/** Re-load quietly whenever `version` changes (pass the app state: it changes after every refresh). */
+export function useReloadOn(version: unknown, reload: () => Promise<void>) {
+  const seen = useRef(version);
+  useEffect(() => {
+    if (seen.current === version) return;
+    seen.current = version;
+    void reload();
+  }, [version, reload]);
 }

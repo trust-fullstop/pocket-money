@@ -17,7 +17,8 @@ describe('demo seed', () => {
   });
 
   it('loads in a few seconds and resets the clock and identity', async () => {
-    expect(ms).toBeLessThan(20000);
+    // A guard against a hanging seed, not a benchmark: alone it takes ~2 s, but the whole suite runs in parallel.
+    expect(ms).toBeLessThan(60000);
     const r = await q(db, `select current_setting('app.fake_now', true) as n, current_setting('request.jwt.claim.sub', true) as s`);
     expect(r[0].n ?? '').toBe('');
     expect(r[0].s ?? '').toBe('');
@@ -113,6 +114,19 @@ describe('demo seed', () => {
     const payout = await as(db, DEMO(1))<any[]>('payout_summary');
     expect(payout.find((r) => r.member_id === loans[0].member_id)).toMatchObject({ loan_outstanding_cents: 1500,
       loan_purpose: 'Bike lights' });
+  });
+
+  it('has proud moments: Sam’s car wash waits for a parent, Mia’s breakfast got the Spotted reward', async () => {
+    const dad = await as(db, DEMO(1))<any>('get_state');
+    expect(dad.counts.initiatives).toBe(1);
+    const sam = dad.members.find((m: any) => m.display_name === 'Sam');
+    const mia = dad.members.find((m: any) => m.display_name === 'Mia');
+    const waiting = await as(db, DEMO(1))<any[]>('list_initiatives');
+    expect(waiting.map((i) => [i.member_id, i.what, i.can_decide])).toEqual([[sam.id, 'Washed the car without being asked', true]]);
+    const done = await as(db, DEMO(6))<any[]>('list_initiatives', { p_status: 'done' });
+    expect(done.map((i) => [i.member_id, i.status, i.reward_cents, i.reward_points])).toEqual([[mia.id, 'rewarded', 500, 10]]);
+    expect((await as(db, DEMO(5))<any>('get_state')).counts.initiatives).toBe(1);
+    expect((await as(db, DEMO(6))<any>('get_state')).counts.initiatives).toBe(0);
   });
 });
 

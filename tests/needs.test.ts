@@ -150,7 +150,7 @@ describe('What we need', () => {
       const json = JSON.stringify(st);
       expect(json).not.toContain('Surprise bike');
       expect(json).not.toContain('School shoes');
-      expect(Object.keys(st.counts ?? {}).sort()).toEqual(['approvals', 'loans', 'my_requests', 'requests']);
+      expect(Object.keys(st.counts ?? {}).sort()).toEqual(['approvals', 'initiatives', 'loans', 'my_requests', 'requests']);
       // The only mention is the switch itself.
       expect(st.family.settings.features.needs).toBe(true);
       delete st.family.settings.features.needs;

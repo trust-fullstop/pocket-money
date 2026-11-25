@@ -5,7 +5,7 @@ import { useFeatures, type FeatureApi } from '../../lib/features';
 import { minutes, money, plural, points } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
-import type { Balances, EventOccurrence, Member, TaskInstance, Wallet } from '../../lib/types';
+import type { Balances, EventOccurrence, Initiative, Member, TaskInstance, Wallet } from '../../lib/types';
 import { VerseOfTheDay } from '../faith/VerseCard';
 import { useLessonsDone } from '../help/learn/useProgress';
 import { ComingUp, HomeSection, KidTaskRow, Loaded, SectionError, Skeleton } from './shared';
@@ -36,6 +36,7 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
   const balances = state?.balances[me.id];
   const cur = family?.currency ?? 'EUR';
   const myRequests = features.on('requests') ? state?.counts.my_requests ?? 0 : 0;
+  const proudWaiting = state?.counts.initiatives ?? 0;
 
   const todays = (insts.data ?? []).filter((i) => i.occurs_on === today && i.assignee_id === me.id && countsForProgress(i)).sort(byStatusThenDue);
   const doneToday = todays.filter((i) => i.status === 'approved').length;
@@ -47,6 +48,8 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
       <div className="mt-3">
         {balances ? <BalanceTiles meId={me.id} b={balances} currency={cur} features={features} /> : <NoBalances />}
       </div>
+
+      {(features.on('spotted') || proudWaiting > 0) && <ProudMoments on={features.on('spotted')} waiting={proudWaiting} stamp={stamp} />}
 
       <VerseOfTheDay className="mt-4" />
 
@@ -100,6 +103,41 @@ function KidHomeInner({ me, today, tz, stamp }: { me: Member; today: string; tz:
 
       <ComingUp events={events} max={3} forMember={me.id} title="Next reminders" />
     </>
+  );
+}
+
+/** "⭐ I did something good!" plus the kid's proud moments still waiting for a grown-up. */
+function ProudMoments({ on, waiting, stamp }: { on: boolean; waiting: number; stamp: string }) {
+  const list = useLoad(() => (waiting > 0 ? api.listInitiatives('waiting') : Promise.resolve([] as Initiative[])), [waiting, stamp]);
+  const rows = waiting > 0 ? list.data ?? [] : [];
+  return (
+    <div className="mt-3 space-y-2">
+      {on && (
+        <LinkButton to="/money/proud" size="lg" block className="h-auto min-h-14 whitespace-normal py-2 text-[17px]">
+          <span aria-hidden="true" className="text-xl">⭐</span> I did something good!
+        </LinkButton>
+      )}
+      {rows.length > 0 ? (
+        <Card padded={false} className="overflow-hidden">
+          <ul className="divide-y divide-line" aria-label="My proud moments waiting for a grown-up">
+            {rows.map((i) => (
+              <li key={i.id}>
+                <ListRow
+                  to="/money/proud#mine"
+                  left={<span className="grid size-11 place-items-center rounded-full bg-warn-soft text-xl" aria-hidden="true">👀</span>}
+                  title={<span className="[overflow-wrap:anywhere]">{i.what}</span>}
+                  subtitle="Proud moment · waiting for a grown-up"
+                />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : on && (
+        <Link to="/money/proud#mine" className="flex min-h-11 items-center justify-center text-[15px] font-semibold text-accent-ink hover:underline">
+          My proud moments
+        </Link>
+      )}
+    </div>
   );
 }
 

@@ -18,6 +18,7 @@ import { HISTORY_PAGE, HistorySection } from './History';
 import { AskLoanSheet, LoansSection } from './Loans';
 import { isOpenLoan, useData, useDelayed } from './moneyUtils';
 import { LevelLine, LoadFailed, NotForYou, SkeletonRows } from './parts';
+import { ProudButton } from './Proud';
 import { RequestCard } from './Requests';
 import { TalliesCard } from './Tallies';
 import { TargetsSection } from './Targets';
@@ -32,7 +33,7 @@ interface Action { key: string; emoji: string; label: string; onClick?: () => vo
 export function WalletPage() {
   const { memberId = '' } = useParams();
   const navigate = useNavigate();
-  const { me, family, membersById, isManager, refresh } = useApp();
+  const { me, family, membersById, isManager, refresh, state } = useApp();
   const features = useFeatures();
   const w = useData(() => api.wallet(memberId, HISTORY_PAGE), [memberId]);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
@@ -200,6 +201,8 @@ export function WalletPage() {
           })}
         </div>
       )}
+
+      {kidSelf && on.spotted && <ProudButton waiting={state?.counts.initiatives ?? 0} />}
 
       {!on.requests ? null : pending.length > 0 ? (
         <section aria-labelledby="waiting-title" className="space-y-2">

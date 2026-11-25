@@ -261,7 +261,9 @@ const M_TABS = ['person', 'repeating', 'approvals'] as const;
 type MTab = (typeof M_TABS)[number];
 
 function ManagerHome() {
-  const { members, approvalsCount } = useTaskCtx();
+  const { members, approvalsCount, state } = useTaskCtx();
+  // The Approvals tab also holds the kids' waiting proud moments.
+  const waiting = approvalsCount + (state?.counts.initiatives ?? 0);
   const q = useRangeInstances();
   const [tab, setTab] = useParam<MTab>('tab', M_TABS, 'person');
   const [params] = useSearchParams();
@@ -290,7 +292,7 @@ function ManagerHome() {
         tabs={[
           { value: 'person', label: 'By person' },
           { value: 'repeating', label: 'Repeating' },
-          { value: 'approvals', label: 'Approvals', count: approvalsCount, countLabel: `${approvalsCount} waiting` },
+          { value: 'approvals', label: 'Approvals', count: waiting, countLabel: `${waiting} waiting` },
         ]}
       />
       <TabPanel idBase="tasks-m" value={tab}>{body}</TabPanel>

@@ -64,6 +64,8 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
   };
   const k = (emoji: string, text: string): AuditText => ({ emoji, text, known: true });
   const loanAmt = (key = 'amount') => money(Math.abs(num(d[key])), currency, { whole: true });
+  const proud = () => (str(d.what) ? `“${str(d.what)}”` : 'something good');
+  const note = () => (str(d.note) ? ` — ${str(d.note)}` : '');
 
   switch (e.action) {
     case 'family.create': return k('🏠', `Started the family${str(d.name) ? ` “${str(d.name)}”` : ''}`);
@@ -129,6 +131,17 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'loan.forgive': return k('💛', `Forgave the last ${loanAmt()} of ${who()}’s loan`);
     case 'loan.cancel': return k('🚫', `Cancelled a loan request of ${loanAmt()} for ${who()}`);
     case 'loan.undo': return k('↩️', `Undid a loan repayment of ${loanAmt()} for ${who()}`);
+    case 'initiative.submit': return k('⭐', `Shared a proud moment: ${proud()}`);
+    case 'initiative.reward': {
+      const parts: string[] = [];
+      if (num(d.cents)) parts.push(money(Math.abs(num(d.cents)), currency, { whole: true }));
+      if (num(d.minutes)) parts.push(minutes(Math.abs(num(d.minutes))));
+      if (num(d.points)) parts.push(points(Math.abs(num(d.points))));
+      return k('⭐', `${who()}: proud moment ${proud()} → reward ${list(parts) || 'given'}${note()}`);
+    }
+    case 'initiative.thanks': return k('💛', `${who()}: proud moment ${proud()} → thanks 💛${note()}`);
+    case 'initiative.talk': return k('💬', `${who()}: proud moment ${proud()} → let’s talk 💬${note()}`);
+    case 'initiative.cancel': return k('🚫', `Took back a proud moment: ${proud()}`);
     case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'request.create': return k('🙋', 'Made a request');
     case 'request.approve': return k('✅', `Said yes to ${who()}’s request`);

@@ -281,6 +281,13 @@ begin
         'reason', 'Shouted at Mia'));
       perform pg_temp.seed_at(u_dad, app.local_ts(d, '20:00', tz));
       perform public.reverse_transaction(p_tx => (r->'ids'->>0)::uuid, p_reason => 'We talked it through, sorry Sam');
+    elsif rel = 12 then
+      -- "Look what I did ⭐": Mia shows something good she did herself; Mum gives the family's Spotted reward
+      perform pg_temp.seed_at(u_mia, app.local_ts(d, '17:00', tz));
+      r := public.submit_initiative(p_what => 'Made breakfast for everyone without being asked', p_request => gen_random_uuid());
+      perform pg_temp.seed_at(u_mum, app.local_ts(d, '18:00', tz));
+      perform public.decide_initiative(p_id => (r->>'id')::uuid, p_decision => 'reward', p_cents => 500, p_points => 10,
+        p_note => 'What a lovely surprise 🥞');
     elsif rel = 13 then
       perform pg_temp.seed_at(u_leo, app.local_ts(d, '11:00', tz));
       if app.bal(leo, 'spending') >= 300 then perform public.transfer(p_member => leo, p_amount => 300, p_to => 'savings'); end if;
@@ -375,6 +382,10 @@ begin
   if app.bal(leo, 'time') >= 45 then
     perform public.create_request(p_kind => 'time', p_amount => 45, p_label => 'fun', p_note => 'Movie night 🍿');
   end if;
+
+  -- today: Sam shows something good he did on his own (waits for a parent)
+  perform pg_temp.seed_at(u_sam, final_ts - interval '4 minutes');
+  perform public.submit_initiative(p_what => 'Washed the car without being asked', p_request => gen_random_uuid());
 
   perform set_config('app.fake_now', '', false);
   perform set_config('request.jwt.claim.sub', '', false);

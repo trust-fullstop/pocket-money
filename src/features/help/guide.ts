@@ -95,7 +95,7 @@ export function featureGuide(
     },
     on('spotted') && {
       key: 'spotted', emoji: '📸', title: 'Spotted',
-      what: 'A grown-up notices something and records it on the spot: a reward or a consequence, with what happened. The amount is a fixed family rule.',
+      what: 'A grown-up notices something and records it on the spot: a reward or a consequence, with what happened. The amount is a fixed family rule. Kids can also show what they did themselves: ⭐ I did something good.',
       why: 'Good moments get noticed, not only chores. There’s always a reason you can read, and the same rule for everyone.',
       example: (() => {
         const r = familySpotRules(settings);
