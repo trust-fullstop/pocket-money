@@ -107,7 +107,8 @@ export type FeatureKey =
   | 'bank'         // real bank balance (e.g. Revolut) typed in by a parent or the kid — information only
   | 'learn'        // Money school: short lessons about saving, interest, earning and spending (+ XP once per lesson)
   | 'faith'        // Faith, hope and love: verse of the day, faith reflections, Bible App links (each person can hide verses)
-  | 'needs';       // What we need: grown-ups note what each kid needs and tick it off when bought (kids never see it)
+  | 'needs'        // What we need: grown-ups note what each kid needs and tick it off when bought (kids never see it)
+  | 'loans';       // a kid borrows from a parent and picks a repayment plan; it comes off their pocket money
 export type Features = Record<FeatureKey, boolean>;
 /** Features that only work when another feature is on. */
 export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest: 'savings', saver_rules: 'savings', goals: 'savings' };
@@ -115,12 +116,12 @@ export const FEATURE_NEEDS: Partial<Record<FeatureKey, FeatureKey>> = { interest
 export const START_SMALL: Features = {
   challenges: false, spotted: true, allowance: true, requests: true, savings: false, interest: false, saver_rules: false,
   goals: false, targets: false, time: false, points: true, calendar: true, emergency: true, devices: false, ask: false,
-  bank: true, learn: true, faith: false, needs: true,
+  bank: true, learn: true, faith: false, needs: true, loans: false,
 };
 export const EVERYTHING: Features = {
   challenges: true, spotted: true, allowance: true, requests: true, savings: true, interest: true, saver_rules: true,
   goals: true, targets: true, time: true, points: true, calendar: true, emergency: true, devices: true, ask: false,
-  bank: true, learn: true, faith: true, needs: true,
+  bank: true, learn: true, faith: true, needs: true, loans: true,
 };
 /** Is a feature effectively on (respecting FEATURE_NEEDS)? Missing keys count as on (older data). */
 export function featureOn(f: Partial<Features> | undefined | null, key: FeatureKey): boolean {
@@ -157,7 +158,8 @@ export interface AppState {
   family: Family;
   members: Member[];
   balances: Record<string, Balances>;   // only members the caller may see
-  counts: { approvals: number; requests: number; my_requests: number };
+  /** loans: loan requests waiting for a yes or no (managers only, 0 for everyone else or when loans are off). */
+  counts: { approvals: number; requests: number; my_requests: number; loans?: number };
   today: string;                        // YYYY-MM-DD in family timezone
   now: string;
 }
@@ -216,19 +218,57 @@ export interface TaskInstance {
 
 // ---------- ledger ----------
 export type TxKind = 'task_reward' | 'task_penalty' | 'bonus' | 'fine' | 'gift' | 'transfer' | 'interest' | 'spend'
-  | 'time_use' | 'prize' | 'saver_bonus' | 'no_savings_penalty' | 'excuse' | 'reversal' | 'allowance' | 'payout';
+  | 'time_use' | 'prize' | 'saver_bonus' | 'no_savings_penalty' | 'excuse' | 'reversal' | 'allowance' | 'payout'
+  | 'loan_repayment'
+  | 'adjustment'; // display-only: a loan repayment (or its undo) as seen by grandparents/aunts/uncles (server-masked)
 
 export interface Transaction {
   id: string; member_id: string; currency: Currency; pot: Pot; amount: number; kind: TxKind;
   label: string | null; reason: string; photo_path: string | null;
   source_type: string | null; source_id: string | null;
   reversed_by: string | null; effective_at: string; created_at: string; created_by: string | null;
+  /** For a loan repayment: true = undo with reverseLoanRepayment. */
   can_reverse: boolean;
+  /** A loan repayment (or its undo) seen by someone outside the kid and the parents: shown as "Pocket money adjustment". */
+  masked?: boolean;
+}
+
+// ---------- loans ----------
+/** per_pay: a fixed installment from each pocket money; next_pay: everything from the next pocket money. */
+export type LoanPlan = 'per_pay' | 'next_pay';
+export type LoanStatus = 'requested' | 'offered' | 'active' | 'declined' | 'cancelled' | 'forgiven' | 'repaid';
+/** A loan from a parent to a kid (list_loans: the kid's own, or every kid's for managers). Amounts in family cents. */
+export interface Loan {
+  id: string; member_id: string; purpose: string;
+  amount_cents: number;
+  /** One-time fee ("interest") a parent added to the offer. */
+  fee_cents: number;
+  /** amount + fee. */
+  total_cents: number;
+  repaid_cents: number;
+  outstanding_cents: number;
+  forgiven_cents: number;
+  plan: LoanPlan;
+  installment_cents: number;
+  status: LoanStatus;
+  requested_by: string | null; decided_by: string | null; decided_at: string | null; decision_note: string | null;
+  started_at: string | null; ended_at: string | null; created_at: string;
+  /** Open loans only: what the next pocket money repays, and when (an estimate; null without pocket money). */
+  next_amount_cents: number | null;
+  next_pay_on: string | null;
+  /** ceil(outstanding / installment): pocket-money days still to go. */
+  pay_days_left: number | null;
+  payoff_on: string | null;
+  can_decide: boolean; can_accept: boolean; can_cancel: boolean; can_repay: boolean; can_forgive: boolean;
+}
+export interface LoanRequestInput {
+  member: string; amount: number; purpose: string; plan: LoanPlan; installment?: number | null;
 }
 
 /**
  * One kid on the pay-out overview (payout_summary, managers only). All amounts in family-currency cents.
- * The cycle runs since the latest pay-out that was not undone; start + allowance + rewards + consequences + other = wallet.
+ * The cycle runs since the latest pay-out that was not undone;
+ * start + allowance + rewards + consequences + loan + other = wallet.
  */
 export interface PayoutRow {
   member_id: string;
@@ -248,8 +288,13 @@ export interface PayoutRow {
   rewards_cents: number;
   /** Fines, missed tasks (≤ 0). */
   consequences_cents: number;
+  /** Loan repayments (net of undos, ≤ 0). */
+  loan_cents: number;
   /** Spent with OK, moved to or from savings. */
   other_cents: number;
+  /** The active loan: what is still to pay, and what it was for (null without one). */
+  loan_outstanding_cents: number | null;
+  loan_purpose: string | null;
   allowance_cents_per_period: number | null;
   allowance_period: 'week' | 'month' | null;
   allowance_day: number | null;

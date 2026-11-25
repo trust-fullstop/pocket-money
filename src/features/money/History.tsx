@@ -29,7 +29,12 @@ function extraLabel(tx: Pick<Transaction, 'kind' | 'label'>) {
   return g;
 }
 
-const hasReason = (tx: Pick<Transaction, 'reason' | 'kind'>) => !!tx.reason && tx.reason !== tx.kind;
+const hasReason = (tx: Pick<Transaction, 'reason' | 'kind' | 'masked'>) =>
+  !!tx.reason && tx.reason !== tx.kind && !tx.masked;
+
+/** Kind meta for one row: a loan repayment seen by someone outside the kid and the parents reads "Pocket money adjustment". */
+const rowMeta = (tx: Pick<Transaction, 'kind' | 'masked'>) =>
+  tx.masked ? { emoji: '👛', label: 'Pocket money adjustment', tone: 'neutral' as const } : txMeta(tx.kind);
 
 export interface TxRowProps {
   tx: Transaction;
@@ -47,7 +52,7 @@ export interface TxRowProps {
 export function TxRow({ tx, cur, viewerId, onOpen, photoSrc, className }: TxRowProps) {
   const { membersById, family, now } = useApp();
   const tz = family?.timezone ?? 'UTC';
-  const meta = txMeta(tx.kind);
+  const meta = rowMeta(tx);
   const tone = txTone(tx.kind, tx.amount);
   const lbl = extraLabel(tx);
   const reversed = !!tx.reversed_by;
@@ -220,7 +225,7 @@ function TxDetailSheet({ tx, cur, viewerId, ownerName, onClose, onUndo, onPhoto 
 }) {
   const { membersById, family, now } = useApp();
   const tz = family?.timezone ?? 'UTC';
-  const meta = txMeta(tx.kind);
+  const meta = rowMeta(tx);
   const tone = txTone(tx.kind, tx.amount);
   const pot = POTS[tx.pot];
   const lbl = labelMeta(tx.label);
@@ -253,6 +258,11 @@ function TxDetailSheet({ tx, cur, viewerId, ownerName, onClose, onUndo, onPhoto 
         {tx.kind === 'reversal' && (
           <p className="rounded-2xl bg-surface-2 px-4 py-3 text-[15px]">↩️ This undid an earlier change.</p>
         )}
+        {tx.kind === 'loan_repayment' && !tx.masked && (
+          <p className="rounded-2xl bg-surface-2 px-4 py-3 text-[15px]">
+            🤝 This paid back part of a loan. {tx.created_by ? 'It was an extra payment.' : 'It came off the pocket money.'}
+          </p>
+        )}
         {tx.photo_path && (
           <TxPhoto path={tx.photo_path} alt={`Photo: ${tx.reason}`} className="max-h-72 w-full" onOpen={onPhoto} />
         )}
@@ -270,15 +280,17 @@ function ReverseSheet({ tx, cur, ownerName, onClose, onChanged }: {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const meta = txMeta(tx.kind);
+  const meta = rowMeta(tx);
   const ok = reason.trim().length > 0;
+  const loan = tx.kind === 'loan_repayment';
 
   const run = async () => {
     if (!ok) { setError('Say why, so everyone understands.'); return; }
     setBusy(true);
     setError(null);
     try {
-      await api.reverseTransaction(tx.id, clip(reason, 180));
+      if (loan) await api.reverseLoanRepayment(tx.id, clip(reason, 180));
+      else await api.reverseTransaction(tx.id, clip(reason, 180));
       toast.show('Undone. It stays in the list so everyone can see.', 'success');
       await onChanged();
       onClose();
@@ -313,6 +325,7 @@ function ReverseSheet({ tx, cur, ownerName, onClose, onChanged }: {
         </div>
         <p className="text-[15px]">
           This adds <Delta currency={tx.currency} value={-tx.amount} cur={cur} tone="neutral" /> to {ownerName}’s {POTS[tx.pot]?.label.toLowerCase() ?? 'wallet'}. The old row stays in the list, marked “Undone”.
+          {loan && ' The loan owes this amount again.'}
         </p>
         <Textarea
           label="Why?" value={reason} maxLength={180} rows={2}

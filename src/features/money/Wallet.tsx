@@ -9,13 +9,14 @@ import { api } from '../../lib/api';
 import { useFeatures } from '../../lib/features';
 import { allowanceSchedule, money } from '../../lib/format';
 import { useApp } from '../../lib/session';
-import type { Member } from '../../lib/types';
+import type { Loan, Member } from '../../lib/types';
 import { AllowanceSheet } from './AllowanceEditor';
 import { BankCard } from './Bank';
 import { FxCard, type FxRow } from './Fx';
 import { GoalsSection } from './Goals';
 import { HISTORY_PAGE, HistorySection } from './History';
-import { useData, useDelayed } from './moneyUtils';
+import { AskLoanSheet, LoansSection } from './Loans';
+import { isOpenLoan, useData, useDelayed } from './moneyUtils';
 import { LevelLine, LoadFailed, NotForYou, SkeletonRows } from './parts';
 import { RequestCard } from './Requests';
 import { TalliesCard } from './Tallies';
@@ -23,7 +24,7 @@ import { TargetsSection } from './Targets';
 import { WalletTiles } from './WalletTiles';
 import { AskSpendSheet, MoveSheet, UseTimeSheet, WithdrawSheet } from './WalletSheets';
 
-type SheetKind = 'move' | 'spend' | 'withdraw' | 'time' | 'allowance' | 'menu';
+type SheetKind = 'move' | 'spend' | 'withdraw' | 'time' | 'allowance' | 'menu' | 'loan';
 
 /** `when` = the part it needs is switched on (Family → Features). */
 interface Action { key: string; emoji: string; label: string; onClick?: () => void; to?: string; primary?: boolean; when: boolean }
@@ -40,8 +41,11 @@ export function WalletPage() {
   const on = {
     savings: features.on('savings'), requests: features.on('requests'), time: features.on('time'), points: features.on('points'),
     spotted: features.on('spotted'), allowance: features.on('allowance'), goals: features.on('goals'), targets: features.on('targets'),
-    bank: features.on('bank'),
+    bank: features.on('bank'), loans: features.on('loans'),
   };
+  // Loans are private between the kid and the parents (grandparents never load them).
+  const loansVisible = membersById[memberId]?.role === 'kid' && !!me && (me.id === memberId || isManager);
+  const loanList = useData(() => (loansVisible ? api.listLoans(memberId) : Promise.resolve([] as Loan[])), [memberId, loansVisible]);
 
   const member: Member | undefined = w.data?.member ?? membersById[memberId];
   const self = !!me && me.id === memberId;
@@ -51,8 +55,11 @@ export function WalletPage() {
   const name = member?.display_name ?? 'This child';
   const kidSelf = self && me?.role === 'kid';
   const back = kidSelf ? undefined : '/money';
-  const changed = async () => { await Promise.all([refresh(), w.reload()]); };
+  const changed = async () => { await Promise.all([refresh(), w.reload(), loanList.reload()]); };
   const close = () => setSheet(null);
+  const loans = loanList.data ?? [];
+  // "Ask for a loan" / "Record a loan" once the list is in and no loan is open.
+  const canStartLoan = on.loans && loansVisible && !loanList.loading && !loanList.error && !loans.some(isOpenLoan);
 
   // "My money" / "Sam's money": the page holds every pot, and "Wallet" is the name of one of them.
   const title = member ? (
@@ -124,6 +131,7 @@ export function WalletPage() {
     all.push({ key: 'spend', emoji: '🛍️', label: 'Ask to spend', onClick: () => setSheet('spend'), when: on.requests });
     all.push({ key: 'withdraw', emoji: '🏦', label: 'Ask to take out savings', onClick: () => setSheet('withdraw'), when: !isManager && on.savings && on.requests });
     all.push({ key: 'time', emoji: '⏳', label: 'Use time', onClick: () => setSheet('time'), when: on.time && on.requests });
+    all.push({ key: 'loan', emoji: '🤝', label: 'Ask for a loan', onClick: () => setSheet('loan'), when: kidSelf && canStartLoan });
   } else if (managerOfKid) {
     all.push({ key: 'spot', emoji: '📸', label: 'Spotted', to: spotHref, primary: true, when: on.spotted });
     all.push({ key: 'move', emoji: '🔄', label: 'Move money', onClick: moveSheet, when: on.savings });
@@ -142,6 +150,7 @@ export function WalletPage() {
     { key: 'allowance', emoji: '💰', label: 'Pocket money', onClick: () => setSheet('allowance'), when: on.allowance },
     { key: 'goals', emoji: '🎯', label: 'Goals', to: `/money/${memberId}/goals`, when: on.goals },
     { key: 'targets', emoji: '🏆', label: 'Targets', to: `/money/${memberId}/targets`, when: on.targets },
+    { key: 'loan', emoji: '🤝', label: 'Record a loan', onClick: () => setSheet('loan'), when: canStartLoan },
     { key: 'requests', emoji: '📨', label: 'All requests', to: '/money/requests', when: on.requests },
   ] : [];
   const menu = menuAll.filter((a) => a.when);
@@ -208,6 +217,10 @@ export function WalletPage() {
         </LinkButton>
       ) : null}
 
+      {loansVisible && kidWallet && loans.length > 0 && (
+        <LoansSection loans={loans} member={member} self={self} cur={cur} spending={b.spending} onChanged={changed} />
+      )}
+
       {kidWallet && <FxCard rows={fxRows} />}
 
       {on.bank && (kidWallet || self) && (
@@ -243,6 +256,9 @@ export function WalletPage() {
       )}
       {sheet === 'allowance' && managerOfKid && on.allowance && (
         <AllowanceSheet member={member} onClose={close} onSaved={changed} />
+      )}
+      {sheet === 'loan' && canStartLoan && (kidSelf || managerOfKid) && (
+        <AskLoanSheet member={member} mode={kidSelf ? 'ask' : 'record'} cur={cur} onClose={close} onChanged={changed} />
       )}
       {sheet === 'menu' && menu.length > 0 && (
         <Sheet open onClose={close} title={`${name}’s money`}>

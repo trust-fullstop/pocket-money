@@ -196,7 +196,7 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
   const features = useFeatures();
   const name = kid.display_name;
   const titleId = `payout-${row.member_id}`;
-  const extra = row.rewards_cents + row.consequences_cents + row.other_cents;
+  const extra = row.rewards_cents + row.consequences_cents + row.loan_cents + row.other_cents;
   const hasSchedule = features.on('allowance') && (row.allowance_cents_per_period ?? 0) > 0;
   const next = hasSchedule ? nextPayDate(row.allowance_period, row.allowance_day, addDays(today, 1)) : null;
   const since = row.last_payout_at ? `Since the last pay-out on ${formatDate(dateInTz(row.last_payout_at, tz))}` : 'Since joining';
@@ -204,6 +204,7 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
   const why = [
     row.rewards_cents !== 0 && 'rewards',
     row.consequences_cents !== 0 && 'consequences',
+    row.loan_cents !== 0 && 'a loan repayment',
     row.other_cents !== 0 && 'spending',
   ].filter((w): w is string => !!w);
   const because = why.length ? `, because of ${why.length > 1 ? `${why.slice(0, -1).join(', ')} and ${why[why.length - 1]}` : why[0]}` : '';
@@ -233,6 +234,7 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
         <Line label="Pocket money" cents={row.allowance_cents} cur={cur} />
         <Line label="Rewards and tasks" cents={row.rewards_cents} cur={cur} />
         <Line label="Consequences" cents={row.consequences_cents} cur={cur} />
+        {row.loan_cents !== 0 && <Line label="Loan repayment" cents={row.loan_cents} cur={cur} />}
         {row.other_cents !== 0 && <Line label="Spent with OK / moved to savings" cents={row.other_cents} cur={cur} />}
         <div className="!mt-2 flex flex-wrap items-baseline justify-between gap-x-3 border-t border-line pt-2">
           <dt className="font-bold">In the wallet now</dt>
@@ -249,6 +251,11 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
 
       {versus && <p className={cx('mt-1 text-[15px] font-semibold', versus.tone)}>{versus.text}</p>}
       {pocket && <p className="mt-1 text-[14px] text-muted">{pocket}</p>}
+      {row.loan_outstanding_cents != null && row.loan_outstanding_cents > 0 && (
+        <p className="mt-1 text-[14px] font-semibold [overflow-wrap:anywhere]">
+          <span aria-hidden="true">🤝 </span>Loan: {whole(row.loan_outstanding_cents, cur)} still to go{row.loan_purpose ? ` (${row.loan_purpose})` : ''}
+        </p>
+      )}
 
       <div className="mt-3 space-y-1">
         {row.to_pay_cents > 0 ? (

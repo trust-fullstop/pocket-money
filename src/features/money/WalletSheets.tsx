@@ -32,13 +32,13 @@ async function closedIfOff(e: unknown, toast: Toast, onClose: () => void, onChan
   return true;
 }
 
-function ErrorLine({ error }: { error: string | null }) {
+export function ErrorLine({ error }: { error: string | null }) {
   if (!error) return null;
   return <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-[15px] font-semibold text-bad">{error}</p>;
 }
 
 /** Inline "not enough" message in the warning style (the button is disabled meanwhile). */
-function OverLine({ text }: { text: string | null }) {
+export function OverLine({ text }: { text: string | null }) {
   if (!text) return null;
   return <p className="rounded-xl bg-warn-soft px-3 py-2 text-[15px] font-semibold text-warn" aria-live="polite"><span aria-hidden="true">⚠️ </span>{text}</p>;
 }

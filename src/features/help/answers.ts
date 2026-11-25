@@ -227,6 +227,17 @@ export const FAQ: FaqEntry[] = [
     feature: 'bank',
   },
   {
+    id: 'loans',
+    q: 'Can I borrow money?',
+    en: 'Yes, if your family switched on Loans. 🤝 On your Money page tap “Ask for a loan”: say how much, what it’s for, and how you’ll pay it back — a bit from each pocket money, or all from the next one. The app shows how much less pocket money you’ll get, and when it’s paid off. A parent says yes or no, and sometimes adds a small fee, like a bank does; then you choose. You can pay back early with “Pay back now”. Borrowing means less money later, so only borrow for something you really need.',
+    nl: 'Ja, als je gezin Loans heeft aangezet. 🤝 Tik op je Money-pagina op “Ask for a loan”: zeg hoeveel, waarvoor, en hoe je het terugbetaalt — elke keer een stukje van je zakgeld, of alles van het volgende zakgeld. De app laat zien hoeveel minder zakgeld je krijgt en wanneer het is afbetaald. Een ouder zegt ja of nee, en vraagt soms een kleine vergoeding, zoals een bank; dan kies jij. Eerder terugbetalen kan met “Pay back now”. Lenen betekent later minder geld, dus leen alleen voor iets wat je echt nodig hebt.',
+    keys: [
+      '*loan', '*loans', '*borrow', '*borrowing', '*lenen', '*lening', '*leen', 'geleend', 'pay back', 'paying back', 'pay it back',
+      'repay', 'repayment', 'terugbetalen', 'terug betalen', 'aflossen', 'afbetalen', 'lend me', 'leen me',
+    ],
+    feature: 'loans',
+  },
+  {
     id: 'exchange',
     q: 'How much is my money in rand?',
     en: 'The app counts in one currency, but money can come in euro and the shop can be in rand. 💱 When a parent picks “Also show money in” (Family rules), Money shows today’s rate, like €1 = R 18.66, and the other currency next to your money (“≈ R 373”).     There’s a calculator on your Money page, and when you ask to spend or set a goal you can type in the other currency. Banks and Revolut use their own rate, so the shop can be a little different.',

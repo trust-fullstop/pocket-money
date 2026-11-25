@@ -48,7 +48,8 @@ begin
   perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('features',
     jsonb_build_object('challenges', true, 'spotted', true, 'allowance', true, 'requests', true, 'savings', true,
       'interest', true, 'saver_rules', true, 'goals', true, 'targets', true, 'time', true, 'points', true,
-      'calendar', true, 'emergency', true, 'devices', true, 'ask', true, 'learn', true, 'faith', true, 'needs', true),
+      'calendar', true, 'emergency', true, 'devices', true, 'ask', true, 'learn', true, 'faith', true, 'needs', true,
+      'loans', true),
     'spend_currency', 'ZAR')));  -- the demo kids spend in rand: shows today's EUR → ZAR rate
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
@@ -255,6 +256,10 @@ begin
       perform pg_temp.seed_at(u_mum, app.local_ts(d, '12:00', tz));
       perform public.spot(p => jsonb_build_object('member_id', leo, 'direction', 'plus', 'cents', 150,
         'reason', 'Fixed the wifi router 🛠️'));
+      -- Dad lent Leo cash for bike lights; €5 comes off each pocket money (the next Monday repays the first €5)
+      perform pg_temp.seed_at(u_dad, app.local_ts(d, '12:30', tz));
+      perform public.request_loan(p_member => leo, p_amount => 2000, p_purpose => 'Bike lights', p_plan => 'per_pay',
+        p_installment => 500);
     elsif rel = 10 then
       -- yesterday's dishes were missed because Sam was ill: excuse (the fine is given back)
       select ti.id into v_inst from public.task_instances ti join public.tasks t on t.id = ti.task_id

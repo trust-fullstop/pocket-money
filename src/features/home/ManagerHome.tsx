@@ -38,6 +38,7 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
       <WaitingBanner
         approvals={state?.counts.approvals ?? 0}
         requests={features.on('requests') ? state?.counts.requests ?? 0 : 0}
+        loans={state?.counts.loans ?? 0}
       />
 
       <VerseOfTheDay className="mt-4" />
@@ -108,8 +109,8 @@ function ManagerHomeInner({ me, today, tz, stamp }: { me: Member; today: string;
   );
 }
 
-function WaitingBanner({ approvals, requests }: { approvals: number; requests: number }) {
-  if (approvals + requests === 0) {
+function WaitingBanner({ approvals, requests, loans }: { approvals: number; requests: number; loans: number }) {
+  if (approvals + requests + loans === 0) {
     return (
       <p className="mt-4 flex min-h-11 items-center gap-2 rounded-2xl bg-good-soft px-4 font-semibold text-good">
         <Icon name="check" size={20} /> All caught up
@@ -119,6 +120,7 @@ function WaitingBanner({ approvals, requests }: { approvals: number; requests: n
   const parts = [
     approvals > 0 ? plural(approvals, 'task') + ' to check' : '',
     requests > 0 ? plural(requests, 'request') : '',
+    loans > 0 ? plural(loans, 'loan request') : '',
   ].filter(Boolean);
   return (
     <Card className="mt-4 border-warn/50 bg-warn-soft" role="region" aria-label="Waiting for you">
@@ -128,7 +130,7 @@ function WaitingBanner({ approvals, requests }: { approvals: number; requests: n
       <p className="mt-0.5 text-[15px] font-semibold">{parts.join(' · ')}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {approvals > 0 && <LinkButton to="/tasks/approvals" icon="check">Check tasks</LinkButton>}
-        {requests > 0 && <LinkButton to="/money/requests" variant="secondary" icon="money">See requests</LinkButton>}
+        {requests + loans > 0 && <LinkButton to="/money/requests" variant="secondary" icon="money">See requests</LinkButton>}
       </div>
     </Card>
   );

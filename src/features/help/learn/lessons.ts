@@ -369,6 +369,7 @@ const interest = core(
             text: `You owe ${m(100000)} on a credit card at 20% a year and pay nothing back. After one year you owe about ${m(roundWhole(owedAfter(100000, 20, 12)))}.`,
           },
           { kind: 'text', text: 'Credit cards and store accounts can cost **20% a year or more**. That’s why it’s smart to save first and buy later.' },
+          { kind: 'text', text: 'Borrowing from a parent works the same way: a fee means you pay back **more** than you got, and every repayment means less pocket money later.' },
         ],
       },
       {

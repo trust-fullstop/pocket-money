@@ -5,9 +5,11 @@ import {
   Avatar, Badge, Button, Card, EmptyState, LinkButton, PageHeader, Segmented, Sheet, Textarea, cx, useToast, type BadgeTone,
 } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useFeatures } from '../../lib/features';
 import { minutes, money, timeAgo } from '../../lib/format';
 import { useApp } from '../../lib/session';
-import type { Balances, MoneyRequest } from '../../lib/types';
+import type { Balances, Loan, MoneyRequest } from '../../lib/types';
+import { LoanRequestsSection } from './Loans';
 import { clip, isStale, moneyError, useData, useDelayed } from './moneyUtils';
 import { FeatureOff, LoadFailed, QuickChips, SheetActions, SkeletonRows } from './parts';
 import { timeLabelWords } from './txMeta';
@@ -217,18 +219,38 @@ function DeclineSheet({ req, name, cur, onClose, onChanged }: { req: MoneyReques
   );
 }
 
-/** /money/requests — managers: everything waiting in the family; others: their own requests. */
+/** /money/requests — managers: everything waiting in the family (loan requests on top); others: their own requests. */
 export function RequestsPage() {
   const { me, isManager, refresh, family, state } = useApp();
+  const features = useFeatures();
+  const reqOn = features.on('requests');
+  const loansOn = isManager && features.on('loans');
   const [view, setView] = useState<'pending' | 'all'>('pending');
-  const list = useData(() => api.listRequests(view), [view]);
+  const list = useData(() => (reqOn ? api.listRequests(view) : Promise.resolve([] as MoneyRequest[])), [view, reqOn]);
+  const loanList = useData(() => (loansOn ? api.listLoans() : Promise.resolve([] as Loan[])), [loansOn]);
   const skeleton = useDelayed(list.loading);
   const cur = family?.currency ?? 'EUR';
-  const changed = async () => { await Promise.all([refresh(), list.reload()]); };
+  const changed = async () => { await Promise.all([refresh(), list.reload(), loanList.reload()]); };
   const rows = list.data ?? [];
+  const loanAsks = (loanList.data ?? []).filter((l) => l.status === 'requested');
   const shown = view === 'all' ? rows.filter((r) => r.status !== 'pending' || !isManager) : rows;
   const waitingAll = view === 'all' && isManager ? rows.filter((r) => r.status === 'pending').length : 0;
-  if (list.code === 'feature_off') return <FeatureOff feature="requests" />;
+  if ((!reqOn || list.code === 'feature_off') && !loansOn) return <FeatureOff feature="requests" />;
+
+  if (!reqOn) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Requests" back="/money" subtitle="Loan requests from the kids. Say yes or no." />
+        <LoanRequestsSection loans={loanAsks} cur={cur} onChanged={changed} />
+        {loanList.loading ? (skeleton ? <SkeletonRows rows={2} /> : null) : loanList.error && !loanList.data ? (
+          <LoadFailed message={loanList.error} onRetry={loanList.reload} />
+        ) : loanAsks.length === 0 && (
+          <Card><EmptyState emoji="🎉" title="No loan requests" message="Nothing is waiting." /></Card>
+        )}
+        <div className="h-16" aria-hidden="true" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -236,6 +258,7 @@ export function RequestsPage() {
         title="Requests" back="/money"
         subtitle={isManager ? 'Say yes or no. You pay for what they buy in real life.' : 'What you asked for, and what the grown-ups said.'}
       />
+      {loansOn && <LoanRequestsSection loans={loanAsks} cur={cur} onChanged={changed} />}
       <Segmented<'pending' | 'all'>
         label="Show" value={view} onChange={setView}
         options={[
@@ -249,7 +272,7 @@ export function RequestsPage() {
         <Card>
           <EmptyState
             emoji={view === 'pending' ? (isManager ? '🎉' : '📭') : '🗂️'}
-            title={view === 'pending' ? (isManager ? 'No requests' : 'No requests yet') : 'Nothing earlier'}
+            title={view === 'pending' ? (isManager ? (loanAsks.length > 0 ? 'No other requests' : 'No requests') : 'No requests yet') : 'Nothing earlier'}
             message={view === 'pending'
               ? (isManager ? 'Nothing is waiting.' : 'Ask for something from your wallet.')
               : 'Decided requests from the last 60 days show up here.'}

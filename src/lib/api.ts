@@ -3,7 +3,8 @@
 import { backend } from './backend';
 import type {
   AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Invite,
-  InvitePreview, LessonDone, LoginDevice, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role, SpotInput, Target, TargetInput,
+  InvitePreview, LessonDone, LoginDevice, Loan, LoanRequestInput, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role,
+  SpotInput, Target, TargetInput,
   Task, TaskInput,
   TaskInstance, TickResult, Transaction, Wallet,
 } from './types';
@@ -75,6 +76,25 @@ export const api = {
   /** Settles the whole wallet. expectedCents = the amount shown; requestId = one crypto.randomUUID() per confirm sheet. */
   recordPayout: (memberId: string, expectedCents: number, requestId: string, note?: string | null) =>
     rpc<PayoutResult>('record_payout', { p_member: memberId, p_expected_cents: expectedCents, p_request: requestId, p_note: note ?? null }),
+
+  // ---- loans (a kid borrows from a parent; repayments come off the pocket money) ----
+  /** A kid asks for themselves (→ requested); a parent records a loan already given (→ active). */
+  requestLoan: (input: LoanRequestInput) =>
+    rpc<Loan>('request_loan', { p_member: input.member, p_amount: input.amount, p_purpose: input.purpose, p_plan: input.plan,
+      p_installment: input.installment ?? null }),
+  /** Parents: yes (feeCents 0 → active), yes with a one-time fee (→ offered, the kid accepts) or no. */
+  decideLoan: (loanId: string, approve: boolean, note?: string | null, feeCents = 0) =>
+    rpc<Loan>('decide_loan', { p_id: loanId, p_approve: approve, p_note: note ?? null, p_fee_cents: feeCents }),
+  acceptLoanOffer: (loanId: string, accept: boolean) => rpc<Loan>('accept_loan_offer', { p_id: loanId, p_accept: accept }),
+  /** requestId = one crypto.randomUUID() per sheet: a retry never pays twice. */
+  repayLoanNow: (loanId: string, amountCents: number, requestId: string) =>
+    rpc<Loan>('repay_loan_now', { p_id: loanId, p_amount: amountCents, p_request: requestId }),
+  forgiveLoan: (loanId: string, note?: string | null) => rpc<Loan>('forgive_loan', { p_id: loanId, p_note: note ?? null }),
+  cancelLoan: (loanId: string) => rpc<Loan>('cancel_loan', { p_id: loanId }),
+  /** Parents: undo one loan repayment (the generic reverseTransaction refuses them). */
+  reverseLoanRepayment: (txId: string, reason: string) => rpc<Loan>('reverse_loan_repayment', { p_tx: txId, p_reason: reason }),
+  /** Kids: their own loans. Parents: every kid's, or one kid's. Others: not_allowed. */
+  listLoans: (memberId?: string | null) => rpc<Loan[]>('list_loans', { p_member: memberId ?? null }),
 
   // ---- requests, goals, targets ----
   createRequest: (kind: RequestKind, amount: number, label: string | null, note: string | null) =>

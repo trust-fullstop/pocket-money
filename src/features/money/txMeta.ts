@@ -24,6 +24,8 @@ export const TX_META: Record<TxKind, TxMeta> = {
   reversal: { emoji: '↩️', label: 'Undone', tone: 'neutral' },
   allowance: { emoji: '💰', label: 'Pocket money', tone: 'plus' },
   payout: { emoji: '🏦', label: 'Paid out', tone: 'neutral' },
+  loan_repayment: { emoji: '🤝', label: 'Loan repayment', tone: 'neutral' },
+  adjustment: { emoji: '👛', label: 'Pocket money adjustment', tone: 'neutral' },
 };
 
 /** Meta for a kind (unknown kinds fall back to a neutral bullet with the raw name). */

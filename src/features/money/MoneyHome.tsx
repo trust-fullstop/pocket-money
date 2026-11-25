@@ -64,7 +64,7 @@ export function MoneyHome() {
   const kids = members.filter((m) => m.role === 'kid');
   const amG = me.role === 'grandparent';
   const gSees = family.settings?.grandparents_see_money !== false;
-  const waiting = requestsOn ? state?.counts.requests ?? 0 : 0;
+  const waiting = (requestsOn ? state?.counts.requests ?? 0 : 0) + (state?.counts.loans ?? 0);
   const mine = hasAny(balancesOf(me.id));
   const otherAdults = isManager ? members.filter((m) => m.role !== 'kid' && m.id !== me.id && hasAny(balancesOf(m.id))) : [];
 

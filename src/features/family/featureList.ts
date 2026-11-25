@@ -21,6 +21,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { key: 'goals', emoji: '🎯', label: 'Savings goals', line: 'Save up for something and see how many weeks are left.' },
       { key: 'targets', emoji: '🏁', label: 'Targets', line: 'Weekly or monthly targets with a prize when they are reached.' },
       { key: 'bank', emoji: '🏦', label: 'Real bank balance', line: 'Type in the balance of a kid’s real bank account (e.g. Revolut) to see it next to the app.' },
+      { key: 'loans', emoji: '🤝', label: 'Loans', line: 'Kids can borrow from a parent and choose how to pay it back — it comes off their pocket money.' },
     ],
   },
   {
@@ -50,7 +51,7 @@ export const FEATURE_INFO = Object.fromEntries(
   FEATURE_GROUPS.flatMap((g) => g.items).map((i) => [i.key, i]),
 ) as Record<FeatureKey, FeatureInfo>;
 
-/** All 19 switches, in the order they appear on the Features page. */
+/** All 20 switches, in the order they appear on the Features page. */
 export const FEATURE_KEYS: FeatureKey[] = FEATURE_GROUPS.flatMap((g) => g.items.map((i) => i.key));
 export const FEATURE_TOTAL = FEATURE_KEYS.length;
 

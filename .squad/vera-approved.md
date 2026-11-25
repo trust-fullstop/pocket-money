@@ -20,4 +20,6 @@
 
 - 2026-11-20: Pay-out overview (migration 20261116002000: kind 'payout', payout_summary, record_payout full-balance + idempotent; tally/no-savings exclude payouts). EUR shown prominently with rate. Kryptonite review applied. vera-payout FAIL (no-savings rule disabled after first payout) -> fixed (only this week's payout added back) -> PASS. 172/172 tests.
 
+- 2026-11-25: Loans (feature loans, migration 20261116002100): kid asks with own plan (per pocket money / all next), parent approves / offers fee / records directly; repayments from actual pocket-money rows, never overdraw; pay back now; forgive; dedicated undo; private from grandparents (masked kind 'adjustment'); pay-out loan bucket; tally=spent; no-savings adds back this week's repayment. Kryptonite review applied. vera-loans FAIL (deadlock via family FOR UPDATE; masked kind leak; undo vs newer loan) -> fixed -> PASS. 197/197 tests.
+
 status: approved

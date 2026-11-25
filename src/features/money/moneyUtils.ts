@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { friendlyError, toAppError, type ErrorCode } from '../../lib/errors';
 import { amount, formatWhen, money, timeAgo } from '../../lib/format';
-import type { Currency, Family, Member } from '../../lib/types';
+import type { Currency, Family, Loan, Member } from '../../lib/types';
 import { isManager } from '../../lib/types';
 
 export interface Loaded<T> {
@@ -106,6 +106,14 @@ export function moneyError(e: unknown, insufficient?: string): string {
   if (a.code === 'invalid' && a.detail === 'too_many_requests') return 'You already have 5 requests waiting. Wait for a grown-up first.';
   if (a.code === 'invalid' && a.detail === 'too_many_goals') return 'That is a lot of goals! Finish or remove one first.';
   if (a.code === 'invalid' && a.detail === 'too_many_targets') return 'There are already 20 targets. Remove one first.';
+  if (a.code === 'invalid' && a.detail === 'loan_open') return 'There is already a loan. Pay that one back first.';
+  if (a.code === 'invalid' && a.detail === 'too_many_loans') return 'You asked for a loan 3 times this week. Wait a few days first.';
+  if (a.code === 'invalid' && a.detail === 'more_than_owed') return 'That is more than is still to pay.';
+  if (a.code === 'invalid' && a.detail === 'installment') return 'Pick an amount per pocket money between 1 cent and the whole loan.';
+  if (a.code === 'invalid' && a.detail === 'fee') return 'The fee can be at most the amount of the loan.';
+  if (a.code === 'invalid' && a.detail === 'purpose') return 'Say what the loan is for (up to 80 letters).';
+  if (a.code === 'not_allowed' && a.detail === 'use_loan_tools') return 'Undo loan repayments from the loan card.';
+  if (a.code === 'not_allowed' && a.detail === 'forgiven') return 'This loan was forgiven, so its repayments stay.';
   return friendlyError(e);
 }
 
@@ -117,6 +125,19 @@ export const isStale = (e: unknown) => {
   const c = toAppError(e).code;
   return c === 'wrong_status' || c === 'not_found' || c === 'feature_off';
 };
+
+/** A loan still asked for, offered or being paid back (at most one per kid). */
+export const isOpenLoan = (l: Pick<Loan, 'status'>) => l.status === 'requested' || l.status === 'offered' || l.status === 'active';
+
+/** Close a sheet when the server says its part was switched off meanwhile; true when handled. */
+export async function closedIfOff(e: unknown, toast: { show: (msg: string, tone: 'error') => void }, onClose: () => void,
+  onChanged: () => Promise<void>): Promise<boolean> {
+  if (!isFeatureOff(e)) return false;
+  toast.show(moneyError(e), 'error');
+  onClose();
+  await onChanged();
+  return true;
+}
 
 /** Cut a string to n characters (for API limits) without breaking emoji surrogate pairs. */
 export function clip(s: string, n: number): string {

@@ -13,7 +13,7 @@ export function AppShell() {
   const features = useFeatures();
   const { pathname } = useLocation();
   const approvals = state?.counts.approvals ?? 0;
-  const requests = isManager ? state?.counts.requests ?? 0 : 0;
+  const requests = isManager ? (state?.counts.requests ?? 0) + (state?.counts.loans ?? 0) : 0;
   const canSpot = (isManager || me?.role === 'grandparent') && features.on('spotted');
   // Only on overview pages: on forms and detail pages it would cover their sticky action buttons.
   const overview = /^\/(tasks(\/approvals)?|money|calendar|family)?\/?$/.test(pathname);

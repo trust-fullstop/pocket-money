@@ -38,6 +38,7 @@ const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim
 /** Ledger kinds in words for the activity log ("Undid a consequence for Eva"). */
 const KIND_WORD: Record<string, string> = {
   fine: 'consequence', bonus: 'reward', task_penalty: 'missed-task consequence', task_reward: 'task reward', payout: 'pay-out',
+  loan_repayment: 'loan repayment',
 };
 /** The "≈ €13.13" part of a pay-out note ("≈ €13.13 at €1 = R 18.66 (ECB, 20 Nov 2026)"), if any. */
 const approxOf = (note: unknown) => str(note)?.match(/^≈\s*(.+?)\s+at\s/)?.[1];
@@ -62,6 +63,7 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     return parts.length ? ` (${list(parts)})` : '';
   };
   const k = (emoji: string, text: string): AuditText => ({ emoji, text, known: true });
+  const loanAmt = (key = 'amount') => money(Math.abs(num(d[key])), currency, { whole: true });
 
   switch (e.action) {
     case 'family.create': return k('🏠', `Started the family${str(d.name) ? ` “${str(d.name)}”` : ''}`);
@@ -115,6 +117,18 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
       return k('🏦', `Paid ${money(num(d.amount), currency, { whole: true })} out to ${who()}’s bank${approx ? ` (≈ ${approx})` : ''}`);
     }
     case 'bank.set': return k('🏦', `Updated ${who()}’s real bank balance${str(d.label) ? ` (${str(d.label)})` : ''}`);
+    case 'loan.request': return k('🤝', `${who()} asked to borrow ${loanAmt()}${str(d.purpose) ? ` for ${str(d.purpose)}` : ''}`);
+    case 'loan.record': return k('🤝', `Recorded a loan of ${loanAmt()} to ${who()}${str(d.purpose) ? ` for ${str(d.purpose)}` : ''}`);
+    case 'loan.approve': return k('✅', `Said yes to ${who()}’s loan of ${loanAmt()}`);
+    case 'loan.offer': return k('🤝', `Offered ${who()} a loan of ${loanAmt()}${num(d.fee) ? ` with a ${loanAmt('fee')} fee` : ''}`);
+    case 'loan.accept': return k('✅', `${who()} accepted the loan offer of ${loanAmt()}`);
+    case 'loan.decline': return d.offer
+      ? k('❌', `${who()} said no to the loan offer of ${loanAmt()}`)
+      : k('❌', `Said no to ${who()}’s loan of ${loanAmt()}`);
+    case 'loan.repay': return k('🤝', `Paid back ${loanAmt()} of ${who()}’s loan`);
+    case 'loan.forgive': return k('💛', `Forgave the last ${loanAmt()} of ${who()}’s loan`);
+    case 'loan.cancel': return k('🚫', `Cancelled a loan request of ${loanAmt()} for ${who()}`);
+    case 'loan.undo': return k('↩️', `Undid a loan repayment of ${loanAmt()} for ${who()}`);
     case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
     case 'request.create': return k('🙋', 'Made a request');
     case 'request.approve': return k('✅', `Said yes to ${who()}’s request`);

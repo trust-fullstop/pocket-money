@@ -101,6 +101,19 @@ describe('demo seed', () => {
       await expect(as(db, DEMO(kid))('list_needs')).rejects.toMatchObject({ code: 'not_allowed' });
     }
   });
+
+  it('has a loan: Dad lent Leo €20 for bike lights, €5 per pocket money, one repayment made', async () => {
+    const loans = await as(db, DEMO(1))<any[]>('list_loans');
+    expect(loans.map((l) => [l.purpose, l.status, l.amount_cents, l.installment_cents, l.repaid_cents, l.outstanding_cents]))
+      .toEqual([['Bike lights', 'active', 2000, 500, 500, 1500]]);
+    const leo = await as(db, DEMO(7))<any[]>('list_loans');
+    expect(leo.map((l) => l.id)).toEqual([loans[0].id]);
+    expect(await as(db, DEMO(5))<any[]>('list_loans')).toEqual([]);
+    await expect(as(db, DEMO(4))('list_loans')).rejects.toMatchObject({ code: 'not_allowed' });
+    const payout = await as(db, DEMO(1))<any[]>('payout_summary');
+    expect(payout.find((r) => r.member_id === loans[0].member_id)).toMatchObject({ loan_outstanding_cents: 1500,
+      loan_purpose: 'Bike lights' });
+  });
 });
 
 describe('demo seed works at any time of the week', () => {

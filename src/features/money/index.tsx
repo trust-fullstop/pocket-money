@@ -15,7 +15,7 @@ export default function MoneyModule() {
     <Routes>
       <Route index element={<MoneyHome />} />
       <Route path="spot" element={<FeatureGate feature="spotted"><SpotPage /></FeatureGate>} />
-      <Route path="requests" element={<FeatureGate feature="requests"><RequestsPage /></FeatureGate>} />
+      <Route path="requests" element={<RequestsPage />} />
       <Route path=":memberId" element={<WalletPage />} />
       <Route path=":memberId/targets" element={<FeatureGate feature="targets"><TargetsPage /></FeatureGate>} />
       <Route path=":memberId/goals" element={<FeatureGate feature="goals"><GoalsPage /></FeatureGate>} />
