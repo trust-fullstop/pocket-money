@@ -104,6 +104,7 @@ Per kid, weekly or monthly: "complete at least 80% of tasks", "earn at least €
 Each kid's wallet shows three tallies: **This week**, **This month** and **Year to date**.
 
 - Earned, lost, saved, spent and interest (money)
+- Borrowed and paid back (loans), for the kid and the parents only; others see loan repayments under "spent"
 - Time earned, lost and used
 - Points
 - Tasks done and missed

@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FAITH_LESSONS } from '../src/features/faith/reflections';
 import { VERSES, VERSE_BY_ID, bibleAppUrl, verseOfTheDay } from '../src/features/faith/verses';
+import { LESSONS } from '../src/features/help/learn/lessons';
 import { FAITH_LESSON_IDS, type Block, type LessonCtx } from '../src/features/help/learn/types';
+import { APPROVED_VERSES } from '../supabase/functions/ask/verses';
 
 const ctx = (over: Partial<LessonCtx> = {}): LessonCtx => ({
   m: (c) => `R ${(c / 100).toFixed(c % 100 ? 2 : 0)}`,
@@ -103,11 +105,29 @@ describe('verses', () => {
   });
 
   it('no daily verse can read as a judgement next to a missed task (lessons only, with context)', () => {
-    const harsh = /poor|poverty|sluggard|lazy|rebellious|wrath|punish|curse|destroy|discipline|chasten/i;
+    const harsh = /poor|poverty|sluggard|lazy|rebellious|wrath|punish|curse|destroy|discipline|chasten|wicked/i;
     for (const v of VERSES.filter((x) => x.daily)) expect(v.text, v.id).not.toMatch(harsh);
-    for (const id of ['storehouse', 'honour-with-wealth', 'love-of-money', 'borrower', 'reap-sow']) {
+    for (const id of ['storehouse', 'honour-with-wealth', 'love-of-money', 'borrower', 'reap-sow', 'righteous-repay', 'prudent-sees-danger', 'store-for-famine', 'yes-be-yes']) {
       expect(VERSE_BY_ID[id]?.daily, id).toBe(false);
     }
+    for (const id of ['owe-no-one', 'do-not-withhold']) expect(VERSE_BY_ID[id]?.daily, id).toBe(true);
+  });
+
+  it('every verse a lesson uses exists (core, series and faith; any reader)', () => {
+    const used = new Set<string>();
+    for (const l of LESSONS) {
+      for (const r of [...readers, ctx({ on: (k) => k !== 'loans' })]) {
+        for (const s of l.steps(r)) for (const b of s.blocks) if (b.kind === 'verse') used.add(b.id);
+      }
+    }
+    for (const id of used) expect(VERSE_BY_ID[id], id).toBeDefined();
+    for (const id of ['borrower', 'owe-no-one', 'righteous-repay', 'do-not-withhold', 'yes-be-yes', 'prudent-sees-danger', 'store-for-famine']) {
+      expect(used.has(id), id).toBe(true);
+    }
+  });
+
+  it('Ask Pocket’s approved verses are exactly the daily verses (regenerate supabase/functions/ask/verses.ts)', () => {
+    expect(APPROVED_VERSES).toEqual(VERSES.filter((x) => x.daily).map(({ ref, text }) => ({ ref, text })));
   });
 
   it('every verse has text and a Bible App link', () => {

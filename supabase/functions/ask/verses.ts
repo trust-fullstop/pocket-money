@@ -56,4 +56,6 @@ export const APPROVED_VERSES: { ref: string; text: string }[] = [
   { ref: '1 Peter 3:15', text: 'But sanctify the Lord God in your hearts. Always be ready to give an answer to everyone who asks you a reason concerning the hope that is in you, with humility and fear,' },
   { ref: 'Romans 12:18', text: 'If it is possible, as much as it is up to you, be at peace with all men.' },
   { ref: '1 Corinthians 15:3-4', text: 'For I delivered to you first of all that which I also received: that Christ died for our sins according to the Scriptures, that he was buried, that he was raised on the third day according to the Scriptures,' },
+  { ref: 'Romans 13:8', text: 'Owe no one anything, except to love one another; for he who loves his neighbour has fulfilled the law.' },
+  { ref: 'Proverbs 3:27-28', text: 'Don’t withhold good from those to whom it is due, when it is in the power of your hand to do it. Don’t say to your neighbour, “Go, and come again; tomorrow I will give it to you,” when you have it by you.' },
 ];

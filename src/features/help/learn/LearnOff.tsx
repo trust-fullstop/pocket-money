@@ -21,8 +21,8 @@ export function LearnOff() {
         emoji="🎓"
         title="Money school is switched off"
         message={isManager
-          ? 'Short lessons about saving, interest and earning. You can switch it on for the family in Features.'
-          : 'Short lessons about saving, interest and earning. Ask a parent if you’d like to use it.'}
+          ? 'Short lessons about saving, interest, earning, borrowing and insurance. You can switch it on for the family in Features.'
+          : 'Short lessons about saving, interest, earning, borrowing and insurance. Ask a parent if you’d like to use it.'}
         action={
           <div className="flex flex-col items-center gap-2">
             {isManager && <LinkButton to="/family/features" icon="settings">Open Features</LinkButton>}

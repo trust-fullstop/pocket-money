@@ -81,7 +81,7 @@ Parents decide which of these the family uses.
 
 ## 🎓 Money school
 
-Six short lessons (about 3 minutes each) that use your own family's numbers. Each one ends with a little quiz.
+Six short basic lessons (about 3 minutes each) that use your own family's numbers. Each one ends with a little quiz.
 
 1. **Why this app?** Cause and effect, responsibility and teamwork.
 2. **How to earn more.** Do it well, on time, and ask for extra jobs.
@@ -89,6 +89,8 @@ Six short lessons (about 3 minutes each) that use your own family's numbers. Eac
 4. **How to save.** Pay yourself first, the spend/save/give jars, and the 24-hour rule.
 5. **How interest works.** A calculator: no interest vs the family's savings bonus vs a real bank. Plus why borrowing costs money.
 6. **Saving for a goal.** How many weeks until you can buy it?
+
+Plus a themed series that opens on a date. **December: Borrowing and insurance** (opens 1 December) has six more lessons: how loans work, paying a loan back (with a loan calculator), what insurance is, insurance for people, home and car insurance, and phones, valuables and boats. Before it opens, kids see a locked preview; parents can look ahead.
 
 Parents can see which lessons each child has finished.
 

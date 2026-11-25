@@ -303,7 +303,7 @@ export interface PayoutRow {
   rewards_cents: number;
   /** Fines, missed tasks (≤ 0). */
   consequences_cents: number;
-  /** Loan repayments (net of undos, ≤ 0). */
+  /** Loan repayments, net of undos: ≤ 0, or > 0 when only undos of earlier repayments fall in this cycle. */
   loan_cents: number;
   /** Spent with OK, moved to or from savings. */
   other_cents: number;
@@ -331,6 +331,9 @@ export interface SpotInput {
 export interface Tally {
   period: 'week' | 'month' | 'ytd'; start: string; end: string;   // dates, end exclusive
   money_earned: number; money_lost: number; money_spent: number; money_saved: number; interest: number;
+  /** Loans (20261116002300), for the kid and the parents only — null for everyone else; older servers leave them
+   *  out (treat undefined as null). loan_repaid is signed: + paid back, − a repayment from an earlier period undone. */
+  loan_repaid?: number | null; loan_borrowed?: number | null;
   time_earned: number; time_lost: number; time_used: number;
   points_earned: number; points_lost: number;
   tasks_done: number; tasks_missed: number; tasks_open: number;

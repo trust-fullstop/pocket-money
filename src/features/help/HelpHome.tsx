@@ -7,6 +7,7 @@ import { useApp } from '../../lib/session';
 import { FaithSection } from '../faith/FaithSection';
 import { FAQ } from './answers';
 import { featureGuide } from './guide';
+import { monthLabel } from './learn/series';
 import { useLessonsDone } from './learn/useProgress';
 import { Disclosure } from './parts';
 
@@ -55,13 +56,15 @@ export default function HelpHome() {
 
   const learnOn = on('learn');
   const { count, total } = lessons.progress;
+  // The basics done and a lesson series just opened: point at what's new.
+  const fresh = count === total ? lessons.series.find((s) => s.open && s.next) : undefined;
   const tiles = (
     <nav key="tiles" aria-label="Help topics" className={cx('grid gap-3', learnOn ? 'grid-cols-3' : 'grid-cols-2')}>
       <Tile emoji="📖" title="How the app works" sub="Start here" onClick={() => jumpTo(isKid ? 'help-start' : 'help-purpose')} />
       {learnOn && (
         <Tile
           emoji="🎓" title="Money school" to="/help/learn"
-          sub={lessons.data !== undefined ? `${count} of ${total} done` : 'Short lessons'}
+          sub={lessons.data === undefined ? 'Short lessons' : fresh ? `New for ${monthLabel(fresh.series.opensOn)}` : `${count} of ${total} done`}
         />
       )}
       {on('ask')
@@ -166,7 +169,7 @@ export default function HelpHome() {
           {on('ask') && <Tip emoji="💬">Ask Pocket answers the kids’ questions about the app. Parents can read every question.</Tip>}
           {learnOn && (
             <Tip emoji="🎓">
-              <b>Money school:</b> six short lessons about saving, interest and goals, each with a quick quiz.
+              <b>Money school:</b> short lessons about saving, interest, goals, borrowing and insurance, each with a quick quiz.
               {isManager && <> <Link to="/help/learn/progress" className="font-semibold text-accent-ink underline underline-offset-2">See what the kids learned</Link>.</>}
             </Tip>
           )}

@@ -89,9 +89,10 @@ describe('a kid asks, a parent says yes, the pocket money pays it back', () => {
     expect(await summaryRow(f, f.Mia.id)).toMatchObject({ loan_cents: 0, loan_outstanding_cents: null, loan_purpose: null });
   });
 
-  it('tallies count the repayment as spent, not lost or earned', async () => {
+  it('tallies count the repayment as paid back, not spent, lost or earned (20261116002300)', async () => {
     const w = await f.Sam.rpc<any>('wallet', { p_member: f.Sam.id, p_history_limit: 0 });
-    expect(w.tallies.week).toMatchObject({ money_earned: 500, money_lost: 0, money_spent: 500 });
+    expect(w.tallies.week).toMatchObject({ money_earned: 500, money_lost: 0, money_spent: 0, loan_repaid: 500, loan_borrowed: 0 });
+    expect(w.tallies.month).toMatchObject({ loan_repaid: 500, loan_borrowed: 2000 });
   });
 
   it('loans are private: siblings and grandparents get not_allowed; grandparents see "Pocket money adjustment"', async () => {
@@ -166,9 +167,9 @@ describe('a kid asks, a parent says yes, the pocket money pays it back', () => {
     const oma = (await f.Oma.rpc<any>('wallet', { p_member: f.Sam.id, p_history_limit: 50 })).history
       .find((t: any) => t.masked && t.amount === 1300);
     expect(oma).toMatchObject({ kind: 'adjustment', reason: 'Pocket money adjustment', source_id: null, masked: true });
-    // tallies net the undo against the repayment (both in "spent")
+    // tallies net the undo against the repayment (both in "paid back", never in "spent")
     const w = await f.Sam.rpc<any>('wallet', { p_member: f.Sam.id, p_history_limit: 0 });
-    expect(w.tallies.month.money_spent).toBe(500 + 200 + 1300 - 1300);
+    expect(w.tallies.month).toMatchObject({ loan_repaid: 500 + 200 + 1300 - 1300, money_spent: 0 });
   });
 
   it('one open loan per kid', async () => {

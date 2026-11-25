@@ -186,6 +186,19 @@ export const VERSES: Verse[] = [
     text: 'Go and make disciples of all nations, baptising them in the name of the Father and of the Son and of the Holy Spirit,' },
   { id: 'died-and-raised', ref: '1 Corinthians 15:3-4', usfm: '1CO', ch: 15, from: 3, to: 4, themes: ['faith', 'church'], daily: true,
     text: 'For I delivered to you first of all that which I also received: that Christ died for our sins according to the Scriptures, that he was buried, that he was raised on the third day according to the Scriptures,' },
+  // Borrowing and insurance (December series). Romans 13:8 is about keeping commitments and love, not "every loan is sin".
+  { id: 'prudent-sees-danger', ref: 'Proverbs 22:3', usfm: 'PRO', ch: 22, from: 3, to: 3, themes: ['save', 'steward'], daily: false,
+    text: 'A prudent man sees danger and hides himself; but the simple pass on, and suffer for it.' },
+  { id: 'owe-no-one', ref: 'Romans 13:8', usfm: 'ROM', ch: 13, from: 8, to: 8, themes: ['family', 'steward'], daily: true,
+    text: 'Owe no one anything, except to love one another; for he who loves his neighbour has fulfilled the law.' },
+  { id: 'righteous-repay', ref: 'Psalm 37:21', usfm: 'PSA', ch: 37, from: 21, to: 21, themes: ['give', 'steward'], daily: false,
+    text: 'The wicked borrow, and don’t pay back, but the righteous give generously.' },
+  { id: 'do-not-withhold', ref: 'Proverbs 3:27-28', usfm: 'PRO', ch: 3, from: 27, to: 28, themes: ['give', 'family'], daily: true,
+    text: 'Don’t withhold good from those to whom it is due, when it is in the power of your hand to do it. Don’t say to your neighbour, “Go, and come again; tomorrow I will give it to you,” when you have it by you.' },
+  { id: 'store-for-famine', ref: 'Genesis 41:36', usfm: 'GEN', ch: 41, from: 36, to: 36, themes: ['save', 'provision'], daily: false,
+    text: 'The food will be to supply the land against the seven years of famine, which will be in the land of Egypt; so that the land will not perish through the famine.' },
+  { id: 'yes-be-yes', ref: 'Matthew 5:37', usfm: 'MAT', ch: 5, from: 37, to: 37, themes: ['work', 'family'], daily: false,
+    text: 'But let your ‘Yes’ be ‘Yes’ and your ‘No’ be ‘No.’ Whatever is more than these is of the evil one.' },
 ];
 
 export const VERSE_BY_ID: Record<string, Verse> = Object.fromEntries(VERSES.map((x) => [x.id, x]));

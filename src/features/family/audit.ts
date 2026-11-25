@@ -35,7 +35,7 @@ const MEMBER_FIELD: Record<string, string> = {
 };
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined);
-/** Ledger kinds in words for the activity log ("Undid a consequence for Eva"). */
+/** Ledger kinds in words for the activity log ("Undid a consequence for Mia"). */
 const KIND_WORD: Record<string, string> = {
   fine: 'consequence', bonus: 'reward', task_penalty: 'missed-task consequence', task_reward: 'task reward', payout: 'pay-out',
   loan_repayment: 'loan repayment',

@@ -1,9 +1,11 @@
 // Tallies card: This week · This month · This year, as cause → effect lines ("Earned +€5.00 — from tasks…").
+// Loans (20261116002300): "Borrowed" / "Paid back" lines for the kid and the parents (the server sends null to
+// everyone else), and "Still to pay back" for an open loan.
 import { useState } from 'react';
-import { Card, Segmented, cx } from '../../components/ui';
+import { Card, FxNote, Segmented, cx } from '../../components/ui';
 import { useFeatures } from '../../lib/features';
 import { addDays, formatDate, minutes, money, points } from '../../lib/format';
-import type { Tally, Wallet } from '../../lib/types';
+import type { Loan, Tally, Wallet } from '../../lib/types';
 import { CardTitle } from './parts';
 import { TONE_TEXT, type TxTone } from './txMeta';
 
@@ -37,7 +39,22 @@ function andList(parts: string[]): string {
   return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
 
-export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self: boolean; name: string; cur: string }) {
+/** Older servers leave the loan fields out: undefined counts as "not for this viewer". */
+const loanField = (v: number | null | undefined) => (v === undefined ? null : v);
+
+/** Borrowed / Paid back. A negative "paid back" is an undo of a repayment from an earlier period: money back to
+ *  the wallet, shown honestly as "+", not folded into a positive number. */
+function loanLines(t: Tally, m: (v: number) => string): Line[] {
+  const repaid = loanField(t.loan_repaid) ?? 0;
+  return [
+    line('borrowed', '🤝', 'Borrowed', 'A loan from a parent', loanField(t.loan_borrowed) ?? 0, m, 'neutral', false),
+    repaid < 0
+      ? { key: 'repaid', emoji: '↩️', label: 'Repayment undone', why: 'An earlier loan repayment, given back to the wallet', text: `+${m(-repaid)}`, words: `plus ${m(-repaid)}`, tone: 'neutral', zero: false }
+      : line('repaid', '↩️', 'Paid back', 'Loan repayments', repaid, m, 'neutral', false),
+  ];
+}
+
+export function TalliesCard({ wallet, self, name, cur, loans }: { wallet: Wallet; self: boolean; name: string; cur: string; loans?: Loan[] }) {
   const [period, setPeriod] = useState<Period>('week');
   const features = useFeatures();
   const on = features.on;
@@ -46,6 +63,14 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
   const savedOut = t.money_saved < 0;
   const timeOn = on('time');
   const pointsOn = on('points');
+  // The server decides who may see loans (null = not for this viewer); then show them while loans are on,
+  // or while there is loan money in any period or a loan on the list (so switching loans off hides nothing real).
+  const all = [wallet.tallies.week, wallet.tallies.month, wallet.tallies.ytd];
+  const loanFieldsIn = loanField(t.loan_borrowed) !== null && loanField(t.loan_repaid) !== null;
+  const showLoans = loanFieldsIn && (
+    on('loans') || all.some((x) => (loanField(x.loan_borrowed) ?? 0) !== 0 || (loanField(x.loan_repaid) ?? 0) !== 0) || (loans?.length ?? 0) > 0
+  );
+  const activeLoan = loans?.find((l) => l.status === 'active' && l.outstanding_cents > 0);
 
   // Lines (and their explanations) only for the parts that are switched on (Family → Features).
   const earnedFrom = andList([
@@ -56,6 +81,7 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
     line('lost', '⚠️', 'Lost', on('spotted') ? 'Fines and tasks not done in time' : 'Tasks not done in time', t.money_lost, m, 'minus', true),
     ...(on('savings') ? [line('saved', '🐷', savedOut ? 'Taken out of savings' : 'Saved', savedOut ? 'Moved back to the wallet' : 'Moved into savings', t.money_saved, m, 'neutral', false)] : []),
     line('spent', '🛍️', 'Spent', 'Things bought', t.money_spent, m, 'neutral', false),
+    ...(showLoans ? loanLines(t, m) : []),
     ...(on('interest') ? [line('interest', '🌱', 'Interest', 'Savings grew by themselves (counted in Earned)', t.interest, m, 'plus', true)] : []),
   ];
   const timeLines: Line[] = [
@@ -100,6 +126,12 @@ export function TalliesCard({ wallet, self, name, cur }: { wallet: Wallet; self:
       )}
 
       <TallyGroup title="Money" emoji="💰" lines={moneyLines} />
+      {activeLoan && (
+        <p className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-base [overflow-wrap:anywhere]">
+          <span aria-hidden="true">🤝 </span>Still to pay back: <strong className="tabular-nums">{m(activeLoan.outstanding_cents)}</strong>{' '}
+          <FxNote cents={activeLoan.outstanding_cents} currency={cur} className="text-[15px]" /> for “{activeLoan.purpose}”
+        </p>
+      )}
       {timeOn && <TallyGroup title="Time" emoji="⏱️" lines={timeLines} />}
       {pointsOn && <TallyGroup title="Points" emoji="✨" lines={pointLines} />}
 

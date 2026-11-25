@@ -1,24 +1,54 @@
-// /help/learn/:id — one lesson, one step at a time. Core lessons end with a quiz and are finished on the server;
-// faith reflections end with "Talk about it" and a Done (nothing stored).
+// /help/learn/:id — one lesson, one step at a time. Tracked lessons (core + series) end with a quiz and are finished on
+// the server; faith reflections end with "Talk about it" and a Done (nothing stored). A series lesson before its opening
+// day: a friendly locked page for kids and relatives, a preview for managers (the server says 'not_open' too).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router';
-import { Button, Card, Icon, LinkButton, PageHeader, ProgressBar } from '../../../components/ui';
+import { Button, Card, EmptyState, Icon, LinkButton, PageHeader, ProgressBar } from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { friendlyError, toAppError } from '../../../lib/errors';
 import { useApp } from '../../../lib/session';
 import { BlockView } from './blocks';
 import { visibleLessons } from './lessons';
 import { Quiz } from './Quiz';
+import { lessonGate, opensLabel, seriesOf, type LessonSeries } from './series';
 import { Rich } from './ui';
-import type { Lesson, LessonCtx } from './types';
-import { useLessonCtx, useLessonsDone } from './useLearn';
+import { isTracked, type Lesson, type LessonCtx } from './types';
+import { useFamilyToday, useLessonCtx, useLessonsDone } from './useLearn';
 
 export default function LessonPage() {
   const { id } = useParams();
   const ctx = useLessonCtx();
+  const { isManager } = useApp();
+  const today = useFamilyToday();
   const lesson = visibleLessons(ctx).find((l) => l.id === id);
   if (!lesson) return <Navigate replace to="/help/learn" />;
-  return <LessonView key={lesson.id} lesson={lesson} ctx={ctx} />;
+  const series = seriesOf(lesson.id);
+  const gate = lessonGate(lesson.id, today, isManager);
+  if (gate === 'locked' && series) return <LockedLesson lesson={lesson} series={series} />;
+  return <LessonView key={lesson.id} lesson={lesson} ctx={ctx} series={series} preview={gate === 'preview'} />;
+}
+
+function LessonTitle({ lesson }: { lesson: Lesson }) {
+  return <span className={`block whitespace-normal text-balance ${lesson.title.length > 22 ? 'text-[1.5rem]' : ''}`}>{lesson.title}</span>;
+}
+
+/** Before the opening day, for kids and relatives: no lesson text, just when it opens. */
+function LockedLesson({ lesson, series }: { lesson: Lesson; series: LessonSeries }) {
+  const opens = opensLabel(series.opensOn);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, []);
+  return (
+    <div className="pb-6">
+      <PageHeader title={<LessonTitle lesson={lesson} />} subtitle={series.title} back="/help/learn" />
+      <Card className="mt-2">
+        <EmptyState
+          emoji="🔒"
+          title={`Opens on ${opens}`}
+          message={<>“{lesson.title}” is part of <strong>{series.title}</strong>. It isn’t open yet: come back on {opens}!</>}
+          action={<LinkButton to="/help/learn" variant="secondary" icon="back">Back to Money school</LinkButton>}
+        />
+      </Card>
+    </div>
+  );
 }
 
 type Finish =
@@ -36,11 +66,11 @@ function reduceMotion() {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-function LessonView({ lesson, ctx }: { lesson: Lesson; ctx: LessonCtx }) {
+function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: LessonCtx; series?: LessonSeries; preview: boolean }) {
   const { refresh } = useApp();
-  const { progress } = useLessonsDone();
+  const { progress, series: seriesProgress } = useLessonsDone();
   const steps = useMemo(() => lesson.steps(ctx), [lesson, ctx]);
-  const quiz = useMemo(() => (lesson.kind === 'core' && lesson.quiz ? lesson.quiz(ctx) : []), [lesson, ctx]);
+  const quiz = useMemo(() => (isTracked(lesson.kind) && lesson.quiz ? lesson.quiz(ctx) : []), [lesson, ctx]);
   const hasQuiz = quiz.length > 0;
   const total = steps.length + (hasQuiz ? 1 : 0);
   const [i, setI] = useState(0);
@@ -71,18 +101,26 @@ function LessonView({ lesson, ctx }: { lesson: Lesson; ctx: LessonCtx }) {
       focusDone();
       void refresh();
     } catch (e) {
-      if (toAppError(e).code === 'feature_off') void refresh();
-      setFin({ s: 'error', msg: friendlyError(e) });
+      const err = toAppError(e);
+      if (err.code === 'feature_off') void refresh();
+      const notOpen = err.code === 'invalid' && err.detail === 'not_open' && series;
+      setFin({ s: 'error', msg: notOpen ? `This lesson opens on ${opensLabel(series.opensOn)}.` : friendlyError(e) });
     }
   };
 
-  // The next core lesson not done yet, after this one (wrapping round), for "Next lesson".
+  // "Next lesson": the next one not done yet in the same group (the core lessons, or this series), after this one and
+  // wrapping round. All core lessons done → the first lesson not done yet of a series that is open.
   const nextLesson = useMemo(() => {
-    const list = progress.list;
+    const own = series ? seriesProgress.find((p) => p.series.id === series.id) : progress;
+    if (!own) return null;
+    const list = own.list;
     const at = list.findIndex((l) => l.id === lesson.id);
     const order = [...list.slice(at + 1), ...list.slice(0, Math.max(0, at))];
-    return order.find((l) => !progress.done.has(l.id)) ?? null;
-  }, [progress, lesson.id]);
+    const next = order.find((l) => !own.done.has(l.id));
+    if (next) return next;
+    if (!series && lesson.kind === 'core') return seriesProgress.find((p) => p.open && p.next)?.next ?? null;
+    return null;
+  }, [progress, seriesProgress, series, lesson]);
 
   const talk = useMemo(() => {
     const prompts = steps.flatMap((s) => s.blocks.flatMap((b) => (b.kind === 'reflect' ? [b.prompt] : [])));
@@ -95,10 +133,17 @@ function LessonView({ lesson, ctx }: { lesson: Lesson; ctx: LessonCtx }) {
     <div className="pb-6">
       {/* PageHeader truncates its title; long lesson titles wrap here instead. */}
       <PageHeader
-        title={<span className={`block whitespace-normal text-balance ${lesson.title.length > 22 ? 'text-[1.5rem]' : ''}`}>{lesson.title}</span>}
-        subtitle={lesson.kind === 'faith' ? 'A reflection' : 'Money school'}
+        title={<LessonTitle lesson={lesson} />}
+        subtitle={lesson.kind === 'faith' ? 'A reflection' : series ? series.title : 'Money school'}
         back="/help/learn"
       />
+
+      {preview && series && (
+        <Card tone="warn" role="note" className="mb-4 flex items-start gap-3">
+          <Icon name="lock" size={20} className="mt-0.5 shrink-0" />
+          <p className="text-[15px] font-semibold leading-snug">Preview — the kids see this from {opensLabel(series.opensOn)}.</p>
+        </Card>
+      )}
 
       <div className="space-y-1.5">
         <p className="text-[14px] font-semibold text-muted">Step {i + 1} of {total}</p>

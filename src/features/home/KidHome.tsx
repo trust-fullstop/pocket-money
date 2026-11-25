@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Avatar, Card, EmptyState, FxNote, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
+import { Avatar, Badge, Card, EmptyState, FxNote, Icon, LinkButton, ListRow, ProgressBar, Stat, cx } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useFeatures, type FeatureApi } from '../../lib/features';
 import { minutes, money, plural, points } from '../../lib/format';
@@ -7,6 +7,7 @@ import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import type { Balances, EventOccurrence, Initiative, Member, TaskInstance, Wallet } from '../../lib/types';
 import { VerseOfTheDay } from '../faith/VerseCard';
+import { monthLabel, opensLabel } from '../help/learn/series';
 import { useLessonsDone } from '../help/learn/useProgress';
 import { ComingUp, HomeSection, KidTaskRow, Loaded, SectionError, Skeleton } from './shared';
 import { byStatusThenDue, countsForProgress, eventsWindow, gridCols, rewardParts, sumRewards, weekRange } from './lib';
@@ -349,6 +350,9 @@ function GoalCard({ wallet, meId, currency }: { wallet: LoadResult<Wallet>; meId
 function MoneySchoolCard() {
   const lessons = useLessonsDone();
   const { count, total, next } = lessons.progress;
+  // A lesson series that is open (from its opening day) with lessons left, and one that opens later.
+  const fresh = lessons.series.find((s) => s.open && s.next);
+  const soon = lessons.series.find((s) => !s.open && s.next);
   const title = <span><span aria-hidden="true">🎓 </span>Money school</span>;
   if (lessons.data === undefined) {
     return (
@@ -359,20 +363,60 @@ function MoneySchoolCard() {
       </HomeSection>
     );
   }
-  if (total === 0) return null;
+  if (total === 0 && !fresh) return null;
   const bar = (
     <ProgressBar
       className="mt-3" value={count} max={total} tone={next ? 'accent' : 'good'}
       label="Money school lessons done" valueText={`${count} of ${total} done`}
     />
   );
+  // The basics are done: the next lesson of the open series.
+  if (!next && fresh?.next) {
+    const n = fresh.next;
+    return (
+      <HomeSection title={title} link={{ to: `/help/learn#series-${fresh.series.id}`, label: 'All lessons' }}>
+        <Card>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[14px] font-semibold uppercase tracking-wide text-muted">Up next</p>
+            <Badge tone="accent" icon="star">New for {monthLabel(fresh.series.opensOn)}</Badge>
+          </div>
+          <div className="mt-1 flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{n.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-lg font-bold leading-snug">{n.title}</p>
+              <p className="text-[15px] text-muted">{n.summary}</p>
+            </div>
+          </div>
+          <ProgressBar
+            className="mt-3" value={fresh.count} max={fresh.total}
+            label={`${fresh.series.title}: lessons done`} valueText={`${fresh.count} of ${fresh.total} done`}
+          />
+          <p className="mt-1 text-[15px] font-semibold tabular-nums">{fresh.count} of {fresh.total} done · {fresh.series.title}</p>
+          <LinkButton to={`/help/learn/${n.id}`} block className="mt-3">
+            {fresh.count === 0 ? 'Start' : 'Continue'}: {n.title}
+          </LinkButton>
+        </Card>
+      </HomeSection>
+    );
+  }
   if (!next) {
+    const open = lessons.series.filter((s) => s.open);
+    const doneAll = count + open.reduce((s, x) => s + x.count, 0);
+    const totalAll = total + open.reduce((s, x) => s + x.total, 0);
     return (
       <HomeSection title={title}>
         <Link to="/help/learn" className="block rounded-2xl border border-line bg-surface p-4 shadow-sm transition active:scale-[0.99]">
           <p className="text-lg font-bold">All done! <span aria-hidden="true">🎉</span></p>
-          <p className="text-[15px] text-muted">{count} of {total} lessons done. Do them again any time.</p>
-          {bar}
+          <p className="text-[15px] text-muted">{doneAll} of {totalAll} lessons done. Do them again any time.</p>
+          <ProgressBar
+            className="mt-3" value={doneAll} max={totalAll} tone="good"
+            label="Money school lessons done" valueText={`${doneAll} of ${totalAll} done`}
+          />
+          {soon && (
+            <p className="mt-3 text-[15px] font-semibold">
+              <span aria-hidden="true">🔒 </span>New lessons open on {opensLabel(soon.series.opensOn)}.
+            </p>
+          )}
         </Link>
       </HomeSection>
     );
@@ -393,6 +437,16 @@ function MoneySchoolCard() {
         <LinkButton to={`/help/learn/${next.id}`} block className="mt-3">
           {count === 0 ? 'Start' : 'Continue'}: {next.title}
         </LinkButton>
+        {fresh && (
+          <Link
+            to={`/help/learn#series-${fresh.series.id}`}
+            className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-accent-soft px-3 py-2 text-[15px] font-semibold text-accent-ink"
+          >
+            <span aria-hidden="true">{fresh.series.emoji}</span>
+            <span className="min-w-0 flex-1">New: {monthLabel(fresh.series.opensOn)} series</span>
+            <Icon name="chevron-right" size={18} />
+          </Link>
+        )}
       </Card>
     </HomeSection>
   );

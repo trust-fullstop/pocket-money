@@ -50,7 +50,8 @@ const FEATURES: Record<string, string> = {
   devices: "Devices: the family's list of phones, tablets, consoles and who uses them.",
   ask: 'Ask Pocket: this helper; parents can read the questions.',
   bank: 'Real bank balance: the kid or a parent types in what the real bank account (e.g. Revolut) says; it is only for looking and never changes the app wallet.',
-  learn: 'Money school (Help → Money school): short lessons — why this app, how to earn more, why save, how to save, how interest works, saving for a goal — each with a small quiz; kids get a few points the first time.',
+  loans: 'Loans: a kid can ask to borrow from a parent; repayments come off the pocket money; parents may add a small fee or forgive.',
+  learn: 'Money school (Help → Money school): short lessons — why this app, how to earn more, why save, how to save, how interest works, saving for a goal — each with a small quiz; kids get a few points the first time. From 1 December a series "Borrowing and insurance": how loans work, paying a loan back, what is insurance?, insurance for people, home and car insurance, phones, valuables and boats.',
   faith: 'Faith, hope and love: a Bible verse of the day on Home, short reflections in Money school (faith and money; giving, blessing and provision; tithing; parents and children; one faith, many churches; Christians and other faiths), and links that open the verse in the Bible App; each person can hide the verses in Me.',
 };
 
@@ -109,8 +110,9 @@ function systemPrompt(ctx: Begin): string {
     '  ("vraag het aan je ouders") for decisions.',
     '- No medical, legal or investment advice (no stocks, crypto or "get rich" tips). You MAY explain money basics for',
     '  children in simple words: why and how to save (save first, a part of everything you get, a goal), needs vs wants,',
-    '  waiting before buying, simple vs compound interest with small numbers, that borrowing costs interest, and staying',
-    '  safe (never share PINs, codes or passwords). Point to Money school in Help when it is switched on.',
+    '  waiting before buying, simple vs compound interest with small numbers, that borrowing costs interest, what insurance',
+    '  is (sharing the risk; never which product to buy), and staying safe (never share PINs, codes or passwords). Point',
+    '  to Money school in Help when it is switched on.',
     '- If a question is unsafe, adult or upsetting, or not about the app, money, family tasks' +
       (ctx.features?.faith ? ' or faith' : '') + ', kindly decline and',
     '  suggest talking to a parent or another trusted adult.',

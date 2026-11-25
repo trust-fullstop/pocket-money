@@ -1,12 +1,16 @@
 // "💸 Pay-out" (managers): the parent who is "the bank" pays each child's wallet into the child's real bank account.
-// Per child: how the wallet was built up since the last pay-out (pocket money, rewards, consequences, spends), how
-// much more or less that is than the normal pocket money, and "Paid ✅", which empties the wallet in the app (undo
-// in the child's history). With a second currency (family rule "Also show money in") the estimate in that currency
-// is shown just as large, because that is what the parent types into the banking app; the note on the pay-out keeps
-// the estimate and the rate. The family currency stays the real amount.
+// Per child: how the wallet was built up since the last pay-out (pocket money, rewards, consequences, loan
+// repayments, spends), how much more or less that is than the normal pocket money, and "Paid ✅", which empties the
+// wallet in the app (undo in the child's history). With a second currency (family rule "Also show money in") the
+// estimate in that currency is shown just as large, because that is what the parent types into the banking app; the
+// note on the pay-out keeps the estimate and the rate. The family currency stays the real amount.
+// Loans: a "🤝 Loan" panel per child (what was lent, paid back, still to go, and what the next pocket money will
+// repay), loan requests waiting for an answer, "Record a loan", and in the top card what is still owed in total.
+// The loan list is loaded next to the summary; without it the page falls back to the summary's loan fields.
+// Outstanding debt is never part of the wallet breakdown: start + allowance + rewards + consequences + loan + other = wallet.
 import { useRef, useState } from 'react';
 import {
-  Avatar, Button, Card, EmptyState, Icon, IconButton, LinkButton, PageHeader, Sheet, Spinner, cx, useToast,
+  Avatar, Button, Card, EmptyState, Icon, IconButton, LinkButton, PageHeader, ProgressBar, Sheet, Spinner, cx, useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
 import { friendlyError, toAppError } from '../../lib/errors';
@@ -14,7 +18,8 @@ import { useFeatures } from '../../lib/features';
 import { FX_ENTRY_MAX_AGE_MS, approxMoney, currencyWord, rateHeadline, toQuote, useFx, type Fx, type FxRate } from '../../lib/fx';
 import { addDays, dateInTz, formatDate, money, nextPayDate, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
-import type { Member, PayoutRow } from '../../lib/types';
+import type { Loan, Member, PayoutRow } from '../../lib/types';
+import { isOpenLoan } from '../money/moneyUtils';
 
 const CHANGED = 'The amount just changed. Here’s the new amount.';
 
@@ -54,6 +59,21 @@ interface Second {
 
 const DAY_MS = 86_400_000;
 
+/** The pay-out rows, and every kid's loans (null when the list couldn't be loaded: then the rows' loan fields are used). */
+interface PayoutData { rows: PayoutRow[]; loans: Loan[] | null }
+
+const activeLoanOf = (loans: Loan[], memberId: string) => loans.find((l) => l.member_id === memberId && l.status === 'active');
+
+async function loadPayout(): Promise<PayoutData> {
+  const [rows, first] = await Promise.all([api.payoutSummary(), api.listLoans().catch(() => null)]);
+  // payout_summary catches up first (pocket money and its loan repayment), so a list read at the same moment can
+  // be a step behind: read it once more when the two disagree.
+  const agrees = (list: Loan[]) =>
+    rows.every((r) => (activeLoanOf(list, r.member_id)?.outstanding_cents ?? 0) === (r.loan_outstanding_cents ?? 0));
+  const loans = first && !agrees(first) ? await api.listLoans().catch(() => null) : first;
+  return { rows, loans };
+}
+
 function useSecond(): { fx: Fx | null; second: Second | null; stale: boolean } {
   const fx = useFx();
   const r = fx?.rate ?? null;
@@ -79,13 +99,15 @@ export default function Payout() {
   const { membersById, family, now, refresh } = useApp();
   const cur = family?.currency ?? 'EUR';
   const tz = family?.timezone ?? 'UTC';
-  const q = useLoad(() => api.payoutSummary(), []);
+  const q = useLoad(loadPayout, []);
   const { fx, second, stale } = useSecond();
   const [paying, setPaying] = useState<PayoutRow | null>(null);
 
-  const rows = (q.data ?? []).filter((r) => membersById[r.member_id]);
+  const rows = (q.data?.rows ?? []).filter((r) => membersById[r.member_id]);
+  const loans = q.data?.loans ?? null;
   const total = rows.reduce((s, r) => s + r.to_pay_cents, 0);
   const totalSecond = second ? rows.reduce((s, r) => s + second.cents(r.to_pay_cents), 0) : 0;
+  const owed = rows.reduce((s, r) => s + (loans ? (activeLoanOf(loans, r.member_id)?.outstanding_cents ?? 0) : (r.loan_outstanding_cents ?? 0)), 0);
   const today = todayISO(tz, now());
 
   return (
@@ -110,12 +132,13 @@ export default function Payout() {
       ) : (
         <div className="space-y-4">
           <TopCard
-            total={total} totalSecond={totalSecond} cur={cur} fx={fx} second={second} stale={stale}
+            total={total} totalSecond={totalSecond} owed={owed} cur={cur} fx={fx} second={second} stale={stale}
             kids={rows.length} payable={rows.filter((r) => r.to_pay_cents > 0).length}
           />
           {rows.map((r) => (
             <KidCard
               key={r.member_id} row={r} kid={membersById[r.member_id]} cur={cur} tz={tz} today={today} second={second}
+              loans={loans && loans.filter((l) => l.member_id === r.member_id)}
               onPay={() => setPaying(r)}
             />
           ))}
@@ -137,8 +160,8 @@ export default function Payout() {
   );
 }
 
-function TopCard({ total, totalSecond, cur, fx, second, stale, kids, payable }: {
-  total: number; totalSecond: number; cur: string; fx: Fx | null; second: Second | null; stale: boolean; kids: number; payable: number;
+function TopCard({ total, totalSecond, owed, cur, fx, second, stale, kids, payable }: {
+  total: number; totalSecond: number; owed: number; cur: string; fx: Fx | null; second: Second | null; stale: boolean; kids: number; payable: number;
 }) {
   return (
     <Card tone="accent" role="region" aria-labelledby="payout-total">
@@ -154,6 +177,16 @@ function TopCard({ total, totalSecond, cur, fx, second, stale, kids, payable }: 
       <p className="mt-1 text-[14px] text-muted">
         {total > 0 ? forWhom(payable, kids) : 'Nothing to pay over right now.'}
       </p>
+      {owed > 0 && (
+        <p className="mt-2 text-base font-semibold">
+          <span aria-hidden="true">🤝 </span>Still owed to you in loans: <span className="tabular-nums">{whole(owed, cur)}</span>
+          {second && (
+            <span className="font-normal text-muted tabular-nums">
+              {' '}(<span aria-hidden="true">≈ </span><span className="sr-only">about </span>{second.text(owed)})
+            </span>
+          )}
+        </p>
+      )}
 
       {fx && (
         <div className="mt-3 flex items-center gap-2 border-t border-accent/20 pt-3">
@@ -190,8 +223,11 @@ function Line({ label, cents, cur, strong }: { label: string; cents: number; cur
   );
 }
 
-function KidCard({ row, kid, cur, tz, today, second, onPay }: {
-  row: PayoutRow; kid: Member; cur: string; tz: string; today: string; second: Second | null; onPay: () => void;
+function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
+  row: PayoutRow; kid: Member; cur: string; tz: string; today: string; second: Second | null;
+  /** This kid's loans (null: the list couldn't be loaded). */
+  loans: Loan[] | null;
+  onPay: () => void;
 }) {
   const features = useFeatures();
   const name = kid.display_name;
@@ -200,11 +236,17 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
   const hasSchedule = features.on('allowance') && (row.allowance_cents_per_period ?? 0) > 0;
   const next = hasSchedule ? nextPayDate(row.allowance_period, row.allowance_day, addDays(today, 1)) : null;
   const since = row.last_payout_at ? `Since the last pay-out on ${formatDate(dateInTz(row.last_payout_at, tz))}` : 'Since joining';
+  const open = loans?.find(isOpenLoan) ?? null;
+  const active = open?.status === 'active' ? open : null;
+  const justRepaid = loans && !open
+    ? loans.find((l) => l.status === 'repaid' && !!l.ended_at && Date.parse(l.ended_at) > Date.parse(row.since)) ?? null
+    : null;
 
   const why = [
     row.rewards_cents !== 0 && 'rewards',
     row.consequences_cents !== 0 && 'consequences',
-    row.loan_cents !== 0 && 'a loan repayment',
+    row.loan_cents < 0 && 'a loan repayment',
+    row.loan_cents > 0 && 'an undone loan repayment',
     row.other_cents !== 0 && 'spending',
   ].filter((w): w is string => !!w);
   const because = why.length ? `, because of ${why.length > 1 ? `${why.slice(0, -1).join(', ')} and ${why[why.length - 1]}` : why[0]}` : '';
@@ -234,7 +276,7 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
         <Line label="Pocket money" cents={row.allowance_cents} cur={cur} />
         <Line label="Rewards and tasks" cents={row.rewards_cents} cur={cur} />
         <Line label="Consequences" cents={row.consequences_cents} cur={cur} />
-        {row.loan_cents !== 0 && <Line label="Loan repayment" cents={row.loan_cents} cur={cur} />}
+        {row.loan_cents !== 0 && <Line label={row.loan_cents > 0 ? 'Loan repayment undone' : 'Loan repayment'} cents={row.loan_cents} cur={cur} />}
         {row.other_cents !== 0 && <Line label="Spent with OK / moved to savings" cents={row.other_cents} cur={cur} />}
         <div className="!mt-2 flex flex-wrap items-baseline justify-between gap-x-3 border-t border-line pt-2">
           <dt className="font-bold">In the wallet now</dt>
@@ -251,9 +293,32 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
 
       {versus && <p className={cx('mt-1 text-[15px] font-semibold', versus.tone)}>{versus.text}</p>}
       {pocket && <p className="mt-1 text-[14px] text-muted">{pocket}</p>}
-      {row.loan_outstanding_cents != null && row.loan_outstanding_cents > 0 && (
-        <p className="mt-1 text-[14px] font-semibold [overflow-wrap:anywhere]">
-          <span aria-hidden="true">🤝 </span>Loan: {whole(row.loan_outstanding_cents, cur)} still to go{row.loan_purpose ? ` (${row.loan_purpose})` : ''}
+
+      {active ? (
+        <LoanPanel loan={active} row={row} name={name} cur={cur} tz={tz} second={second} />
+      ) : !loans && row.loan_outstanding_cents != null && row.loan_outstanding_cents > 0 ? (
+        <LoanPanelFallback row={row} outstanding={row.loan_outstanding_cents} cur={cur} second={second} />
+      ) : null}
+      {open?.status === 'requested' && (
+        <div className="mt-3 rounded-2xl bg-warn-soft px-3 pt-2 text-base">
+          <p className="[overflow-wrap:anywhere]">
+            <span aria-hidden="true">⏳ </span>{name} asked to borrow {whole(open.amount_cents, cur)} for “{open.purpose}”
+          </p>
+          {features.on('loans') ? (
+            <LinkButton to="/money/requests" variant="ghost" size="sm" className="-ml-3.5">
+              See requests<span className="sr-only"> from {name}</span>
+            </LinkButton>
+          ) : <div className="h-2" />}
+        </div>
+      )}
+      {open?.status === 'offered' && (
+        <p className="mt-3 rounded-2xl bg-warn-soft px-3 py-2 text-base [overflow-wrap:anywhere]">
+          <span aria-hidden="true">⏳ </span>Waiting for {name} to accept the {whole(open.fee_cents, cur)} fee on {whole(open.amount_cents, cur)} for “{open.purpose}”
+        </p>
+      )}
+      {justRepaid && (
+        <p className="mt-3 text-[15px] font-semibold text-good [overflow-wrap:anywhere]">
+          <span aria-hidden="true">🎉 </span>Loan paid back: “{justRepaid.purpose}”
         </p>
       )}
 
@@ -269,8 +334,101 @@ function KidCard({ row, kid, cur, tz, today, second, onPay }: {
           </p>
         )}
         <LinkButton to={`/money/${row.member_id}`} variant="ghost" size="sm" block>{name}’s history</LinkButton>
+        {loans && !open && features.on('loans') && (
+          <LinkButton to={`/money/${row.member_id}?loan=1`} variant="ghost" size="sm" block>
+            <span aria-hidden="true">🤝</span> Record a loan<span className="sr-only"> for {name}</span>
+          </LinkButton>
+        )}
       </div>
     </Card>
+  );
+}
+
+/** "−R 50" for the eye, "R 50" for the ear (the sentence says what the minus means). */
+const ear = (cents: number, cur: string) => whole(Math.abs(cents), cur);
+
+/** The open loan: what was lent, paid back so far, what is still to go, and what the next pocket money repays. */
+function LoanPanel({ loan, row, name, cur, tz, second }: {
+  loan: Loan; row: PayoutRow; name: string; cur: string; tz: string; second: Second | null;
+}) {
+  const id = `payout-loan-${loan.id}`;
+  const allowance = row.allowance_cents_per_period ?? 0;
+  const nextAmount = loan.next_amount_cents ?? 0;
+  const day = loan.next_pay_on ? formatDate(loan.next_pay_on) : null;
+  // The repayment is capped by what is in the wallet then (now + the pocket money), so it is only a plan.
+  const capped = row.wallet_cents + allowance < nextAmount;
+  const left = allowance - nextAmount;
+  const paidText = `${whole(loan.repaid_cents, cur)} of ${whole(loan.total_cents, cur)} paid back`;
+
+  return (
+    <section aria-labelledby={id} className="mt-3 space-y-2 rounded-2xl border border-accent/30 bg-accent-soft/40 p-3 text-base">
+      <h3 id={id} className="font-bold"><span aria-hidden="true">🤝 </span>Loan</h3>
+      <p className="font-semibold [overflow-wrap:anywhere]">“{loan.purpose}”</p>
+      {loan.started_at && (
+        <p>
+          Lent on {formatDate(dateInTz(loan.started_at, tz))}: <span className="tabular-nums">{whole(loan.amount_cents, cur)}</span>
+          {loan.fee_cents > 0 && <> + <span className="tabular-nums">{whole(loan.fee_cents, cur)}</span> fee</>}
+        </p>
+      )}
+      <div>
+        <ProgressBar value={loan.repaid_cents} max={loan.total_cents} tone="good" label={`${name}’s loan paid back`} valueText={paidText} />
+        <p className="mt-1 tabular-nums" aria-hidden="true">{paidText}</p>
+      </div>
+      <p className="font-bold tabular-nums">
+        Still to go: {whole(loan.outstanding_cents, cur)}
+        {second && (
+          <span className="ml-2 text-accent-ink">
+            <span aria-hidden="true">≈ </span><span className="sr-only">about </span>{second.text(loan.outstanding_cents)}
+          </span>
+        )}
+      </p>
+      {day && nextAmount > 0 ? (
+        <>
+          <p>
+            <span aria-hidden="true">
+              Planned: {capped ? 'up to ' : ''}<span className="tabular-nums">{signed(-nextAmount, cur)}</span> off the pocket money on {day}
+              {capped ? ' — no more than is in the wallet then' : ''}
+            </span>
+            <span className="sr-only">
+              Planned: {capped ? 'up to ' : ''}{ear(nextAmount, cur)} comes off the pocket money on {day}{capped ? ', no more than is in the wallet then' : ''}
+            </span>
+          </p>
+          {allowance > 0 && (
+            <p className="rounded-xl bg-surface px-3 py-2 text-base tabular-nums">
+              <span aria-hidden="true">
+                {day}: {signed(allowance, cur)} pocket money − {capped ? 'up to ' : ''}{whole(nextAmount, cur)} loan
+                {left <= 0 ? ': the loan takes the whole pocket money' : capped ? '' : <> = <strong>{signed(left, cur)}</strong> into the wallet</>}
+              </span>
+              <span className="sr-only">
+                On {day}: {ear(allowance, cur)} pocket money, minus {capped ? 'up to ' : ''}{ear(nextAmount, cur)} for the loan
+                {left <= 0 ? ': the loan takes the whole pocket money' : capped ? '' : `, leaves ${ear(left, cur)} for the wallet`}
+              </span>
+            </p>
+          )}
+        </>
+      ) : (
+        <p>No pocket money set — it’s paid back with “Pay back now”.</p>
+      )}
+    </section>
+  );
+}
+
+/** Without the loan list: just what the pay-out summary knows (the purpose and what is still to go). */
+function LoanPanelFallback({ row, outstanding, cur, second }: { row: PayoutRow; outstanding: number; cur: string; second: Second | null }) {
+  const id = `payout-loan-${row.member_id}`;
+  return (
+    <section aria-labelledby={id} className="mt-3 space-y-1 rounded-2xl border border-accent/30 bg-accent-soft/40 p-3 text-base">
+      <h3 id={id} className="font-bold"><span aria-hidden="true">🤝 </span>Loan</h3>
+      {row.loan_purpose && <p className="font-semibold [overflow-wrap:anywhere]">“{row.loan_purpose}”</p>}
+      <p className="font-bold tabular-nums">
+        Still to go: {whole(outstanding, cur)}
+        {second && (
+          <span className="ml-2 text-accent-ink">
+            <span aria-hidden="true">≈ </span><span className="sr-only">about </span>{second.text(outstanding)}
+          </span>
+        )}
+      </p>
+    </section>
   );
 }
 

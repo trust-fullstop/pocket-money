@@ -1,10 +1,11 @@
 // Money school widgets: try-it tools inside lessons. Everything is in the family currency, nothing is saved.
 import { useId, useState, type ReactNode } from 'react';
 import { AmountInput, Chip, Icon, cx } from '../../../components/ui';
-import { addDays, formatDate } from '../../../lib/format';
+import { addDays, formatDate, plural } from '../../../lib/format';
 import { useApp } from '../../../lib/session';
 import { bonusOn, pctMonthOf } from './lessons';
-import { familyYearPct, growBank, growFamilyBonus, growNoInterest, pct, splitJars, weeksToGoal } from './math';
+import { exampleCents, familyYearPct, growBank, growFamilyBonus, growNoInterest, loanTotals, pct, perMonth, splitJars, weeksToGoal } from './math';
+import { EXAMPLE_LOAN } from './seriesLessons';
 import type { Block, LessonCtx } from './types';
 import { MarkIcon, RadioCards, type Mark } from './ui';
 
@@ -16,6 +17,7 @@ export function Widget({ kind, ctx }: { kind: WidgetKind; ctx: LessonCtx }) {
     case 'jars': return <JarsWidget ctx={ctx} />;
     case 'goal': return <GoalWidget ctx={ctx} />;
     case 'needs-wants': return <NeedsWantsWidget />;
+    case 'loan': return <LoanWidget ctx={ctx} />;
   }
 }
 
@@ -278,5 +280,118 @@ function NeedsWantsWidget() {
         )}
       </div>
     </WidgetBox>
+  );
+}
+
+// ---------------------------------------------------------------- loan
+
+const MONTH_CHOICES = [12, 24, 36];
+
+function LoanWidget({ ctx }: { ctx: LessonCtx }) {
+  const { m } = ctx;
+  // Starts with the lesson's example loan, so the numbers match the text above it.
+  const [amount, setAmount] = useState<number | null>(() => exampleCents(ctx.currency, EXAMPLE_LOAN.randCents));
+  const [rate, setRate] = useState(EXAMPLE_LOAN.pct);
+  const [months, setMonths] = useState(12);
+  const cents = amount ?? 0;
+  const t = loanTotals(cents, rate, months);
+  const pocket = ctx.allowanceCents > 0 ? perMonth(ctx.allowanceCents, ctx.allowancePeriod) : 0;
+  const share = pocket > 0 ? t.installment / pocket : 0;
+
+  let fit: ReactNode = null;
+  if (pocket > 0 && cents > 0) {
+    const of = <>about <strong className="tabular-nums">{Math.round(share * 100)}%</strong> of your pocket money (about {m(pocket)} a month)</>;
+    fit = share <= 0.25
+      ? <>That’s {of}. It fits the quarter rule. 👍</>
+      : share <= 1
+        ? <>That’s {of}. More than a quarter: it would squeeze everything else. 😬</>
+        : <>That’s more than all your pocket money every month ({m(pocket)}). 🛑</>;
+  }
+
+  return (
+    <WidgetBox emoji="📅" title="What does a loan cost?">
+      <AmountInput kind="money" label="Amount you borrow" value={amount} onChange={setAmount} max={MAX_CENTS} />
+      <RangeField label="Interest a year" value={rate} onChange={setRate} min={0} max={30} step={0.5} format={pct} />
+      <RangeField
+        label="Pay back over" value={months} onChange={setMonths} min={1} max={60} step={1}
+        format={(v) => plural(v, 'month')} quick={MONTH_CHOICES}
+      />
+
+      <div aria-live="polite" className="space-y-2">
+        {cents > 0 ? (
+          <>
+            {/* One row per result, the amount on the right and never wrapped: big loans have long numbers. */}
+            <div className="space-y-2">
+              <LoanResult
+                emoji="📅" label="Every month" value={m(t.installment)} highlight
+                note={t.months > 1 && t.last !== t.installment ? <>last one <span className="whitespace-nowrap">{m(t.last)}</span></> : undefined}
+              />
+              <LoanResult emoji="💸" label="Total paid" value={m(t.total)} />
+              <LoanResult emoji="📈" label="Total interest" value={m(t.interest)} />
+            </div>
+            {fit && (
+              <p className={cx('rounded-xl px-4 py-3 text-[16px] leading-snug', share <= 0.25 ? 'bg-good-soft' : 'bg-warn-soft')}>{fit}</p>
+            )}
+          </>
+        ) : (
+          <p className="text-[16px] font-semibold">Type an amount to see the payments.</p>
+        )}
+      </div>
+
+      <p className="text-[14px] leading-snug text-muted">Fixed monthly payments, yearly rate ÷ 12, no fees.</p>
+    </WidgetBox>
+  );
+}
+
+function LoanResult({ emoji, label, value, note, highlight }: {
+  emoji: string; label: string; value: string; note?: ReactNode; highlight?: boolean;
+}) {
+  return (
+    <div className={cx('flex items-center gap-3 rounded-xl border px-3 py-2.5', highlight ? 'border-accent bg-accent-soft' : 'border-line bg-surface-2')}>
+      <span className="text-xl" aria-hidden="true">{emoji}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold leading-tight text-muted">{label}</span>
+        {note && <span className="block text-[12px] leading-tight text-accent-ink">{note}</span>}
+      </span>
+      <span className="shrink-0 whitespace-nowrap text-[17px] font-bold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+/** A number with a slider and − / + buttons (big enough to tap), plus optional quick picks. */
+function RangeField({ label, value, onChange, min, max, step, format, quick }: {
+  label: string; value: number; onChange: (v: number) => void; min: number; max: number; step: number;
+  format: (v: number) => string; quick?: number[];
+}) {
+  const id = useId();
+  const clamp = (v: number) => Math.min(max, Math.max(min, Number((Math.round(v / step) * step).toFixed(2))));
+  const btn = 'grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink transition hover:bg-surface-2 disabled:opacity-40';
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <label htmlFor={id} className="font-semibold">{label}</label>
+        <span className="text-lg font-bold tabular-nums">{format(value)}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button type="button" className={btn} onClick={() => onChange(clamp(value - step))} disabled={value <= min} aria-label={`Less: ${label}`}>
+          <Icon name="minus" size={20} />
+        </button>
+        <input
+          id={id} type="range" min={min} max={max} step={step} value={value} aria-valuetext={format(value)}
+          onChange={(e) => onChange(clamp(Number(e.target.value)))}
+          className="h-11 min-w-0 flex-1 cursor-pointer accent-[var(--color-accent-strong)]"
+        />
+        <button type="button" className={btn} onClick={() => onChange(clamp(value + step))} disabled={value >= max} aria-label={`More: ${label}`}>
+          <Icon name="plus" size={20} />
+        </button>
+      </div>
+      {quick && (
+        <div role="group" aria-label={`${label}: quick picks`} className="flex flex-wrap gap-2 pt-1">
+          {quick.map((q) => (
+            <Chip key={q} selected={value === q} onClick={() => onChange(q)}>{format(q)}</Chip>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

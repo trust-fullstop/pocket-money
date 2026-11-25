@@ -1,7 +1,8 @@
 // /money/:memberId — one person's money ("My money" / "Sam's money"): the 👛 Wallet and 🐷 Savings pots, level, owed banner,
 // actions, waiting requests, real bank balance, tallies, goals, targets and the history ("What happened").
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+// `?loan=1` (Family → Pay-out "Record a loan") opens the loan sheet once, if a loan can be started here.
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   Avatar, Button, Card, EmptyState, FxNote, IconButton, LinkButton, ListRow, PageHeader, Sheet, cx,
 } from '../../components/ui';
@@ -61,6 +62,26 @@ export function WalletPage() {
   const loans = loanList.data ?? [];
   // "Ask for a loan" / "Record a loan" once the list is in and no loan is open.
   const canStartLoan = on.loans && loansVisible && !loanList.loading && !loanList.error && !loans.some(isOpenLoan);
+
+  // Deep link `?loan=1` (Family → Pay-out "Record a loan"): drop the param straight away (nothing reopens on back or
+  // refresh), remember the wish for this wallet, and open the loan sheet once both lists are in — or forget the wish
+  // quietly when no loan can start here. State is adjusted while rendering, so there are no effect loops.
+  const [params, setParams] = useSearchParams();
+  const wantsLoan = params.get('loan') === '1';
+  const [loanWish, setLoanWish] = useState<string | null>(() => (wantsLoan ? memberId : null));
+  const [seenParams, setSeenParams] = useState(params);
+  if (params !== seenParams) {
+    setSeenParams(params);
+    if (wantsLoan) setLoanWish(memberId);
+  }
+  useEffect(() => {
+    if (wantsLoan) setParams((p) => { const n = new URLSearchParams(p); n.delete('loan'); return n; }, { replace: true });
+  }, [wantsLoan, setParams]);
+  const walletFor = w.data?.member.id;
+  if (loanWish !== null && !w.loading && !loanList.loading && !(walletFor && walletFor !== memberId)) {
+    setLoanWish(null);
+    if (loanWish === memberId && walletFor && canStartLoan && (managerOfKid || kidSelf)) setSheet('loan');
+  }
 
   // "My money" / "Sam's money": the page holds every pot, and "Wallet" is the name of one of them.
   const title = member ? (
@@ -230,7 +251,7 @@ export function WalletPage() {
         <BankCard memberId={memberId} self={self} name={name} canEdit={self || managerOfKid} cur={cur} onFeatureOff={changed} />
       )}
 
-      <TalliesCard wallet={wallet} self={self} name={name} cur={cur} />
+      <TalliesCard wallet={wallet} self={self} name={name} cur={cur} loans={loansVisible && !loanList.error ? loans : undefined} />
 
       {on.goals && (
         <GoalsSection
