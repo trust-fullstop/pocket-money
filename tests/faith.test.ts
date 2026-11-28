@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { FAITH_LESSONS } from '../src/features/faith/reflections';
 import { VERSES, VERSE_BY_ID, bibleAppUrl, verseOfTheDay } from '../src/features/faith/verses';
 import { LESSONS } from '../src/features/help/learn/lessons';
+import { CHRISTMAS_LESSONS } from '../src/features/help/learn/themes/christmas';
 import { FAITH_LESSON_IDS, type Block, type LessonCtx } from '../src/features/help/learn/types';
 import { APPROVED_VERSES } from '../supabase/functions/ask/verses';
 
@@ -17,6 +18,11 @@ const readers = [ctx(), ctx({ isKid: false, allowanceCents: 0, allowancePeriod: 
 const textOf = (b: Block): string[] =>
   b.kind === 'text' || b.kind === 'example' ? [b.text] : b.kind === 'list' ? b.items : b.kind === 'reflect' ? [b.prompt] : b.kind === 'verse' && b.note ? [b.note] : [];
 const verseIdsIn = (file: string, attr: RegExp) => [...readFileSync(new URL(file, import.meta.url), 'utf8').matchAll(attr)].map((x) => x[1]);
+// The verses added for the December theme "Christmas: why we celebrate" (WEBBE, lesson context only).
+const CHRISTMAS_VERSE_IDS = [
+  'great-light', 'child-is-born', 'wait-for-the-lord', 'angel-to-mary', 'no-room', 'good-news-great-joy', 'immanuel',
+  'his-star', 'wise-men-gifts', 'enter-with-thanks', 'in-everything-thanks', 'unspeakable-gift',
+];
 
 describe('faith reflections', () => {
   it('are the six faith lessons in order: no quiz, short', () => {
@@ -126,6 +132,13 @@ describe('verses', () => {
     }
   });
 
+  it('Christmas verses are lesson context only: never daily, so never the verse of the day or in Ask Pocket', () => {
+    const christmas = VERSES.filter((v) => v.themes.includes('christmas'));
+    expect(christmas.map((v) => v.id)).toEqual(expect.arrayContaining(CHRISTMAS_VERSE_IDS));
+    for (const id of CHRISTMAS_VERSE_IDS) expect(VERSE_BY_ID[id]?.daily, id).toBe(false);
+    for (const v of christmas) expect(v.daily, v.id).toBe(false);
+  });
+
   it('Ask Pocket’s approved verses are exactly the daily verses (regenerate supabase/functions/ask/verses.ts)', () => {
     expect(APPROVED_VERSES).toEqual(VERSES.filter((x) => x.daily).map(({ ref, text }) => ({ ref, text })));
   });
@@ -143,5 +156,56 @@ describe('verses', () => {
   it('links open the Bible App', () => {
     expect(bibleAppUrl(VERSE_BY_ID['little-by-little'])).toBe('https://www.bible.com/bible/111/PRO.13.11.NIV');
     expect(bibleAppUrl(VERSE_BY_ID['children-parents'])).toBe('https://www.bible.com/bible/111/COL.3.20-21.NIV');
+  });
+});
+
+describe('Christmas lessons and their verses', () => {
+  const christmasReaders = [
+    ...readers,
+    ctx({ currency: 'EUR' }),
+    ctx({ on: (k) => k !== 'faith' }),
+    ctx({ currency: 'EUR', allowanceCents: 1250, allowancePeriod: 'month' }),
+  ];
+  const versesIn = (blocks: Block[]) => blocks.flatMap((b) => (b.kind === 'verse' ? [b.id] : []));
+  const quizText = (r: LessonCtx) => (l: (typeof CHRISTMAS_LESSONS)[number]) => l.quiz!(r).flatMap((x) => [x.q, x.why, ...x.options]);
+
+  it('every verse they use exists, and every new Christmas verse is used', () => {
+    const used = new Set<string>();
+    for (const l of CHRISTMAS_LESSONS) {
+      for (const r of christmasReaders) for (const s of l.steps(r)) for (const id of versesIn(s.blocks)) used.add(id);
+    }
+    for (const id of used) expect(VERSE_BY_ID[id], id).toBeDefined();
+    for (const id of [...CHRISTMAS_VERSE_IDS, 'god-so-loved', 'more-blessed', 'cheerful-giver']) expect(used.has(id), id).toBe(true);
+  });
+
+  it('Scripture is only quoted through verse blocks: no six words in a row from a verse in the lesson’s own text', () => {
+    const words = (t: string) => t.toLowerCase().replace(/[’‘]/g, "'").replace(/\*\*/g, '').split(/[^a-z']+/).filter(Boolean);
+    const sixes = (t: string) => { const w = words(t); return w.slice(0, Math.max(0, w.length - 5)).map((_, i) => w.slice(i, i + 6).join(' ')); };
+    for (const l of CHRISTMAS_LESSONS) {
+      const r = ctx();
+      const steps = l.steps(r);
+      const quoted = new Set(versesIn(steps.flatMap((s) => s.blocks)).flatMap((id) => sixes(VERSE_BY_ID[id].text)));
+      const own = [...steps.flatMap((s) => s.blocks.flatMap(textOf)), ...quizText(r)(l)];
+      for (const t of own) for (const six of sixes(t)) expect(quoted.has(six), `${l.id}: “${six}” in “${t}”`).toBe(false);
+    }
+  });
+
+  it('no verse sits next to fines, debts or consequences, and other traditions are spoken of kindly', () => {
+    for (const l of CHRISTMAS_LESSONS) {
+      for (const r of christmasReaders) {
+        for (const s of l.steps(r)) {
+          const texts = s.blocks.flatMap(textOf);
+          for (const t of texts) expect(t, l.id).not.toMatch(/spotted|\bfine[sd]?\b|punish|xp\b|points?\b|score/i);
+          for (const t of texts) expect(t, l.id).not.toMatch(/pagan|heathen|false (god|religion)|\bcult\b|idol/i);
+          if (versesIn(s.blocks).length === 0) continue;
+          expect(texts.join(' '), `${l.id}: ${s.title}`).not.toMatch(/penalt|late fee|consequence|\bdebts?\b|\bowe|borrow|pay later|in trouble/i);
+        }
+      }
+    }
+  });
+
+  it('the new verses are gentle, even though they are lessons only', () => {
+    const harsh = /poor|poverty|sluggard|lazy|rebellious|wrath|punish|curse|destroy|discipline|chasten|wicked/i;
+    for (const id of CHRISTMAS_VERSE_IDS) expect(VERSE_BY_ID[id].text, id).not.toMatch(harsh);
   });
 });

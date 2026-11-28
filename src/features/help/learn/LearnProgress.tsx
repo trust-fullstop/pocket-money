@@ -1,19 +1,19 @@
-// /help/learn/progress — for parents: which Money school lessons each kid finished, and when: the basics and each lesson
-// series (with its opening day while it isn't open yet), and the Money school reward a lesson paid (+€1).
+// /help/learn/progress — for parents: which Money school lessons each kid finished, and when: the basics and each planned
+// theme of the lesson plan (and when its next lesson opens), and the Money school reward a lesson paid (+€1).
 import { useEffect, type ReactNode } from 'react';
 import { Navigate } from 'react-router';
 import { Avatar, Button, Card, EmptyState, Icon, PageHeader, PageSpinner, ProgressBar, Section } from '../../../components/ui';
 import { formatDate, dateInTz } from '../../../lib/format';
 import { useApp } from '../../../lib/session';
 import type { LessonDone } from '../../../lib/types';
-import { coreProgress, seriesProgress, type TrackedProgress } from './catalog';
-import { opensLabel } from './series';
+import { dayLabel, monthLabel } from './bank';
+import { moneySchool, type GroupProgress } from './progress';
 import { useLessonCtx, useLessonsDone } from './useLearn';
 
 export default function LearnProgress() {
   const { isManager, members, family } = useApp();
   const ctx = useLessonCtx();
-  const { data, error, reload, today } = useLessonsDone();
+  const { data, error, reload, today, plan } = useLessonsDone();
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
   if (!isManager) return <Navigate replace to="/help/learn" />;
 
@@ -38,15 +38,19 @@ export default function LearnProgress() {
 
       {data !== undefined && kids.map((kid) => {
         const when = new Map(data.filter((r) => r.member_id === kid.id).map((r) => [r.lesson, r]));
+        const school = moneySchool({ on: ctx.on, rows: data, memberId: kid.id, plan, today });
         return (
           <Section key={kid.id} title={<span className="flex items-center gap-2"><Avatar member={kid} size="sm" />{kid.display_name}</span>}>
             <Card className="space-y-5">
-              <LessonGroup title="The basics" label={`${kid.display_name}’s lessons: the basics`} p={coreProgress(ctx.on, data, kid.id)} when={when} tz={tz} m={ctx.m} />
-              {seriesProgress(ctx.on, data, kid.id, today).map((s) => (
+              <LessonGroup title="The basics" label={`${kid.display_name}’s lessons: the basics`} p={school.core} when={when} tz={tz} m={ctx.m} />
+              {school.themes.map((s) => (
                 <LessonGroup
-                  key={s.series.id} title={<><span aria-hidden="true">{s.series.emoji} </span>{s.series.title}</>}
-                  label={`${kid.display_name}’s lessons: ${s.series.title}`} p={s} when={when} tz={tz} m={ctx.m}
-                  note={s.open ? undefined : `Opens for the kids on ${opensLabel(s.series.opensOn)}.`}
+                  key={s.theme.id}
+                  title={<><span aria-hidden="true">{s.theme.emoji} </span>{s.theme.title} <span className="font-semibold text-muted">· {monthLabel(s.month)}</span></>}
+                  label={`${kid.display_name}’s lessons: ${s.theme.title}`} p={s} when={when} tz={tz} m={ctx.m}
+                  note={s.nextOpening?.openOn
+                    ? `${s.openCount === 0 ? 'Opens for the kids on' : 'Next lesson opens on'} ${dayLabel(s.nextOpening.openOn)}.`
+                    : undefined}
                 />
               ))}
             </Card>
@@ -58,7 +62,7 @@ export default function LearnProgress() {
 }
 
 function LessonGroup({ title, label, p, when, tz, m, note }: {
-  title: ReactNode; label: string; p: TrackedProgress; when: Map<string, LessonDone>; tz: string; m: (cents: number) => string; note?: string;
+  title: ReactNode; label: string; p: GroupProgress; when: Map<string, LessonDone>; tz: string; m: (cents: number) => string; note?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -76,7 +80,7 @@ function LessonGroup({ title, label, p, when, tz, m, note }: {
         value={p.count} max={p.total} tone={p.count === p.total && p.total > 0 ? 'good' : 'accent'} size="sm"
       />
       <ul className="divide-y divide-line">
-        {p.list.map((l) => {
+        {p.lessons.map(({ lesson: l }) => {
           const row = when.get(l.id);
           const paid = row?.money_cents ?? 0;
           return (

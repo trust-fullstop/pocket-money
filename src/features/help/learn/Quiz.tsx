@@ -6,8 +6,8 @@ import { MarkIcon, RadioCards } from './ui';
 
 export function Quiz({ questions, onAllRight, locked }: {
   questions: QuizQuestion[];
-  /** Called once all answers are right. */
-  onAllRight: () => void;
+  /** Called once all answers are right, with the answers (option index per question). */
+  onAllRight: (answers: number[]) => void;
   /** Everything is right and handed over: no more changes. */
   locked?: boolean;
 }) {
@@ -32,7 +32,7 @@ export function Quiz({ questions, onAllRight, locked }: {
     setTried(true);
     if (missing > 0) return;
     setChecked(answers.slice());
-    if (answers.every((a, i) => a === questions[i].answer)) onAllRight();
+    if (answers.every((a, i) => a === questions[i].answer)) onAllRight(answers as number[]);
   };
 
   let summary = '';

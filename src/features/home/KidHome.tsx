@@ -7,7 +7,7 @@ import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
 import { lessonRewardOf, type Balances, type EventOccurrence, type Initiative, type Member, type TaskInstance, type Wallet } from '../../lib/types';
 import { VerseOfTheDay } from '../faith/VerseCard';
-import { monthLabel, opensLabel } from '../help/learn/series';
+import { dayLabel } from '../help/learn/bank';
 import { useLessonsDone } from '../help/learn/useProgress';
 import { ComingUp, HomeSection, KidTaskRow, Loaded, SectionError, Skeleton } from './shared';
 import { byStatusThenDue, countsForProgress, eventsWindow, gridCols, rewardParts, sumRewards, weekRange } from './lib';
@@ -361,12 +361,10 @@ function LessonPrize() {
   );
 }
 
+/** Money school on Home: the next open lesson (core first, then the planned themes), else when the next one opens. */
 function MoneySchoolCard() {
   const lessons = useLessonsDone();
-  const { count, total, next } = lessons.progress;
-  // A lesson series that is open (from its opening day) with lessons left, and one that opens later.
-  const fresh = lessons.series.find((s) => s.open && s.next);
-  const soon = lessons.series.find((s) => !s.open && s.next);
+  const { core, themes, upNext, fresh } = lessons.school;
   const title = <span><span aria-hidden="true">🎓 </span>Money school</span>;
   if (lessons.data === undefined) {
     return (
@@ -377,47 +375,12 @@ function MoneySchoolCard() {
       </HomeSection>
     );
   }
-  if (total === 0 && !fresh) return null;
-  const bar = (
-    <ProgressBar
-      className="mt-3" value={count} max={total} tone={next ? 'accent' : 'good'}
-      label="Money school lessons done" valueText={`${count} of ${total} done`}
-    />
-  );
-  // The basics are done: the next lesson of the open series.
-  if (!next && fresh?.next) {
-    const n = fresh.next;
-    return (
-      <HomeSection title={title} link={{ to: `/help/learn#series-${fresh.series.id}`, label: 'All lessons' }}>
-        <Card>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[14px] font-semibold uppercase tracking-wide text-muted">Up next</p>
-            <Badge tone="accent" icon="star">New for {monthLabel(fresh.series.opensOn)}</Badge>
-          </div>
-          <div className="mt-1 flex items-center gap-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{n.emoji}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-lg font-bold leading-snug">{n.title}</p>
-              <p className="text-[15px] text-muted">{n.summary}</p>
-            </div>
-          </div>
-          <ProgressBar
-            className="mt-3" value={fresh.count} max={fresh.total}
-            label={`${fresh.series.title}: lessons done`} valueText={`${fresh.count} of ${fresh.total} done`}
-          />
-          <p className="mt-1 text-[15px] font-semibold tabular-nums">{fresh.count} of {fresh.total} done · {fresh.series.title}</p>
-          <LessonPrize />
-          <LinkButton to={`/help/learn/${n.id}`} block className="mt-3">
-            {fresh.count === 0 ? 'Start' : 'Continue'}: {n.title}
-          </LinkButton>
-        </Card>
-      </HomeSection>
-    );
-  }
-  if (!next) {
-    const open = lessons.series.filter((s) => s.open);
-    const doneAll = count + open.reduce((s, x) => s + x.count, 0);
-    const totalAll = total + open.reduce((s, x) => s + x.total, 0);
+  if (core.total === 0 && themes.length === 0) return null;
+  // Nothing open left to do: all done, and when the next planned lesson opens.
+  if (upNext.kind !== 'lesson') {
+    const started = themes.filter((t) => t.started);
+    const doneAll = core.count + started.reduce((s, t) => s + t.lessons.filter((l) => l.open && l.done).length, 0);
+    const totalAll = core.total + started.reduce((s, t) => s + t.openCount, 0);
     return (
       <HomeSection title={title}>
         <Link to="/help/learn" className="block rounded-2xl border border-line bg-surface p-4 shadow-sm transition active:scale-[0.99]">
@@ -427,39 +390,76 @@ function MoneySchoolCard() {
             className="mt-3" value={doneAll} max={totalAll} tone="good"
             label="Money school lessons done" valueText={`${doneAll} of ${totalAll} done`}
           />
-          {soon && (
+          {upNext.kind === 'soon' && upNext.lesson.openOn && (
             <p className="mt-3 text-[15px] font-semibold">
-              <span aria-hidden="true">🔒 </span>New lessons open on {opensLabel(soon.series.opensOn)}.
+              <span aria-hidden="true">🔒 </span>Next lesson opens {dayLabel(upNext.lesson.openOn)}.
             </p>
           )}
         </Link>
       </HomeSection>
     );
   }
+  const n = upNext.lesson;
+  // The basics are done: the next open lesson of a planned theme ("New this week" when it opened in the last 7 days).
+  if (n.theme) {
+    const t = themes.find((x) => x.theme.id === n.theme?.id);
+    const count = t?.count ?? 0;
+    const total = t?.total ?? 0;
+    return (
+      <HomeSection title={title} link={{ to: `/help/learn#theme-${n.theme.id}`, label: 'All lessons' }}>
+        <Card>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[14px] font-semibold uppercase tracking-wide text-muted">Up next</p>
+            {n.fresh && <Badge tone="accent" icon="star">New this week</Badge>}
+          </div>
+          <div className="mt-1 flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{n.lesson.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-lg font-bold leading-snug">{n.lesson.title}</p>
+              <p className="text-[15px] text-muted">{n.lesson.summary}</p>
+            </div>
+          </div>
+          <ProgressBar
+            className="mt-3" value={count} max={total}
+            label={`${n.theme.title}: lessons done`} valueText={`${count} of ${total} done`}
+          />
+          <p className="mt-1 text-[15px] font-semibold tabular-nums">{count} of {total} done · {n.theme.title}</p>
+          <LessonPrize />
+          <LinkButton to={`/help/learn/${n.lesson.id}`} block className="mt-3">
+            {count === 0 ? 'Start' : 'Continue'}: {n.lesson.title}
+          </LinkButton>
+        </Card>
+      </HomeSection>
+    );
+  }
+  const { count, total } = core;
   return (
     <HomeSection title={title} link={{ to: '/help/learn', label: 'All lessons' }}>
       <Card>
         <p className="text-[14px] font-semibold uppercase tracking-wide text-muted">{count === 0 ? 'Start with' : 'Up next'}</p>
         <div className="mt-1 flex items-center gap-3">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{next.emoji}</span>
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-2xl" aria-hidden="true">{n.lesson.emoji}</span>
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-bold leading-snug">{next.title}</p>
-            <p className="text-[15px] text-muted">{next.summary}</p>
+            <p className="text-lg font-bold leading-snug">{n.lesson.title}</p>
+            <p className="text-[15px] text-muted">{n.lesson.summary}</p>
           </div>
         </div>
-        {bar}
+        <ProgressBar
+          className="mt-3" value={count} max={total} tone="accent"
+          label="Money school lessons done" valueText={`${count} of ${total} done`}
+        />
         <p className="mt-1 text-[15px] font-semibold tabular-nums">{count} of {total} done</p>
         <LessonPrize />
-        <LinkButton to={`/help/learn/${next.id}`} block className="mt-3">
-          {count === 0 ? 'Start' : 'Continue'}: {next.title}
+        <LinkButton to={`/help/learn/${n.lesson.id}`} block className="mt-3">
+          {count === 0 ? 'Start' : 'Continue'}: {n.lesson.title}
         </LinkButton>
-        {fresh && (
+        {fresh?.theme && (
           <Link
-            to={`/help/learn#series-${fresh.series.id}`}
+            to={`/help/learn#theme-${fresh.theme.id}`}
             className="mt-3 flex min-h-11 items-center gap-2 rounded-xl bg-accent-soft px-3 py-2 text-[15px] font-semibold text-accent-ink"
           >
-            <span aria-hidden="true">{fresh.series.emoji}</span>
-            <span className="min-w-0 flex-1">New: {monthLabel(fresh.series.opensOn)} series</span>
+            <span aria-hidden="true">{fresh.theme.emoji}</span>
+            <span className="min-w-0 flex-1">New this week: {fresh.theme.title}</span>
             <Icon name="chevron-right" size={18} />
           </Link>
         )}

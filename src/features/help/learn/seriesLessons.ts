@@ -1,13 +1,13 @@
-// Money school series "December: Borrowing and insurance" (./series.ts): six tracked lessons, quiz + XP like the core
+// Money school theme "Borrowing and insurance" (lesson bank, ./bank.ts): six tracked lessons, quiz + XP like the core
 // lessons. Warm, factual and never scary. Product names differ by country, so both are given. Amounts use the family's
 // own currency (ctx.m); "in our family" bits only when Loans is switched on.
+import { THEME_LESSON_BY_ID } from './bank';
 import { exampleCents, loanTotals } from './math';
-import { SERIES_LESSON_BY_ID } from './series';
 import type { Block, Lesson, LessonCtx, SeriesLessonId, Step } from './types';
 
 function series(id: SeriesLessonId, steps: Lesson['steps'], quiz: NonNullable<Lesson['quiz']>): Lesson {
-  const { emoji, title, summary, minutes, needs } = SERIES_LESSON_BY_ID[id];
-  return { id, kind: 'series', emoji, title, summary, minutes, needs, steps, quiz };
+  const { emoji, title, summary, minutes } = THEME_LESSON_BY_ID[id];
+  return { id, kind: 'series', emoji, title, summary, minutes, steps, quiz };
 }
 
 const when = (cond: boolean, step: Step): Step[] => (cond ? [step] : []);
@@ -603,5 +603,5 @@ const insuranceStuff = series(
   },
 );
 
-/** The series lessons, in series order (./series.ts). */
+/** The Borrowing and insurance lessons, in theme order (./bank.ts: borrow-protect). */
 export const SERIES_LESSONS_FULL: Lesson[] = [loansHow, loansRepay, insuranceWhat, insurancePeople, insuranceHomeCar, insuranceStuff];

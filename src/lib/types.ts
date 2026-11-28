@@ -74,7 +74,12 @@ export interface FamilySettings {
    * (0/missing = off). Only managers receive it: get_state leaves the key out for kids and grandparents.
    */
   bible_reward_cents?: number;
-  features: Features;               // which parts of the app are switched on (parent admin → Features)
+  /**
+   * Money school lesson plan: which lesson themes open in which family-local month, { "YYYY-MM": [themeId, …] }
+   * (up to 3 a month; read it with planOf in features/help/learn/bank.ts). Missing on old data = {}.
+   */
+  lesson_plan?: Record<string, string[]>;
+  features: Features;                // which parts of the app are switched on (parent admin → Features)
 }
 
 /** One Spotted amount: what a reward gives or a consequence costs (all ≥ 0; money in cents). */

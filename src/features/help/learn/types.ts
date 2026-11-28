@@ -1,29 +1,40 @@
 // Money school contract: lesson shapes shared by the lesson screens (help/learn), the faith reflections
-// (features/faith) and the server whitelist (app.lessons() / app.lesson_opens(), latest in migration 20261116002400).
+// (features/faith) and the server (app.lessons(), app.lesson_themes(), app.lesson_answers(), latest in migration
+// 20261116002700_lesson_bank.sql).
 import { lessonRewardOf, type FamilySettings, type FeatureKey } from '../../../lib/types';
 
 /** Core lessons — the basics, always open. */
 export const CORE_LESSON_IDS = ['purpose', 'earn', 'why-save', 'how-save', 'interest', 'goals'] as const;
 export type CoreLessonId = (typeof CORE_LESSON_IDS)[number];
-/** Lesson series — themed sets that open on a date (./series.ts; server: app.lesson_opens()). */
-export const SERIES_LESSON_IDS = [
-  'loans-how', 'loans-repay', 'insurance-what', 'insurance-people', 'insurance-home-car', 'insurance-stuff',
-] as const;
-export type SeriesLessonId = (typeof SERIES_LESSON_IDS)[number];
 /**
- * Tracked lessons (core + series): a quiz that must be all right, finished on the server (finish_lesson), +5 XP once for
- * kids when points are on, plus the family's Money school reward in the Wallet when it is set (migration 20261116002500).
- * Keep in sync with app.lessons() (latest: migration 20261116002400).
+ * Lessons of the lesson bank's themes (./bank.ts), theme by theme in lesson order. They open when the parents plan their
+ * theme for a month (family setting lesson_plan; server: app.lesson_themes() / app.lesson_open_on()).
  */
-export const TRACKED_LESSON_IDS = [...CORE_LESSON_IDS, ...SERIES_LESSON_IDS] as const;
-export type TrackedLessonId = CoreLessonId | SeriesLessonId;
+export const THEME_LESSON_IDS = [
+  // borrow-protect: Borrowing and insurance
+  'loans-how', 'loans-repay', 'insurance-what', 'insurance-people', 'insurance-home-car', 'insurance-stuff',
+  // christmas: Christmas — why we celebrate (./themes/christmas.ts)
+  'xmas-advent', 'xmas-generous', 'xmas-birth', 'xmas-wise-men', 'xmas-thanks',
+] as const;
+export type ThemeLessonId = (typeof THEME_LESSON_IDS)[number];
+/** Older name: a theme's lessons are a "series". */
+export const SERIES_LESSON_IDS = THEME_LESSON_IDS;
+export type SeriesLessonId = ThemeLessonId;
+/**
+ * Tracked lessons (core + theme lessons): a quiz that must be all right, finished on the server (finish_lesson with the
+ * quiz's answers), +5 XP once for kids when points are on, plus the family's Money school reward in the Wallet when it is
+ * set (migration 20261116002500). Keep in sync with app.lessons() (latest: migration 20261116002700).
+ */
+export const TRACKED_LESSON_IDS = [...CORE_LESSON_IDS, ...THEME_LESSON_IDS] as const;
+export type TrackedLessonId = CoreLessonId | ThemeLessonId;
 /** Faith reflections — feature 'faith'. Not scored, not tracked, no XP (faith is invited, never tested). */
 export const FAITH_LESSON_IDS = ['faith-stewardship', 'faith-giving', 'faith-tithing', 'faith-family', 'faith-churches', 'faith-world'] as const;
 export type FaithLessonId = (typeof FAITH_LESSON_IDS)[number];
 export type LessonId = TrackedLessonId | FaithLessonId;
 
+/** 'series' = a lesson of a lesson-bank theme (./bank.ts). */
 export type LessonKind = 'core' | 'series' | 'faith';
-/** Core and series lessons are tracked (quiz + server); faith reflections are not. */
+/** Core and theme ('series') lessons are tracked (quiz + server); faith reflections are not. */
 export const isTracked = (kind: LessonKind): boolean => kind === 'core' || kind === 'series';
 
 /** XP a kid gets the first time they finish a tracked lesson (server: same number). */

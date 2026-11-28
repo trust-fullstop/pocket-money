@@ -51,7 +51,7 @@ const FEATURES: Record<string, string> = {
   ask: 'Ask Pocket: this helper; parents can read the questions.',
   bank: 'Real bank balance: the kid or a parent types in what the real bank account (e.g. Revolut) says; it is only for looking and never changes the app wallet.',
   loans: 'Loans: a kid can ask to borrow from a parent; repayments come off the pocket money; parents may add a small fee or forgive.',
-  learn: 'Money school (Help → Money school): short lessons — why this app, how to earn more, why save, how to save, how interest works, saving for a goal — each with a small quiz; kids get a few points the first time. From 1 December a series "Borrowing and insurance": how loans work, paying a loan back, what is insurance?, insurance for people, home and car insurance, phones, valuables and boats.',
+  learn: 'Money school (Help → Money school): short lessons — why this app, how to earn more, why save, how to save, how interest works, saving for a goal — each with a small quiz; kids get a few points the first time. Besides these core lessons, monthly themes chosen by the parents (e.g. Borrowing and insurance: loans, paying a loan back and insurance; Christmas: why we celebrate, when faith is on) open in the months they planned (Help → Money school → Lesson plan), some all at once and some one lesson a week.',
   faith: 'Faith, hope and love: a Bible verse of the day on Home, short reflections in Money school (faith and money; giving, blessing and provision; tithing; parents and children; one faith, many churches; Christians and other faiths), and links that open the verse in the Bible App; each person can hide the verses in Me.',
 };
 

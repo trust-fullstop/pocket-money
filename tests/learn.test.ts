@@ -1,14 +1,15 @@
-// Money school (feature 'learn') and the 'faith' switch (migration 20261116001700); lesson series that open on a date
-// (migration 20261116002400).
+// Money school (feature 'learn') and the 'faith' switch (migration 20261116001700); the Borrowing and insurance lessons
+// (migration 20261116002400), opened by the family's lesson plan (migration 20261116002700, more in lesson_bank.test.ts).
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
-import { balance, clock, expectCode, makeDb, makeFamily, q, type Fam } from './helpers';
+import { balance, clock, expectCode, finishArgs, makeDb, makeFamily, q, type Fam } from './helpers';
 import { TRACKED_LESSONS } from '../src/features/help/learn/catalog';
 import { LESSONS, visibleLessons } from '../src/features/help/learn/lessons';
 import { exampleCents, loanTotals } from '../src/features/help/learn/math';
-import { SERIES, SERIES_LESSON_BY_ID, lessonGate } from '../src/features/help/learn/series';
+import { THEME_BY_ID, THEME_LESSON_BY_ID, themeOf } from '../src/features/help/learn/bank';
+import { lessonGate } from '../src/features/help/learn/progress';
 import {
-  CORE_LESSON_IDS, SERIES_LESSON_IDS, TRACKED_LESSON_IDS, isTracked, type Block, type Lesson, type LessonCtx, type QuizQuestion,
+  CORE_LESSON_IDS, FAITH_LESSON_IDS, THEME_LESSON_IDS, TRACKED_LESSON_IDS, isTracked, type Block, type Lesson, type LessonCtx, type QuizQuestion,
 } from '../src/features/help/learn/types';
 import { VERSE_BY_ID } from '../src/features/faith/verses';
 import { money } from '../src/lib/format';
@@ -36,13 +37,11 @@ describe('feature switches learn + faith', () => {
 
 describe('Money school lessons', () => {
   let f: Fam;
-  it('server whitelist matches the app: the core lessons and the series lessons, with the same titles', async () => {
+  it('server whitelist matches the app: the core lessons and the theme lessons, with the same titles', async () => {
     const [r] = await q<{ l: Record<string, string> }>(db, 'select app.lessons() as l');
     expect(Object.keys(r.l).sort()).toEqual([...TRACKED_LESSON_IDS].sort());
-    expect(TRACKED_LESSON_IDS).toEqual([...CORE_LESSON_IDS, ...SERIES_LESSON_IDS]);
+    expect(TRACKED_LESSON_IDS).toEqual([...CORE_LESSON_IDS, ...THEME_LESSON_IDS]);
     expect(r.l).toEqual(Object.fromEntries(TRACKED_LESSONS.map((l) => [l.id, l.title])));
-    const [o] = await q<{ o: Record<string, string> }>(db, 'select app.lesson_opens() as o');
-    expect(o.o).toEqual(Object.fromEntries(SERIES.flatMap((s) => s.lessons.map((l) => [l.id, s.opensOn]))));
     // The lesson texts: every tracked lesson exactly once, in the same order, with the catalog's title.
     const tracked = LESSONS.filter((l) => isTracked(l.kind));
     expect(tracked.map((l) => l.id)).toEqual([...TRACKED_LESSON_IDS]);
@@ -53,9 +52,9 @@ describe('Money school lessons', () => {
     f = await makeFamily(db, { Sam: 'kid', Mia: 'kid', Mum: 'parent' });
     // makeFamily switches everything on (points included)
     const before = await balance(db, f.Sam.id, 'points');
-    const r1 = await f.Sam.rpc<any>('finish_lesson', { p_lesson: 'interest' });
+    const r1 = await f.Sam.rpc<any>('finish_lesson', finishArgs('interest'));
     expect(r1).toMatchObject({ lesson: 'interest', first: true, points: 5 });
-    const r2 = await f.Sam.rpc<any>('finish_lesson', { p_lesson: 'interest' });
+    const r2 = await f.Sam.rpc<any>('finish_lesson', finishArgs('interest'));
     expect(r2).toMatchObject({ lesson: 'interest', first: false, points: 0, done_at: r1.done_at });
     expect(await balance(db, f.Sam.id, 'points')).toBe(before + 5);
     const [tx] = await q<any>(db, `select kind, reason from public.transactions where member_id = $1 and source_type = 'lesson'`, [f.Sam.id]);
@@ -63,13 +62,13 @@ describe('Money school lessons', () => {
   });
 
   it('grown-ups can do lessons too, without XP', async () => {
-    const r = await f.Mum.rpc<any>('finish_lesson', { p_lesson: 'why-save' });
+    const r = await f.Mum.rpc<any>('finish_lesson', finishArgs('why-save'));
     expect(r).toMatchObject({ first: true, points: 0 });
   });
 
   it('no XP when points are off', async () => {
     await f.owner.rpc('update_family', { p_patch: { settings: { features: { points: false } } } });
-    const r = await f.Mia.rpc<any>('finish_lesson', { p_lesson: 'goals' });
+    const r = await f.Mia.rpc<any>('finish_lesson', finishArgs('goals'));
     expect(r).toMatchObject({ first: true, points: 0 });
     await f.owner.rpc('update_family', { p_patch: { settings: { features: { points: true } } } });
   });
@@ -83,86 +82,94 @@ describe('Money school lessons', () => {
   });
 
   it('rejects unknown lessons, faith reflections and a switched-off Money school', async () => {
-    await expectCode(f.Sam.rpc('finish_lesson', { p_lesson: 'nope' }), 'invalid', 'lesson');
-    await expectCode(f.Sam.rpc('finish_lesson', { p_lesson: 'faith-giving' }), 'invalid', 'lesson');
+    await expectCode(f.Sam.rpc('finish_lesson', { p_lesson: 'nope', p_answers: [1, 1, 1] }), 'invalid', 'lesson');
+    await expectCode(f.Sam.rpc('finish_lesson', { p_lesson: 'faith-giving', p_answers: [] }), 'invalid', 'lesson');
     await f.owner.rpc('update_family', { p_patch: { settings: { features: { learn: false } } } });
-    await expectCode(f.Sam.rpc('finish_lesson', { p_lesson: 'earn' }), 'feature_off', 'learn');
+    await expectCode(f.Sam.rpc('finish_lesson', finishArgs('earn')), 'feature_off', 'learn');
   });
 
   it('only signed-in members can call the lesson functions', async () => {
     const [p] = await q<{ anon_f: boolean; anon_l: boolean; auth_f: boolean; auth_l: boolean }>(db, `select
-      has_function_privilege('anon', 'public.finish_lesson(text)', 'execute') as anon_f,
+      has_function_privilege('anon', 'public.finish_lesson(text, integer[])', 'execute') as anon_f,
       has_function_privilege('anon', 'public.list_lessons_done()', 'execute') as anon_l,
-      has_function_privilege('authenticated', 'public.finish_lesson(text)', 'execute') as auth_f,
+      has_function_privilege('authenticated', 'public.finish_lesson(text, integer[])', 'execute') as auth_f,
       has_function_privilege('authenticated', 'public.list_lessons_done()', 'execute') as auth_l`);
     expect(p).toEqual({ anon_f: false, anon_l: false, auth_f: true, auth_l: true });
   });
 });
 
-describe('lesson series: listed all along, openable from the opening day (family time)', () => {
+describe('Borrowing and insurance: planned for December, openable from the 1st (family time)', () => {
   let g: Fam;
   // Europe/Amsterdam (makeFamily's default) is UTC+1 in winter: 1 December starts at 2026-11-30T23:00:00Z.
   const BEFORE = '2026-11-30T22:59:00Z';
   const MIDNIGHT = '2026-11-30T23:00:00Z';
 
-  it('a kid can’t finish a series lesson before 1 December; core lessons stay open', async () => {
+  it('a kid can’t finish a theme lesson before 1 December; core lessons stay open', async () => {
     g = await makeFamily(db, { Sam: 'kid', Mum: 'parent', Oma: 'grandparent' });
+    clock.now = '2026-11-20T10:00:00Z';
+    await g.owner.rpc('update_family', { p_patch: { settings: { lesson_plan: { '2026-12': ['borrow-protect'] } } } });
     clock.now = BEFORE;
-    await expectCode(g.Sam.rpc('finish_lesson', { p_lesson: 'loans-how' }), 'invalid', 'not_open');
-    await expectCode(g.Sam.rpc('finish_lesson', { p_lesson: 'insurance-stuff' }), 'invalid', 'not_open');
-    expect(await g.Sam.rpc<any>('finish_lesson', { p_lesson: 'purpose' })).toMatchObject({ first: true, points: 5 });
+    await expectCode(g.Sam.rpc('finish_lesson', finishArgs('loans-how')), 'invalid', 'not_open');
+    await expectCode(g.Sam.rpc('finish_lesson', finishArgs('insurance-stuff')), 'invalid', 'not_open');
+    expect(await g.Sam.rpc<any>('finish_lesson', finishArgs('purpose'))).toMatchObject({ first: true, points: 5 });
   });
 
   it('a relative can’t either', async () => {
     clock.now = BEFORE;
-    await expectCode(g.Oma.rpc('finish_lesson', { p_lesson: 'insurance-what' }), 'invalid', 'not_open');
+    await expectCode(g.Oma.rpc('finish_lesson', finishArgs('insurance-what')), 'invalid', 'not_open');
   });
 
   it('a manager can preview (and finish) early, without XP', async () => {
     clock.now = '2026-11-20T10:00:00Z';
-    expect(await g.Mum.rpc<any>('finish_lesson', { p_lesson: 'insurance-people' })).toMatchObject({ first: true, points: 0 });
-    expect(await g.owner.rpc<any>('finish_lesson', { p_lesson: 'loans-repay' })).toMatchObject({ first: true, points: 0 });
+    expect(await g.Mum.rpc<any>('finish_lesson', finishArgs('insurance-people'))).toMatchObject({ first: true, points: 0 });
+    expect(await g.owner.rpc<any>('finish_lesson', finishArgs('loans-repay'))).toMatchObject({ first: true, points: 0 });
   });
 
   it('from midnight on 1 December (family time) a kid can, with +5 XP once; and it stays open', async () => {
     clock.now = MIDNIGHT;
     const before = await balance(db, g.Sam.id, 'points');
-    const r = await g.Sam.rpc<any>('finish_lesson', { p_lesson: 'loans-how' });
+    const r = await g.Sam.rpc<any>('finish_lesson', finishArgs('loans-how'));
     expect(r).toMatchObject({ lesson: 'loans-how', first: true, points: 5 });
-    expect(await g.Sam.rpc<any>('finish_lesson', { p_lesson: 'loans-how' })).toMatchObject({ first: false, points: 0 });
+    expect(await g.Sam.rpc<any>('finish_lesson', finishArgs('loans-how'))).toMatchObject({ first: false, points: 0 });
     expect(await balance(db, g.Sam.id, 'points')).toBe(before + 5);
     const txs = await q<any>(db, `select reason from public.transactions where member_id = $1 and source_type = 'lesson' order by created_at`, [g.Sam.id]);
     expect(txs.map((t) => t.reason)).toContain('Money school: How loans work');
     clock.now = '2027-03-01T12:00:00Z';
-    expect(await g.Oma.rpc<any>('finish_lesson', { p_lesson: 'insurance-what' })).toMatchObject({ first: true, points: 0 });
-    expect(await g.Sam.rpc<any>('finish_lesson', { p_lesson: 'insurance-stuff' })).toMatchObject({ first: true, points: 5 });
+    expect(await g.Oma.rpc<any>('finish_lesson', finishArgs('insurance-what'))).toMatchObject({ first: true, points: 0 });
+    expect(await g.Sam.rpc<any>('finish_lesson', finishArgs('insurance-stuff'))).toMatchObject({ first: true, points: 5 });
   });
 
-  it('only signed-in members can finish lessons; the whitelist and dates are server-only', async () => {
+  it('only signed-in members can finish lessons; the bank and the plan checks are server-only', async () => {
     const [p] = await q<Record<string, boolean>>(db, `select
-      has_function_privilege('anon', 'public.finish_lesson(text)', 'execute') as anon_f,
-      has_function_privilege('anon', 'app.lesson_opens()', 'execute') as anon_o,
-      has_function_privilege('authenticated', 'app.lesson_opens()', 'execute') as auth_o,
+      has_function_privilege('anon', 'public.finish_lesson(text, integer[])', 'execute') as anon_f,
+      has_function_privilege('anon', 'app.lesson_open_on(public.families, text)', 'execute') as anon_o,
+      has_function_privilege('authenticated', 'app.lesson_open_on(public.families, text)', 'execute') as auth_o,
+      has_function_privilege('authenticated', 'app.lesson_themes()', 'execute') as auth_t,
+      has_function_privilege('authenticated', 'app.lesson_answers()', 'execute') as auth_a,
       has_function_privilege('anon', 'app.lessons()', 'execute') as anon_l,
       has_function_privilege('authenticated', 'app.lessons()', 'execute') as auth_l`);
-    expect(p).toEqual({ anon_f: false, anon_o: false, auth_o: false, anon_l: false, auth_l: false });
+    expect(p).toEqual({ anon_f: false, anon_o: false, auth_o: false, auth_t: false, auth_a: false, anon_l: false, auth_l: false });
   });
 });
 
-describe('lesson series in the app', () => {
-  it('the gate: locked for kids and relatives before the day, a preview for managers, then open for good', () => {
-    expect(lessonGate('loans-how', '2026-11-30', false)).toBe('locked');
-    expect(lessonGate('loans-how', null, false)).toBe('locked');
-    expect(lessonGate('loans-how', '2026-11-30', true)).toBe('preview');
-    expect(lessonGate('loans-how', '2026-12-01', false)).toBe('open');
-    expect(lessonGate('insurance-stuff', '2027-06-15', false)).toBe('open');
-    expect(lessonGate('purpose', '2026-01-01', false)).toBe('open');
-    expect(lessonGate('faith-giving', null, false)).toBe('open');
+describe('Borrowing and insurance in the app', () => {
+  const DEC = { '2026-12': ['borrow-protect'] };
+  it('the gate: locked for kids and relatives before the day or when unplanned, a preview for managers, then open for good', () => {
+    expect(lessonGate('loans-how', DEC, '2026-11-30', false)).toMatchObject({ gate: 'locked', openOn: '2026-12-01' });
+    expect(lessonGate('loans-how', DEC, null, false).gate).toBe('locked');
+    expect(lessonGate('loans-how', {}, '2026-12-05', false)).toMatchObject({ gate: 'locked', openOn: null });
+    expect(lessonGate('loans-how', {}, '2026-12-05', true)).toMatchObject({ gate: 'preview', openOn: null });
+    expect(lessonGate('loans-how', DEC, '2026-11-30', true).gate).toBe('preview');
+    expect(lessonGate('loans-how', DEC, '2026-12-01', false).gate).toBe('open');
+    expect(lessonGate('insurance-stuff', DEC, '2027-06-15', false).gate).toBe('open');
+    expect(lessonGate('purpose', {}, '2026-01-01', false).gate).toBe('open');
+    expect(lessonGate('faith-giving', {}, null, false).gate).toBe('open');
   });
 
-  it('series lessons are listed without faith (they are tracked, like core)', () => {
+  it('theme lessons are listed like core when their theme’s switches are on (Christmas needs faith)', () => {
     const ids = visibleLessons({ on: (k) => k !== 'faith' }).map((l) => l.id);
-    expect(ids).toEqual([...TRACKED_LESSON_IDS]);
+    expect(ids).toEqual(TRACKED_LESSON_IDS.filter((id) => themeOf(id)?.id !== 'christmas'));
+    expect(visibleLessons({ on: () => true }).map((l) => l.id)).toEqual([...TRACKED_LESSON_IDS, ...FAITH_LESSON_IDS]);
     expect(visibleLessons({ on: (k) => k !== 'learn' })).toEqual([]);
   });
 
@@ -185,12 +192,13 @@ describe('lesson series in the app', () => {
   const textOf = (b: Block): string[] =>
     b.kind === 'text' || b.kind === 'example' ? [b.text] : b.kind === 'list' ? b.items : b.kind === 'reflect' ? [b.prompt] : b.kind === 'verse' && b.note ? [b.note] : [];
   const quizText = (x: QuizQuestion) => [x.q, x.why, ...x.options];
-  const series = LESSONS.filter((l) => l.kind === 'series');
+  const series = LESSONS.filter((l) => themeOf(l.id)?.id === 'borrow-protect');
 
   it('six short lessons: 4–6 steps with an emoji, one thing to think about, 3 quiz questions with a why', () => {
-    expect(series.map((l) => l.id)).toEqual([...SERIES_LESSON_IDS]);
+    expect(series.map((l) => l.id)).toEqual(THEME_BY_ID['borrow-protect'].lessons.map((l) => l.id));
+    expect(series).toHaveLength(6);
     for (const l of series) {
-      const info = SERIES_LESSON_BY_ID[l.id as keyof typeof SERIES_LESSON_BY_ID];
+      const info = THEME_LESSON_BY_ID[l.id as keyof typeof THEME_LESSON_BY_ID];
       expect({ emoji: l.emoji, title: l.title, summary: l.summary, minutes: l.minutes }).toEqual(
         { emoji: info.emoji, title: info.title, summary: info.summary, minutes: info.minutes });
       expect(l.minutes).toBeGreaterThanOrEqual(3);

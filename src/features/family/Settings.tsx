@@ -346,6 +346,9 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
               {rewardChanged && <span className="text-muted"> · not saved yet</span>}
             </p>
             <PastLessonRewards saved={savedReward} changed={rewardChanged} />
+            <LinkButton to="/help/learn/plan" variant="secondary" block>
+              <span aria-hidden="true">📅 </span>Lesson plan: themes for each month
+            </LinkButton>
           </SettingsCard>
         )}
 

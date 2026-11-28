@@ -10,6 +10,8 @@ import { expect } from 'vitest';
 import { orderSqlFiles, pgRpc } from '../src/lib/backend/pgcall';
 import { AppError } from '../src/lib/errors';
 import { EVERYTHING, type Features } from '../src/lib/types';
+import { LESSONS } from '../src/features/help/learn/lessons';
+import type { LessonCtx } from '../src/features/help/learn/types';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (...p: string[]) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -111,3 +113,18 @@ export async function balance(db: PGlite, memberId: string, pot: string): Promis
   const r = await q<{ b: number }>(db, `select coalesce(sum(amount),0)::int as b from public.transactions where member_id = $1 and pot = $2`, [memberId, pot]);
   return r[0].b;
 }
+
+/** A reader for rendering lesson quizzes (the right answers don't depend on it; tests/lesson_bank.test.ts checks). */
+const QUIZ_CTX: LessonCtx = {
+  m: (c) => `€${c / 100}`, currency: 'EUR', second: null, on: () => true, settings: {}, isKid: true, name: 'Anna',
+  allowanceCents: 0, allowancePeriod: null,
+};
+
+/** The right quiz answers of a tracked lesson, rendered like the app does (what LessonPage sends to finish_lesson). */
+export function quizAnswers(lesson: string): number[] {
+  const l = LESSONS.find((x) => x.id === lesson);
+  return l?.quiz ? l.quiz(QUIZ_CTX).map((x) => x.answer) : [];
+}
+
+/** finish_lesson's arguments with the right quiz answers. */
+export const finishArgs = (lesson: string) => ({ p_lesson: lesson, p_answers: quizAnswers(lesson) });

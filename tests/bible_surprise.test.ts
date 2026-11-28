@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import type { PGlite } from '@electric-sql/pglite';
-import { asRole, balance, clock, expectCode, makeDb, makeFamily, q, type Fam, type Person } from './helpers';
+import { asRole, balance, clock, expectCode, finishArgs, makeDb, makeFamily, q, type Fam, type Person } from './helpers';
 import { describeAudit } from '../src/features/family/audit';
 import type { Member } from '../src/lib/types';
 
@@ -273,7 +273,7 @@ describe('pay-out: the Bible time line', () => {
     const loan = await f.Mum.rpc<Row>('request_loan', { p_member: f.Sam.id, p_amount: 2000, p_purpose: 'Bike', p_plan: 'per_pay',
       p_installment: 400 });
     expect(loan.status).toBe('active');
-    await f.Sam.rpc('finish_lesson', { p_lesson: 'purpose' });
+    await f.Sam.rpc('finish_lesson', finishArgs('purpose'));
     await open(f.Sam);
     await f.owner.rpc('spot', { p: { member_id: f.Sam.id, direction: 'plus', cents: 200, reason: 'Helped' } });
     at('2026-11-03T07:00:00Z');
@@ -396,12 +396,13 @@ describe('grants', () => {
 
 describe('nothing tells the kids beforehand', () => {
   // Kid-facing texts (Help, guide, answers, Money school, Home, Me, the Tallies card), the Ask prompt and the demo
-  // seed never mention the Bible time surprise. After the fact a kid sees the "📖 Bible time" row in History.
+  // seed never mention the Bible time surprise. After the fact a kid sees the "📖 Bible time" row in History. (Easter the
+  // feast is fine — the lesson bank lists "Easter: hope and new life"; an "easter egg" is not.)
   const ROOT = new URL('../', import.meta.url);
   const filesIn = (dir: string): string[] =>
     readdirSync(new URL(dir, ROOT), { withFileTypes: true })
       .flatMap((e) => (e.isDirectory() ? filesIn(`${dir}/${e.name}`) : /\.(tsx?|sql)$/.test(e.name) ? [`${dir}/${e.name}`] : []));
-  const TELLS = /bible[ _-]?(time|reward|surprise|open)|easter|🥚|bibleTrack|bible_opened/i;
+  const TELLS = /bible[ _-]?(time|reward|surprise|open)|easter[ _-]?egg|🥚|bibleTrack|bible_opened/i;
 
   it('no mention in Help, Money school, Home, Me, Tallies, the Ask prompt or the demo seed', () => {
     const files = [

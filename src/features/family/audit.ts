@@ -24,6 +24,7 @@ export const SETTING_LABEL: Record<string, string> = {
   spend_currency: 'kids’ spending currency',
   lesson_reward_cents: 'Money school reward',
   bible_reward_cents: 'Bible time surprise',
+  lesson_plan: 'Money school lesson plan',
 };
 
 const MEMBER_FIELD: Record<string, string> = {

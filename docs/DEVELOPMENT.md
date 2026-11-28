@@ -67,5 +67,6 @@ Run in filename order; each one builds on the ones before. Never edit one that h
 | `…002400_learn_series.sql` | Money school series (December: Borrowing and insurance) with an opening date |
 | `…002500_lesson_rewards.sql` | Money school reward per lesson, Pay-out line |
 | `…002600_bible_surprise.sql` | Bible time surprise: days a kid opened the Bible App from the app, optional daily gift, Pay-out line |
+| `…002700_lesson_bank.sql` | Money school lesson bank: monthly themes planned by the parents (`lesson_plan`), opening days from the plan, quiz answers checked on finish |
 
 See [`SPEC.md`](SPEC.md) for the product spec, [`SETUP.md`](SETUP.md) to host your own copy, and [`../.squad/decisions/`](../.squad/decisions/) for the decisions behind the design.

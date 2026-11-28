@@ -1,49 +1,57 @@
-// /help/learn/:id — one lesson, one step at a time. Tracked lessons (core + series) end with a quiz and are finished on
-// the server; faith reflections end with "Talk about it" and a Done (nothing stored). A series lesson before its opening
-// day: a friendly locked page for kids and relatives, a preview for managers (the server says 'not_open' too).
+// /help/learn/:id — one lesson, one step at a time. Tracked lessons (core + the lesson bank's themes) end with a quiz and
+// are finished on the server (with the quiz's answers as proof); faith reflections end with "Talk about it" and a Done
+// (nothing stored). A theme lesson that isn't open (not planned, or before its opening day): a friendly locked page for
+// kids and relatives, a preview for managers (the server says 'not_open' too).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { Button, Card, EmptyState, FxNote, Icon, LinkButton, PageHeader, ProgressBar } from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { friendlyError, toAppError } from '../../../lib/errors';
 import { useApp } from '../../../lib/session';
+import { dayLabel, type Theme } from './bank';
 import { BlockView } from './blocks';
 import { visibleLessons } from './lessons';
+import { LESSON_PLAN_PATH, lessonGate } from './progress';
 import { Quiz } from './Quiz';
-import { lessonGate, opensLabel, seriesOf, type LessonSeries } from './series';
 import { Rich } from './ui';
 import { isTracked, type Lesson, type LessonCtx } from './types';
-import { useFamilyToday, useLessonCtx, useLessonsDone } from './useLearn';
+import { useFamilyToday, useLessonCtx, useLessonPlan, useLessonsDone } from './useLearn';
 
 export default function LessonPage() {
   const { id } = useParams();
   const ctx = useLessonCtx();
   const { isManager } = useApp();
   const today = useFamilyToday();
+  const plan = useLessonPlan();
   const lesson = visibleLessons(ctx).find((l) => l.id === id);
   if (!lesson) return <Navigate replace to="/help/learn" />;
-  const series = seriesOf(lesson.id);
-  const gate = lessonGate(lesson.id, today, isManager);
-  if (gate === 'locked' && series) return <LockedLesson lesson={lesson} series={series} />;
-  return <LessonView key={lesson.id} lesson={lesson} ctx={ctx} series={series} preview={gate === 'preview'} />;
+  const g = lessonGate(lesson.id, plan, today, isManager);
+  if (g.gate === 'locked') return <LockedLesson lesson={lesson} theme={g.theme} openOn={g.openOn} />;
+  return (
+    <LessonView
+      key={lesson.id} lesson={lesson} ctx={ctx} theme={g.theme} openOn={g.openOn} preview={g.gate === 'preview'} isManager={isManager}
+    />
+  );
 }
 
 function LessonTitle({ lesson }: { lesson: Lesson }) {
   return <span className={`block whitespace-normal text-balance ${lesson.title.length > 22 ? 'text-[1.5rem]' : ''}`}>{lesson.title}</span>;
 }
 
-/** Before the opening day, for kids and relatives: no lesson text, just when it opens. */
-function LockedLesson({ lesson, series }: { lesson: Lesson; series: LessonSeries }) {
-  const opens = opensLabel(series.opensOn);
+/** A theme lesson that isn't open for kids and relatives: no lesson text, just when it opens (or that it isn't planned). */
+function LockedLesson({ lesson, theme, openOn }: { lesson: Lesson; theme: Theme; openOn: string | null }) {
   useEffect(() => { window.scrollTo({ top: 0 }); }, []);
+  const opens = openOn ? dayLabel(openOn) : null;
   return (
     <div className="pb-6">
-      <PageHeader title={<LessonTitle lesson={lesson} />} subtitle={series.title} back="/help/learn" />
+      <PageHeader title={<LessonTitle lesson={lesson} />} subtitle={theme.title} back="/help/learn" />
       <Card className="mt-2">
         <EmptyState
           emoji="🔒"
-          title={`Opens on ${opens}`}
-          message={<>“{lesson.title}” is part of <strong>{series.title}</strong>. It isn’t open yet: come back on {opens}!</>}
+          title={opens ? `Opens ${opens}` : 'Not in the lesson plan'}
+          message={opens
+            ? <>“{lesson.title}” is part of <strong>{theme.title}</strong>. It isn’t open yet: come back on {opens}!</>
+            : <>“{lesson.title}” is part of <strong>{theme.title}</strong>, which isn’t in the family’s lesson plan. Ask a parent!</>}
           action={<LinkButton to="/help/learn" variant="secondary" icon="back">Back to Money school</LinkButton>}
         />
       </Card>
@@ -54,7 +62,7 @@ function LockedLesson({ lesson, series }: { lesson: Lesson; series: LessonSeries
 type Finish =
   | { s: 'idle' }
   | { s: 'saving' }
-  | { s: 'error'; msg: string }
+  | { s: 'error'; msg: string; quiz?: boolean }
   | { s: 'done'; points: number; money: number; first: boolean };
 
 const FALLBACK_TALK = [
@@ -66,15 +74,20 @@ function reduceMotion() {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: LessonCtx; series?: LessonSeries; preview: boolean }) {
+function LessonView({ lesson, ctx, theme, openOn, preview, isManager }: {
+  lesson: Lesson; ctx: LessonCtx; theme: Theme | null; openOn: string | null; preview: boolean; isManager: boolean;
+}) {
   const { refresh } = useApp();
-  const { progress, series: seriesProgress } = useLessonsDone();
+  const { school } = useLessonsDone();
   const steps = useMemo(() => lesson.steps(ctx), [lesson, ctx]);
   const quiz = useMemo(() => (isTracked(lesson.kind) && lesson.quiz ? lesson.quiz(ctx) : []), [lesson, ctx]);
   const hasQuiz = quiz.length > 0;
   const total = steps.length + (hasQuiz ? 1 : 0);
   const [i, setI] = useState(0);
   const [fin, setFin] = useState<Finish>({ s: 'idle' });
+  // A new key starts the quiz afresh (after the server didn't accept the answers).
+  const [quizKey, setQuizKey] = useState(0);
+  const answersRef = useRef<number[]>([]);
   const [faithDone, setFaithDone] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
@@ -93,34 +106,44 @@ function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: Les
   };
   const focusDone = () => requestAnimationFrame(() => doneRef.current?.focus());
 
-  const finish = async () => {
+  const finish = async (answers: number[]) => {
+    answersRef.current = answers;
     setFin({ s: 'saving' });
     try {
-      const r = await api.finishLesson(lesson.id);
+      const r = await api.finishLesson(lesson.id, answers);
       setFin({ s: 'done', points: r.points, money: r.money_cents ?? 0, first: r.first });
       focusDone();
       void refresh();
     } catch (e) {
       const err = toAppError(e);
       if (err.code === 'feature_off') void refresh();
-      const notOpen = err.code === 'invalid' && err.detail === 'not_open' && series;
-      setFin({ s: 'error', msg: notOpen ? `This lesson opens on ${opensLabel(series.opensOn)}.` : friendlyError(e) });
+      if (err.code === 'invalid' && err.detail === 'answers') {
+        setFin({ s: 'error', quiz: true, msg: 'Something went wrong with the quiz — please try it again.' });
+      } else if (err.code === 'invalid' && err.detail === 'not_open') {
+        setFin({ s: 'error', msg: openOn ? `This lesson opens on ${dayLabel(openOn)}.` : 'This lesson isn’t in the family’s lesson plan yet.' });
+      } else {
+        setFin({ s: 'error', msg: friendlyError(e) });
+      }
     }
   };
+  const retryQuiz = () => { setFin({ s: 'idle' }); setQuizKey((k) => k + 1); };
 
-  // "Next lesson": the next one not done yet in the same group (the core lessons, or this series), after this one and
-  // wrapping round. All core lessons done → the first lesson not done yet of a series that is open.
+  // "Next lesson": the next open one not done yet in the same group (the core lessons, or this theme), after this one
+  // and wrapping round. All core lessons done → Home's "Up next" (an open theme lesson). A manager previewing a theme
+  // that isn't open: its next lesson.
   const nextLesson = useMemo(() => {
-    const own = series ? seriesProgress.find((p) => p.series.id === series.id) : progress;
-    if (!own) return null;
-    const list = own.list;
-    const at = list.findIndex((l) => l.id === lesson.id);
+    const own = theme ? school.themes.find((t) => t.theme.id === theme.id) : school.core;
+    const list: { lesson: { id: string; title: string }; open: boolean; done: boolean }[] = own
+      ? own.lessons
+      : (theme?.lessons ?? []).map((l) => ({ lesson: l, open: false, done: false }));
+    const at = list.findIndex((s) => s.lesson.id === lesson.id);
     const order = [...list.slice(at + 1), ...list.slice(0, Math.max(0, at))];
-    const next = order.find((l) => !own.done.has(l.id));
-    if (next) return next;
-    if (!series && lesson.kind === 'core') return seriesProgress.find((p) => p.open && p.next)?.next ?? null;
+    const next = order.find((s) => (s.open || (preview && isManager)) && !s.done);
+    if (next) return next.lesson;
+    const up = school.upNext;
+    if (!theme && up.kind === 'lesson' && up.lesson.lesson.id !== lesson.id) return up.lesson.lesson;
     return null;
-  }, [progress, seriesProgress, series, lesson]);
+  }, [school, theme, lesson, preview, isManager]);
 
   const talk = useMemo(() => {
     const prompts = steps.flatMap((s) => s.blocks.flatMap((b) => (b.kind === 'reflect' ? [b.prompt] : [])));
@@ -134,14 +157,23 @@ function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: Les
       {/* PageHeader truncates its title; long lesson titles wrap here instead. */}
       <PageHeader
         title={<LessonTitle lesson={lesson} />}
-        subtitle={lesson.kind === 'faith' ? 'A reflection' : series ? series.title : 'Money school'}
+        subtitle={lesson.kind === 'faith' ? 'A reflection' : theme ? theme.title : 'Money school'}
         back="/help/learn"
       />
 
-      {preview && series && (
+      {preview && theme && (
         <Card tone="warn" role="note" className="mb-4 flex items-start gap-3">
           <Icon name="lock" size={20} className="mt-0.5 shrink-0" />
-          <p className="text-[15px] font-semibold leading-snug">Preview — the kids see this from {opensLabel(series.opensOn)}.</p>
+          <div className="min-w-0 space-y-1">
+            <p className="text-[15px] font-semibold leading-snug">
+              {openOn ? `Preview — the kids see this from ${dayLabel(openOn)}.` : 'Preview — this theme isn’t in the lesson plan, so the kids can’t see it.'}
+            </p>
+            {!openOn && (
+              <LinkButton to={LESSON_PLAN_PATH} size="sm" variant="secondary">
+                <span aria-hidden="true">📅 </span>Lesson plan
+              </LinkButton>
+            )}
+          </div>
         </Card>
       )}
 
@@ -161,13 +193,15 @@ function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: Les
         {isQuizStep && (
           <>
             <p className="text-[17px]">Answer all the questions, then check. You can try again as often as you like.</p>
-            <Quiz questions={quiz} onAllRight={finish} locked={fin.s === 'saving' || fin.s === 'done'} />
+            <Quiz key={quizKey} questions={quiz} onAllRight={(a) => void finish(a)} locked={fin.s === 'saving' || fin.s === 'done'} />
             {fin.s === 'saving' && <p className="text-[15px] text-muted" aria-live="polite">Saving…</p>}
             {fin.s === 'error' && (
               <Card tone="warn" role="alert" className="space-y-3">
-                <p className="font-semibold">All right, but we couldn’t save it yet.</p>
+                <p className="font-semibold">{fin.quiz ? 'Hmm, that didn’t work.' : 'All right, but we couldn’t save it yet.'}</p>
                 <p className="text-[15px] text-muted">{fin.msg}</p>
-                <Button icon="reset" variant="secondary" onClick={finish}>Try again</Button>
+                {fin.quiz
+                  ? <Button icon="reset" variant="secondary" onClick={retryQuiz}>Do the quiz again</Button>
+                  : <Button icon="reset" variant="secondary" onClick={() => void finish(answersRef.current)}>Try again</Button>}
               </Card>
             )}
             {fin.s === 'done' && (

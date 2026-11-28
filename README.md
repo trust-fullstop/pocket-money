@@ -95,7 +95,7 @@ Six short basic lessons (about 3 minutes each) that use your own family's number
 5. **How interest works.** A calculator: no interest vs the family's savings bonus vs a real bank. Plus why borrowing costs money.
 6. **Saving for a goal.** How many weeks until you can buy it?
 
-Plus a themed series that opens on a date. **December: Borrowing and insurance** (opens 1 December, then stays open) has six more lessons: how loans work, paying a loan back (with a loan calculator), what insurance is, insurance for people, home and car insurance, and phones, valuables and boats. Before it opens, kids see a locked preview; parents can look ahead.
+Plus **monthly themes** from a lesson bank, to keep it fresh. Parents choose up to three themes a month on the **Lesson plan** page (Money school → 📅 Lesson plan): about five lessons, one a week, or a whole set at once. Ready now: **Borrowing and insurance** (six lessons, all at once: how loans work, paying a loan back with a loan calculator, what insurance is, insurance for people, home and car insurance, and phones, valuables and boats) and, with faith on, **Christmas: why we celebrate** (five lessons, one a week: Advent, a generous Christmas on a budget, the birth of Jesus, the wise men and their gifts, and Thanksgiving and a thankful heart). More themes are listed as "coming soon". Kids only see the themes in the plan: a lesson opens on its day ("Opens Tue 8 Dec"), then stays open, and a theme that has started stays in the plan. A weekly theme always gets its full five weeks, so one planned for a short month can finish early the next month. Parents can look ahead at any theme.
 
 With faith switched on, the six faith reflections are in Money school too, with no quiz and nothing to score.
 
@@ -178,7 +178,7 @@ Everything at a glance. Parents choose what the family uses in **Family → Feat
 - 🌟 **Points and levels:** points for tasks, and a character that levels up.
 
 **Learning**
-- 🎓 **Money school:** six basic lessons, plus a themed series (December: Borrowing and insurance). Optional money reward per finished lesson.
+- 🎓 **Money school:** six basic lessons, plus monthly themes the parents plan (e.g. Borrowing and insurance, Christmas). Optional money reward per finished lesson.
 - ❓ **Help:** always there, at the top of the app.
 - 💬 **Ask Pocket:** a helper for questions (off until a parent switches it on; it needs an AI key, see [setup](docs/SETUP.md)).
 

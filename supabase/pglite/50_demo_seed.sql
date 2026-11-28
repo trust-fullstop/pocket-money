@@ -13,6 +13,10 @@ begin
   perform set_config('app.fake_now', p_ts::text, false);
 end $f$;
 
+-- The right quiz answers of a Money school lesson (finish_lesson checks them).
+create or replace function pg_temp.answers(p_lesson text) returns int[] language sql as $f$
+  select array(select x.a::int from jsonb_array_elements_text(app.lesson_answers()->p_lesson) with ordinality x(a, o) order by x.o) $f$;
+
 do $seed$
 declare
   tz constant text := 'Europe/Amsterdam';
@@ -51,6 +55,13 @@ begin
       'calendar', true, 'emergency', true, 'devices', true, 'ask', true, 'learn', true, 'faith', true, 'needs', true,
       'loans', true),
     'spend_currency', 'ZAR')));  -- the demo kids spend in rand: shows today's EUR → ZAR rate
+  -- Money school lesson plan (Help → Money school → Lesson plan), on the demo's own clock: Borrowing and insurance this
+  -- month (all lessons open), and Christmas in December (one lesson a week; this month too when it is December).
+  perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('lesson_plan',
+    case when extract(month from v_today) = 12
+         then jsonb_build_object(to_char(v_today, 'YYYY-MM'), jsonb_build_array('borrow-protect', 'christmas'))
+         else jsonb_build_object(to_char(v_today, 'YYYY-MM'), jsonb_build_array('borrow-protect'),
+                                 to_char(v_today, 'YYYY') || '-12', jsonb_build_array('christmas')) end)));
 
   mum  := (public.add_member(p_name => 'Mum',  p_role => 'parent',      p_avatar => '👩')->>'member_id')::uuid;
   anna := (public.add_member(p_name => 'Anna', p_role => 'step_parent', p_avatar => '👩‍🦰', p_relation => 'Bonus mum')->>'member_id')::uuid;
@@ -216,8 +227,8 @@ begin
       if app.bal(sam, 'spending') >= 100 then perform public.transfer(p_member => sam, p_amount => 100, p_to => 'savings'); end if;
       -- Money school before there is a reward per lesson: Mia's two lessons wait in Family rules ("Reward them now")
       perform pg_temp.seed_at(u_mia, app.local_ts(d, '17:00', tz));
-      perform public.finish_lesson(p_lesson => 'purpose');
-      perform public.finish_lesson(p_lesson => 'why-save');
+      perform public.finish_lesson(p_lesson => 'purpose', p_answers => pg_temp.answers('purpose'));
+      perform public.finish_lesson(p_lesson => 'why-save', p_answers => pg_temp.answers('why-save'));
     elsif rel = 4 then
       perform pg_temp.seed_at(u_mia, app.local_ts(d, '16:00', tz));
       if app.bal(mia, 'spending') >= 500 then perform public.transfer(p_member => mia, p_amount => 500, p_to => 'savings'); end if;
@@ -232,9 +243,9 @@ begin
         'time_label', 'fun', 'reason', 'Lovely drawing for Oma 🎨'));
       -- Sam does three Money school lessons: +€1 each into his Wallet (and +5 XP)
       perform pg_temp.seed_at(u_sam, app.local_ts(d, '17:00', tz));
-      perform public.finish_lesson(p_lesson => 'purpose');
-      perform public.finish_lesson(p_lesson => 'earn');
-      perform public.finish_lesson(p_lesson => 'why-save');
+      perform public.finish_lesson(p_lesson => 'purpose', p_answers => pg_temp.answers('purpose'));
+      perform public.finish_lesson(p_lesson => 'earn', p_answers => pg_temp.answers('earn'));
+      perform public.finish_lesson(p_lesson => 'why-save', p_answers => pg_temp.answers('why-save'));
     elsif rel = 6 then
       -- Sam fixes the room after yesterday's "not yet"
       select ti.id into v_inst from public.task_instances ti join public.tasks t on t.id = ti.task_id

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { PGlite } from '@electric-sql/pglite';
-import { asRole, balance, clock, expectCode, makeDb, makeFamily, q, type Fam, type Person } from './helpers';
+import { asRole, balance, clock, expectCode, finishArgs, makeDb, makeFamily, q, type Fam, type Person } from './helpers';
 import { describeAudit } from '../src/features/family/audit';
 import type { Member } from '../src/lib/types';
 
@@ -16,7 +16,7 @@ afterEach(() => { clock.now = null; });
 type Row = Record<string, any>;
 const setReward = (f: Fam, cents: unknown, by: Person = f.owner) =>
   by.rpc<any>('update_family', { p_patch: { settings: { lesson_reward_cents: cents } } });
-const finish = (p: Person, lesson: string) => p.rpc<any>('finish_lesson', { p_lesson: lesson });
+const finish = (p: Person, lesson: string) => p.rpc<any>('finish_lesson', finishArgs(lesson));
 const due = (p: Person) => p.rpc<any>('lesson_rewards_due');
 const rewardPast = (p: Person, expected: number, member?: string) =>
   p.rpc<any>('reward_past_lessons', member ? { p_expected_cents: expected, p_member: member } : { p_expected_cents: expected });
@@ -131,9 +131,11 @@ describe('finishing a lesson pays the reward once', () => {
     expect(await balance(db, g.Sam.id, 'points')).toBe(0);
   });
 
-  it('a series lesson before its opening day: still not open for kids, so no money', async () => {
+  it('a theme lesson before its opening day: still not open for kids, so no money', async () => {
     const g = await makeFamily(db, { Sam: 'kid' }, 'Series', 'Europe/Amsterdam');
     await setReward(g, 300);
+    clock.now = '2026-11-20T10:00:00Z';
+    await g.owner.rpc('update_family', { p_patch: { settings: { lesson_plan: { '2026-12': ['borrow-protect'] } } } });
     clock.now = '2026-11-30T22:59:00Z'; // 23:59 on 30 Nov in Amsterdam
     await expectCode(finish(g.Sam, 'loans-how'), 'invalid', 'not_open');
     expect(await lessonMoney(g.Sam.id)).toHaveLength(0);
@@ -399,6 +401,7 @@ describe('pay-out: the Money school line', () => {
     // the next cycle: one amount again
     clock.now = '2026-11-10T09:00:00Z';
     await f.Mum.rpc('record_payout', { p_member: f.Sam.id, p_expected_cents: 2500, p_request: crypto.randomUUID() });
+    await f.owner.rpc('update_family', { p_patch: { settings: { lesson_plan: { '2026-12': ['borrow-protect'] } } } });
     clock.now = '2026-12-02T09:00:00Z';
     expect(await finish(f.Sam, 'loans-how')).toMatchObject({ money_cents: 2000 });
     row = await summaryRow(f, f.Sam.id);
@@ -428,7 +431,7 @@ describe('pay-out: the Money school line', () => {
 
 describe('grants', () => {
   it('anon cannot run the new RPCs, authenticated can; the helpers are internal', async () => {
-    const fns = ['public.lesson_rewards_due()', 'public.reward_past_lessons(int, uuid)', 'public.finish_lesson(text)',
+    const fns = ['public.lesson_rewards_due()', 'public.reward_past_lessons(int, uuid)', 'public.finish_lesson(text, integer[])',
       'public.list_lessons_done()', 'public.update_family(jsonb)'];
     for (const fn of fns) {
       const [r] = await q<Row>(db, `select has_function_privilege('anon', $1, 'execute') as anon,

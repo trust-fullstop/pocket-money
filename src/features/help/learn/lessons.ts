@@ -1,13 +1,15 @@
-// Money school lessons: the 6 core lessons and the lesson series (tracked: quiz, finished once on the server, +5 XP for
-// kids) followed by the faith reflections. Texts use the family's own numbers through LessonCtx: their currency and their
-// savings bonus.
+// Money school lessons: the 6 core lessons and the lessons of the lesson bank's themes (tracked: quiz, finished once on
+// the server, +5 XP for kids) followed by the faith reflections. Texts use the family's own numbers through LessonCtx:
+// their currency and their savings bonus.
 import { money } from '../../../lib/format';
 import { spendCurrencyOf } from '../../../lib/fx';
 import type { Family, FeatureKey, Member } from '../../../lib/types';
 import { FAITH_LESSONS } from '../../faith/reflections';
+import { themeOf } from './bank';
 import { CORE_BY_ID } from './catalog';
 import { DEFAULT_PCT_MONTH, compoundYears, familyYearPct, owedAfter, pct, simpleYears, weeklyBonus } from './math';
 import { SERIES_LESSONS_FULL } from './seriesLessons';
+import { CHRISTMAS_LESSONS } from './themes/christmas';
 import { isTracked, type Block, type CoreLessonId, type Lesson, type LessonCtx } from './types';
 
 function core(id: CoreLessonId, steps: Lesson['steps'], quiz: NonNullable<Lesson['quiz']>): Lesson {
@@ -481,16 +483,18 @@ const goals = core(
 
 export const CORE_LESSONS_FULL: Lesson[] = [purpose, earn, whySave, howSave, interest, goals];
 
-/** All lessons: the 6 core lessons, the lesson series (December: borrowing and insurance), then the faith reflections. */
-export const LESSONS: Lesson[] = [...CORE_LESSONS_FULL, ...SERIES_LESSONS_FULL, ...FAITH_LESSONS];
+/** All lessons: the 6 core lessons, the lesson bank's themes (./bank: Borrowing and insurance, Christmas), then the faith reflections. */
+export const LESSONS: Lesson[] = [...CORE_LESSONS_FULL, ...SERIES_LESSONS_FULL, ...CHRISTMAS_LESSONS, ...FAITH_LESSONS];
 
 /**
- * Lessons this reader can open: Money school on, tracked lessons (core + series) always, faith reflections only with
- * 'faith', and every `needs` on. A series that hasn't opened yet is still listed here; its date gate is ./series.ts.
+ * Lessons this family can see: Money school on, tracked lessons (core + theme lessons) always, faith reflections only
+ * with 'faith', and every `needs` on (a theme lesson also needs its theme's, e.g. Christmas needs 'faith'). Theme lessons
+ * are listed whether or not they're planned or open yet; that gate is per reader (./progress.ts).
  */
 export function visibleLessons(ctx: Pick<LessonCtx, 'on'>): Lesson[] {
   if (!ctx.on('learn')) return [];
-  return LESSONS.filter((l) => (isTracked(l.kind) || ctx.on('faith')) && (l.needs ?? []).every(ctx.on));
+  return LESSONS.filter((l) => (isTracked(l.kind) || ctx.on('faith'))
+    && (l.needs ?? []).every(ctx.on) && (themeOf(l.id)?.needs ?? []).every(ctx.on));
 }
 
 /** Build the lesson context for a reader. */

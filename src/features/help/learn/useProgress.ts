@@ -4,7 +4,8 @@ import { api } from '../../../lib/api';
 import { useFeatures } from '../../../lib/features';
 import { todayISO } from '../../../lib/format';
 import { useApp, useLoad } from '../../../lib/session';
-import { coreProgress, seriesProgress } from './catalog';
+import { planOf, type LessonPlan } from './bank';
+import { moneySchool } from './progress';
 
 /** The family-local date (YYYY-MM-DD) on the app clock (respects the demo's fake clock); null before the family loads. */
 export function useFamilyToday(): string | null {
@@ -12,14 +13,27 @@ export function useFamilyToday(): string | null {
   return family ? todayISO(family.timezone, now()) : null;
 }
 
-/** Finished lessons (managers get the whole family) and the reader's own progress: core, and each lesson series. */
+/** The family's Money school lesson plan (family setting lesson_plan). */
+export function useLessonPlan(): LessonPlan {
+  const { family } = useApp();
+  const raw = family?.settings?.lesson_plan;
+  return useMemo(() => planOf({ lesson_plan: raw }), [raw]);
+}
+
+/**
+ * Finished lessons (managers get the whole family) and the reader's own Money school (./progress): core lessons, the
+ * planned themes and what's up next, on the family-local today and the family's lesson plan.
+ */
 export function useLessonsDone() {
   const { me, state } = useApp();
   const { on } = useFeatures();
   const today = useFamilyToday();
+  const plan = useLessonPlan();
   const learn = on('learn');
   const load = useLoad(() => (learn ? api.listLessonsDone() : Promise.resolve([])), [learn, me?.id, state?.now]);
-  const progress = useMemo(() => coreProgress(on, load.data ?? undefined, me?.id), [on, load.data, me?.id]);
-  const series = useMemo(() => seriesProgress(on, load.data ?? undefined, me?.id, today), [on, load.data, me?.id, today]);
-  return { ...load, progress, series, today };
+  const school = useMemo(
+    () => moneySchool({ on, rows: load.data ?? undefined, memberId: me?.id, plan, today }),
+    [on, load.data, me?.id, plan, today],
+  );
+  return { ...load, school, plan, today };
 }

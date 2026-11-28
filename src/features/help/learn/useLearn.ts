@@ -4,7 +4,7 @@ import { useFeatures } from '../../../lib/features';
 import { useApp } from '../../../lib/session';
 import { lessonCtx } from './lessons';
 
-export { useFamilyToday, useLessonsDone } from './useProgress';
+export { useFamilyToday, useLessonPlan, useLessonsDone } from './useProgress';
 
 export function useLessonCtx() {
   const { family, me } = useApp();

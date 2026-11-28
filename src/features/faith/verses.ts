@@ -5,7 +5,7 @@
 // God's discipline — and 2 Thess 3:10, which is easily misused. Mal 3:10 is only in the tithing lesson, with context. `daily: false` = only shown inside a lesson
 // with context, never in the verse of the day — e.g. the Proverbs about laziness and poverty, which could read as a judgement next to a missed task.
 
-export type VerseTheme = 'faith' | 'grace' | 'work' | 'save' | 'steward' | 'give' | 'tithe' | 'church' | 'world' | 'provision' | 'content' | 'family' | 'kids' | 'parents' | 'grandparents';
+export type VerseTheme = 'faith' | 'grace' | 'work' | 'save' | 'steward' | 'give' | 'tithe' | 'church' | 'world' | 'provision' | 'content' | 'family' | 'kids' | 'parents' | 'grandparents' | 'christmas' | 'thanks';
 
 export interface Verse {
   id: string;
@@ -199,6 +199,32 @@ export const VERSES: Verse[] = [
     text: 'The food will be to supply the land against the seven years of famine, which will be in the land of Egypt; so that the land will not perish through the famine.' },
   { id: 'yes-be-yes', ref: 'Matthew 5:37', usfm: 'MAT', ch: 5, from: 37, to: 37, themes: ['work', 'family'], daily: false,
     text: 'But let your ‘Yes’ be ‘Yes’ and your ‘No’ be ‘No.’ Whatever is more than these is of the evil one.' },
+  // Christmas: why we celebrate (December theme, help/learn/themes/christmas.ts). Lesson context only (`daily: false`):
+  // the story verses belong inside the story, so the verse of the day and Ask Pocket's list stay as they are.
+  { id: 'great-light', ref: 'Isaiah 9:2', usfm: 'ISA', ch: 9, from: 2, to: 2, themes: ['christmas', 'faith'], daily: false,
+    text: 'The people who walked in darkness have seen a great light. The light has shined on those who lived in the land of the shadow of death.' },
+  { id: 'child-is-born', ref: 'Isaiah 9:6', usfm: 'ISA', ch: 9, from: 6, to: 6, themes: ['christmas', 'faith'], daily: false,
+    text: 'For a child is born to us. A son is given to us; and the government will be on his shoulders. His name will be called Wonderful Counsellor, Mighty God, Everlasting Father, Prince of Peace.' },
+  { id: 'wait-for-the-lord', ref: 'Isaiah 40:31', usfm: 'ISA', ch: 40, from: 31, to: 31, themes: ['christmas', 'faith'], daily: false,
+    text: 'but those who wait for the LORD will renew their strength. They will mount up with wings like eagles. They will run, and not be weary. They will walk, and not faint.' },
+  { id: 'angel-to-mary', ref: 'Luke 1:30-31', usfm: 'LUK', ch: 1, from: 30, to: 31, themes: ['christmas'], daily: false,
+    text: 'The angel said to her, “Don’t be afraid, Mary, for you have found favour with God. Behold, you will conceive in your womb and give birth to a son, and shall name him ‘Jesus.’' },
+  { id: 'no-room', ref: 'Luke 2:7', usfm: 'LUK', ch: 2, from: 7, to: 7, themes: ['christmas'], daily: false,
+    text: 'She gave birth to her firstborn son. She wrapped him in bands of cloth and laid him in a feeding trough, because there was no room for them in the inn.' },
+  { id: 'good-news-great-joy', ref: 'Luke 2:10-11', usfm: 'LUK', ch: 2, from: 10, to: 11, themes: ['christmas', 'faith'], daily: false,
+    text: 'The angel said to them, “Don’t be afraid, for behold, I bring you good news of great joy which will be to all the people. For there is born to you today, in David’s city, a Saviour, who is Christ the Lord.' },
+  { id: 'immanuel', ref: 'Matthew 1:23', usfm: 'MAT', ch: 1, from: 23, to: 23, themes: ['christmas', 'faith'], daily: false,
+    text: '“Behold, the virgin shall be with child, and shall give birth to a son. They shall call his name Immanuel,” which is, being interpreted, “God with us.”' },
+  { id: 'his-star', ref: 'Matthew 2:2', usfm: 'MAT', ch: 2, from: 2, to: 2, themes: ['christmas'], daily: false,
+    text: '“Where is he who is born King of the Jews? For we saw his star in the east, and have come to worship him.”' },
+  { id: 'wise-men-gifts', ref: 'Matthew 2:10-11', usfm: 'MAT', ch: 2, from: 10, to: 11, themes: ['christmas', 'give'], daily: false,
+    text: 'When they saw the star, they rejoiced with exceedingly great joy. They came into the house and saw the young child with Mary, his mother, and they fell down and worshipped him. Opening their treasures, they offered to him gifts: gold, frankincense, and myrrh.' },
+  { id: 'enter-with-thanks', ref: 'Psalm 100:4', usfm: 'PSA', ch: 100, from: 4, to: 4, themes: ['christmas', 'thanks'], daily: false,
+    text: 'Enter into his gates with thanksgiving, and into his courts with praise. Give thanks to him, and bless his name.' },
+  { id: 'in-everything-thanks', ref: '1 Thessalonians 5:18', usfm: '1TH', ch: 5, from: 18, to: 18, themes: ['christmas', 'thanks'], daily: false,
+    text: 'In everything give thanks, for this is the will of God in Christ Jesus towards you.' },
+  { id: 'unspeakable-gift', ref: '2 Corinthians 9:15', usfm: '2CO', ch: 9, from: 15, to: 15, themes: ['christmas', 'give', 'thanks'], daily: false,
+    text: 'Now thanks be to God for his unspeakable gift!' },
 ];
 
 export const VERSE_BY_ID: Record<string, Verse> = Object.fromEntries(VERSES.map((x) => [x.id, x]));

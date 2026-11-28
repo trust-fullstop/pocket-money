@@ -145,9 +145,11 @@ export const api = {
   listLessonsDone: () => rpc<LessonDone[]>('list_lessons_done'),
   /**
    * Mark a lesson finished (once). The first time, kids get +5 XP when points are switched on, and the family's
-   * Money school reward (settings.lesson_reward_cents) in their Wallet when it is above 0.
+   * Money school reward (settings.lesson_reward_cents) in their Wallet when it is above 0. `answers` = the quiz's right
+   * answers (option index per question): the server checks them (else invalid 'answers').
    */
-  finishLesson: (lesson: string) => rpc<FinishLessonResult>('finish_lesson', { p_lesson: lesson }),
+  finishLesson: (lesson: string, answers: number[]) =>
+    rpc<FinishLessonResult>('finish_lesson', { p_lesson: lesson, p_answers: answers }),
   /** Managers: lessons kids finished that never got the Money school reward, at today's value. */
   lessonRewardsDue: () => rpc<LessonRewardsDue>('lesson_rewards_due'),
   /**
