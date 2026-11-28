@@ -149,6 +149,9 @@ export function clip(s: string, n: number): string {
   return chars.length > n ? chars.slice(0, n).join('') : chars.join('');
 }
 
+/** A row the Money school paid (a lesson reward or lesson XP): shown as from "Money school 🎓", not the kid or parent. */
+export const fromMoneySchool = (tx: { source_type: string | null }): boolean => tx.source_type === 'lesson';
+
 /** Who made a change: "You", the member's name, "Automatic" (timed rules) or "Someone" (removed member). */
 export function whoName(createdBy: string | null, membersById: Record<string, Member>, viewerId: string | null | undefined): string {
   if (!createdBy) return 'Automatic';

@@ -9,7 +9,7 @@ import type { SeriesProgress } from './catalog';
 import { visibleLessons } from './lessons';
 import { opensLabel } from './series';
 import type { Lesson } from './types';
-import { LESSON_XP } from './types';
+import { LESSON_XP, kidLessonReward } from './types';
 import { useLessonCtx, useLessonsDone } from './useLearn';
 
 type LessonLike = Pick<Lesson, 'id' | 'emoji' | 'title' | 'summary' | 'minutes'>;
@@ -34,12 +34,15 @@ export default function LearnHome() {
   const ready = data !== undefined;
   const { done, count, total, next } = progress;
   const xp = ctx.isKid && ctx.on('points');
+  // Kids only (grown-ups never see money promises): the family's Money school reward for a new lesson.
+  const reward = kidLessonReward(ctx);
+  const prize = reward > 0 ? `+${ctx.m(reward)}` : null;
   const allDone = ready && total > 0 && count === total;
   // Once the basics are done, an open series with lessons to do comes first.
   const seriesFirst = allDone && series.some((s) => s.open && s.count < s.total);
 
   const seriesSections = series.map((p) => (
-    <SeriesSection key={p.series.id} p={p} ready={ready} xp={xp} isManager={isManager} upNext={ready && next === null} />
+    <SeriesSection key={p.series.id} p={p} ready={ready} xp={xp} prize={prize} isManager={isManager} upNext={ready && next === null} />
   ));
 
   return (
@@ -52,8 +55,13 @@ export default function LearnHome() {
         </p>
         <p className="text-[15px] text-muted">
           Each lesson takes a few minutes and ends with a short quiz.
-          {xp && ` Finish one for the first time and get +${LESSON_XP} XP.`}
+          {xp && !prize && ` Finish one for the first time and get +${LESSON_XP} XP.`}
         </p>
+        {prize && (
+          <p className="text-[16px] font-semibold text-good">
+            <span aria-hidden="true">💰 </span>Finish a new lesson and get {prize}{xp ? ` and +${LESSON_XP} XP` : ''}.
+          </p>
+        )}
       </Card>
 
       <Card className="space-y-2">
@@ -88,8 +96,8 @@ export default function LearnHome() {
           {core.map((l) => (
             <li key={l.id}>
               {ready && next?.id === l.id
-                ? <NextLesson lesson={l} xp={xp} />
-                : <LessonRow lesson={l} done={done.has(l.id)} xp={xp && ready} />}
+                ? <NextLesson lesson={l} xp={xp} prize={prize} />
+                : <LessonRow lesson={l} done={done.has(l.id)} xp={xp && ready} prize={ready ? prize : null} />}
             </li>
           ))}
         </ol>
@@ -115,8 +123,8 @@ export default function LearnHome() {
  * One lesson series. Open: its own progress and the lessons. Not open yet: managers preview it; kids and relatives see a
  * locked teaser (titles only, no links). `upNext` = the basics are done, so this series' next lesson is highlighted.
  */
-function SeriesSection({ p, ready, xp, isManager, upNext }: {
-  p: SeriesProgress; ready: boolean; xp: boolean; isManager: boolean; upNext: boolean;
+function SeriesSection({ p, ready, xp, prize, isManager, upNext }: {
+  p: SeriesProgress; ready: boolean; xp: boolean; prize: string | null; isManager: boolean; upNext: boolean;
 }) {
   const { series, open, list, done, count, total, next } = p;
   const opens = opensLabel(series.opensOn);
@@ -167,8 +175,8 @@ function SeriesSection({ p, ready, xp, isManager, upNext }: {
               {list.map((l) => (
                 <li key={l.id}>
                   {open && upNext && next?.id === l.id
-                    ? <NextLesson lesson={l} xp={xp} />
-                    : <LessonRow lesson={l} done={done.has(l.id)} xp={xp && ready} />}
+                    ? <NextLesson lesson={l} xp={xp} prize={prize} />
+                    : <LessonRow lesson={l} done={done.has(l.id)} xp={xp && ready} prize={ready && open ? prize : null} />}
                 </li>
               ))}
             </ol>
@@ -192,29 +200,31 @@ function EmojiDot({ emoji, done }: { emoji: string; done?: boolean }) {
   );
 }
 
-function Meta({ lesson, xp }: { lesson: LessonLike; xp?: boolean }) {
+function Meta({ lesson, xp, prize }: { lesson: LessonLike; xp?: boolean; prize?: string | null }) {
   return (
     <span className="mt-0.5 block text-[13px] font-semibold text-muted">
-      ~{lesson.minutes} min{xp && <> · <span className="text-accent-ink">+{LESSON_XP} XP</span></>}
+      ~{lesson.minutes} min
+      {prize && <> · <span className="text-good">{prize}</span></>}
+      {xp && <> · <span className="text-accent-ink">+{LESSON_XP} XP</span></>}
     </span>
   );
 }
 
-function LessonRow({ lesson, done, xp }: { lesson: LessonLike; done: boolean; xp: boolean }) {
+function LessonRow({ lesson, done, xp, prize }: { lesson: LessonLike; done: boolean; xp: boolean; prize?: string | null }) {
   return (
     <Card padded={false} className="overflow-hidden">
       <ListRow
         to={`/help/learn/${lesson.id}`}
         left={<EmojiDot emoji={lesson.emoji} done={done} />}
         title={lesson.title}
-        subtitle={<>{lesson.summary}<Meta lesson={lesson} xp={xp && !done} /></>}
+        subtitle={<>{lesson.summary}<Meta lesson={lesson} xp={xp && !done} prize={done ? null : prize} /></>}
         right={done ? <Badge tone="good" icon="check">Done</Badge> : undefined}
       />
     </Card>
   );
 }
 
-function NextLesson({ lesson, xp }: { lesson: LessonLike; xp: boolean }) {
+function NextLesson({ lesson, xp, prize }: { lesson: LessonLike; xp: boolean; prize?: string | null }) {
   return (
     <Card className="space-y-3 ring-2 ring-accent">
       <div className="flex items-start gap-3">
@@ -223,7 +233,7 @@ function NextLesson({ lesson, xp }: { lesson: LessonLike; xp: boolean }) {
           <Badge tone="accent" icon="star">Up next</Badge>
           <h3 className="mt-1 text-lg font-bold leading-snug">{lesson.title}</h3>
           <p className="text-[14px] leading-snug text-muted">{lesson.summary}</p>
-          <Meta lesson={lesson} xp={xp} />
+          <Meta lesson={lesson} xp={xp} prize={prize} />
         </div>
       </div>
       <LinkButton to={`/help/learn/${lesson.id}`} block size="lg">

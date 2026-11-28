@@ -1,5 +1,5 @@
 // /help/learn/progress — for parents: which Money school lessons each kid finished, and when: the basics and each lesson
-// series (with its opening day while it isn't open yet).
+// series (with its opening day while it isn't open yet), and the Money school reward a lesson paid (+€1).
 import { useEffect, type ReactNode } from 'react';
 import { Navigate } from 'react-router';
 import { Avatar, Button, Card, EmptyState, Icon, PageHeader, PageSpinner, ProgressBar, Section } from '../../../components/ui';
@@ -37,15 +37,15 @@ export default function LearnProgress() {
       )}
 
       {data !== undefined && kids.map((kid) => {
-        const when = new Map(data.filter((r) => r.member_id === kid.id).map((r) => [r.lesson, r.done_at]));
+        const when = new Map(data.filter((r) => r.member_id === kid.id).map((r) => [r.lesson, r]));
         return (
           <Section key={kid.id} title={<span className="flex items-center gap-2"><Avatar member={kid} size="sm" />{kid.display_name}</span>}>
             <Card className="space-y-5">
-              <LessonGroup title="The basics" label={`${kid.display_name}’s lessons: the basics`} p={coreProgress(ctx.on, data, kid.id)} when={when} tz={tz} />
+              <LessonGroup title="The basics" label={`${kid.display_name}’s lessons: the basics`} p={coreProgress(ctx.on, data, kid.id)} when={when} tz={tz} m={ctx.m} />
               {seriesProgress(ctx.on, data, kid.id, today).map((s) => (
                 <LessonGroup
                   key={s.series.id} title={<><span aria-hidden="true">{s.series.emoji} </span>{s.series.title}</>}
-                  label={`${kid.display_name}’s lessons: ${s.series.title}`} p={s} when={when} tz={tz}
+                  label={`${kid.display_name}’s lessons: ${s.series.title}`} p={s} when={when} tz={tz} m={ctx.m}
                   note={s.open ? undefined : `Opens for the kids on ${opensLabel(s.series.opensOn)}.`}
                 />
               ))}
@@ -57,8 +57,8 @@ export default function LearnProgress() {
   );
 }
 
-function LessonGroup({ title, label, p, when, tz, note }: {
-  title: ReactNode; label: string; p: TrackedProgress; when: Map<string, LessonDone['done_at']>; tz: string; note?: string;
+function LessonGroup({ title, label, p, when, tz, m, note }: {
+  title: ReactNode; label: string; p: TrackedProgress; when: Map<string, LessonDone>; tz: string; m: (cents: number) => string; note?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -77,15 +77,19 @@ function LessonGroup({ title, label, p, when, tz, note }: {
       />
       <ul className="divide-y divide-line">
         {p.list.map((l) => {
-          const at = when.get(l.id);
+          const row = when.get(l.id);
+          const paid = row?.money_cents ?? 0;
           return (
             <li key={l.id} className="flex min-h-12 items-center gap-3 py-2">
               <span className="text-xl" aria-hidden="true">{l.emoji}</span>
               <span className="min-w-0 flex-1 font-semibold leading-snug">{l.title}</span>
-              {at ? (
-                <span className="flex shrink-0 items-center gap-1 text-[14px] font-semibold text-good">
-                  <Icon name="check" size={16} strokeWidth={3} />
-                  Done <span className="font-normal text-muted">{formatDate(dateInTz(at, tz))}</span>
+              {row ? (
+                <span className="flex shrink-0 flex-col items-end text-[14px] font-semibold text-good">
+                  <span className="flex items-center gap-1">
+                    <Icon name="check" size={16} strokeWidth={3} />
+                    Done <span className="font-normal text-muted">{formatDate(dateInTz(row.done_at, tz))}</span>
+                  </span>
+                  {paid > 0 && <span className="tabular-nums"><span className="sr-only">Reward: </span>+{m(paid)}</span>}
                 </span>
               ) : (
                 <span className="shrink-0 text-[14px] text-muted">Not yet</span>

@@ -1,5 +1,6 @@
 import { minutes, money, points, roleLabel } from '../../lib/format';
 import type { FeatureKey, Member } from '../../lib/types';
+import { TRACKED_LESSONS } from '../help/learn/catalog';
 import { FEATURE_INFO } from './featureList';
 
 export interface AuditEntry { id: number; actor: string | null; action: string; details: Record<string, unknown>; created_at: string }
@@ -21,6 +22,7 @@ export const SETTING_LABEL: Record<string, string> = {
   default_evidence: 'default proof',
   features: 'features',
   spend_currency: 'kids’ spending currency',
+  lesson_reward_cents: 'Money school reward',
 };
 
 const MEMBER_FIELD: Record<string, string> = {
@@ -66,6 +68,10 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
   const loanAmt = (key = 'amount') => money(Math.abs(num(d[key])), currency, { whole: true });
   const proud = () => (str(d.what) ? `“${str(d.what)}”` : 'something good');
   const note = () => (str(d.note) ? ` — ${str(d.note)}` : '');
+  const lesson = () => {
+    const t = TRACKED_LESSONS.find((l) => l.id === str(d.lesson))?.title;
+    return t ? `“${t}”` : 'a lesson';
+  };
 
   switch (e.action) {
     case 'family.create': return k('🏠', `Started the family${str(d.name) ? ` “${str(d.name)}”` : ''}`);
@@ -143,6 +149,17 @@ export function describeAudit(e: AuditEntry, byId: Record<string, Member>, curre
     case 'initiative.talk': return k('💬', `${who()}: proud moment ${proud()} → let’s talk 💬${note()}`);
     case 'initiative.cancel': return k('🚫', `Took back a proud moment: ${proud()}`);
     case 'bank.delete': return k('🏦', `Deleted a real bank balance of ${who()}${str(d.label) ? ` (${str(d.label)})` : ''}`);
+    case 'lesson.finish': {
+      const got: string[] = [];
+      if (num(d.money)) got.push(money(num(d.money), currency, { sign: true, whole: true }));
+      if (num(d.points)) got.push(points(num(d.points), { sign: true }));
+      return k('🎓', `Finished the Money school lesson ${lesson()}${got.length ? ` (${got.join(', ')})` : ''}`);
+    }
+    case 'lesson.reward_past': {
+      const n = num(d.rewarded);
+      return k('🎓', `Gave ${str(d.member) ? `${who()} ` : ''}the Money school reward for ${n} earlier lesson${n === 1 ? '' : 's'}`
+        + ` (${money(num(d.total_cents), currency, { whole: true })})`);
+    }
     case 'request.create': return k('🙋', 'Made a request');
     case 'request.approve': return k('✅', `Said yes to ${who()}’s request`);
     case 'request.decline': return k('❌', `Said no to ${who()}’s request`);

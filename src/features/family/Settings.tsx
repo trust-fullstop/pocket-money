@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router';
 import {
-  AmountInput, Button, Card, EmptyState, Icon, Input, LinkButton, ListRow, PageHeader, Segmented, Select, Sheet, Spinner, Toggle,
+  AmountInput, Button, Card, EmptyState, FxNote, Icon, Input, LinkButton, ListRow, PageHeader, Segmented, Select, Sheet, Spinner, Toggle,
   useToast,
 } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -12,8 +13,11 @@ import { currencyWord, spendCurrencyOf } from '../../lib/fx';
 import { useApp, useLoad } from '../../lib/session';
 import { useHoldUpdates } from '../../lib/updates';
 import { BUILD_COMMIT, BUILD_TIME, versionName } from '../../lib/version';
-import { familySpotRules, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules } from '../../lib/types';
+import {
+  familySpotRules, lessonRewardOf, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules,
+} from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
+import { PastLessonRewards } from './LessonRewards';
 
 const CURRENCIES: { code: string; label: string }[] = [
   { code: 'EUR', label: '€ Euro (EUR)' },
@@ -36,6 +40,8 @@ interface Draft {
   lateGrace: string; challengeCap: string; catchup: string;
   gpMoney: boolean; managersAddAdults: boolean; emergency: FamilySettings['emergency_visibility']; evidence: Evidence;
   spotRules: SpotRules;
+  /** Money school reward per lesson, family-currency cents (0 = off). */
+  lessonReward: number;
 }
 type FieldKey = keyof FamilySettings | 'name' | 'currency' | 'timezone';
 
@@ -55,6 +61,7 @@ const draftFrom = (f: Family): Draft => ({
   emergency: f.settings.emergency_visibility ?? 'family',
   evidence: f.settings.default_evidence ?? 'photo_or_note',
   spotRules: spotRulesOf(f),
+  lessonReward: lessonRewardOf(f.settings),
 });
 
 /** Parses a number field; returns [value, error]. */
@@ -124,6 +131,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
     if (d.emergency !== fs.emergency_visibility) s.emergency_visibility = d.emergency;
     if (d.evidence !== fs.default_evidence) s.default_evidence = d.evidence;
     if (JSON.stringify(d.spotRules) !== JSON.stringify(spotRulesOf(family))) s.spot_rules = d.spotRules;
+    if (d.lessonReward !== lessonRewardOf(fs)) s.lesson_reward_cents = d.lessonReward;
     // "Same as the family currency" (or the same code) = off
     const spend = d.spendCurrency && d.spendCurrency !== d.currency ? d.spendCurrency : null;
     if (spend !== (spendCurrencyOf(family) ?? null) || (spend === null && fs.spend_currency)) s.spend_currency = spend;
@@ -133,6 +141,15 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
 
   const dirty = JSON.stringify(d) !== JSON.stringify(base);
   useHoldUpdates(dirty);
+
+  // /family/settings#lesson-reward (from the Pay-out) scrolls to that card.
+  const { hash } = useLocation();
+  useEffect(() => {
+    const el = hash.length > 1 ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+    if (!el) return;
+    el.scrollIntoView({ block: 'start' });
+    el.focus({ preventScroll: true });
+  }, [hash]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -171,6 +188,9 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
   const showChallengeCap = features.on('challenges');
   const showEmergency = features.on('emergency');
   const showSpotted = features.on('spotted');
+  const showLearn = features.on('learn');
+  const savedReward = lessonRewardOf(family.settings);
+  const rewardChanged = d.lessonReward !== savedReward;
   const setRule = (dir: keyof SpotRules, patch: Partial<SpotAmount>) =>
     set({ spotRules: { ...d.spotRules, [dir]: { ...d.spotRules[dir], ...patch } } });
   const someHidden = !(showInterest && showSaverRules && showChallengeCap && showEmergency);
@@ -297,6 +317,27 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
               time={features.on('time')} points={features.on('points')}
             />
             {serverErr.spot_rules && <p role="alert" className="text-[15px] font-semibold text-bad">{serverErr.spot_rules}</p>}
+          </SettingsCard>
+        )}
+
+        {showLearn && (
+          <SettingsCard id="lesson-reward" title="Money school reward" emoji="🎓">
+            <AmountInput
+              kind="money" label="Money per lesson" value={d.lessonReward || null} onChange={(v) => set({ lessonReward: v ?? 0 })}
+              max={100_000} chips={[]} fxEntry
+              hint="For each lesson a child finishes for the first time. It goes into their Wallet and shows in the Pay-out."
+              error={serverErr.lesson_reward_cents}
+            />
+            <p className="text-[15px]">
+              {d.lessonReward > 0 ? (
+                <>
+                  Each new lesson: <strong className="tabular-nums">+{money(d.lessonReward, family.currency, { whole: true })}</strong>{' '}
+                  <FxNote cents={d.lessonReward} currency={family.currency} />
+                </>
+              ) : 'Off: lessons give no money (empty or 0 = off).'}
+              {rewardChanged && <span className="text-muted"> · not saved yet</span>}
+            </p>
+            <PastLessonRewards saved={savedReward} changed={rewardChanged} />
           </SettingsCard>
         )}
 
@@ -488,9 +529,9 @@ function AboutCard({ tz }: { tz: string }) {
   );
 }
 
-function SettingsCard({ title, emoji, children }: { title: string; emoji: string; children: ReactNode }) {
+function SettingsCard({ title, emoji, id, children }: { title: string; emoji: string; id?: string; children: ReactNode }) {
   return (
-    <Card>
+    <Card id={id} tabIndex={id ? -1 : undefined} className={id ? 'scroll-mt-28 outline-none' : undefined}>
       <h2 className="mb-3 flex items-center gap-2 text-lg font-extrabold">
         <span aria-hidden="true">{emoji}</span> {title}
       </h2>

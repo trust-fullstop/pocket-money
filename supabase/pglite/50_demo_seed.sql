@@ -214,15 +214,27 @@ begin
         'time_label', 'game', 'reason', 'Left bike in the rain'));
       perform pg_temp.seed_at(u_sam, app.local_ts(d, '16:00', tz));
       if app.bal(sam, 'spending') >= 100 then perform public.transfer(p_member => sam, p_amount => 100, p_to => 'savings'); end if;
+      -- Money school before there is a reward per lesson: Mia's two lessons wait in Family rules ("Reward them now")
+      perform pg_temp.seed_at(u_mia, app.local_ts(d, '17:00', tz));
+      perform public.finish_lesson(p_lesson => 'purpose');
+      perform public.finish_lesson(p_lesson => 'why-save');
     elsif rel = 4 then
       perform pg_temp.seed_at(u_mia, app.local_ts(d, '16:00', tz));
       if app.bal(mia, 'spending') >= 500 then perform public.transfer(p_member => mia, p_amount => 500, p_to => 'savings'); end if;
       perform pg_temp.seed_at(u_leo, app.local_ts(d, '16:30', tz));
       if app.bal(leo, 'spending') >= 50 then perform public.transfer(p_member => leo, p_amount => 50, p_to => 'savings'); end if;
+      -- Family rules: €1 for each new Money school lesson
+      perform pg_temp.seed_at(u_dad, app.local_ts(d, '20:00', tz));
+      perform public.update_family(p_patch => jsonb_build_object('settings', jsonb_build_object('lesson_reward_cents', 100)));
     elsif rel = 5 then
       perform pg_temp.seed_at(u_anna, app.local_ts(d, '14:00', tz));
       perform public.spot(p => jsonb_build_object('member_id', mia, 'direction', 'plus', 'points', 20, 'minutes', 15,
         'time_label', 'fun', 'reason', 'Lovely drawing for Oma 🎨'));
+      -- Sam does three Money school lessons: +€1 each into his Wallet (and +5 XP)
+      perform pg_temp.seed_at(u_sam, app.local_ts(d, '17:00', tz));
+      perform public.finish_lesson(p_lesson => 'purpose');
+      perform public.finish_lesson(p_lesson => 'earn');
+      perform public.finish_lesson(p_lesson => 'why-save');
     elsif rel = 6 then
       -- Sam fixes the room after yesterday's "not yet"
       select ti.id into v_inst from public.task_instances ti join public.tasks t on t.id = ti.task_id

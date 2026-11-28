@@ -67,6 +67,8 @@ export interface FamilySettings {
   default_evidence: Evidence;
   spend_currency: string | null;  // currency the kids spend in (e.g. 'ZAR'); null = same as the family currency
   spot_rules?: SpotRules;          // fixed Spotted amounts (Family rules → Spotted); missing on old data = defaults
+  /** Money school reward: family-currency cents a kid gets for each lesson finished the first time (0/missing = off). */
+  lesson_reward_cents?: number;
   features: Features;               // which parts of the app are switched on (parent admin → Features)
 }
 
@@ -85,6 +87,12 @@ export function familySpotRules(settings: Partial<FamilySettings> | null | undef
   const one = (a: Partial<SpotAmount> | undefined, b: SpotAmount): SpotAmount =>
     ({ cents: a?.cents ?? b.cents, minutes: a?.minutes ?? b.minutes, points: a?.points ?? b.points });
   return { reward: one(r?.reward, DEFAULT_SPOT_RULES.reward), consequence: one(r?.consequence, DEFAULT_SPOT_RULES.consequence) };
+}
+
+/** The Money school reward per lesson in family-currency cents (0 = off), read like the server does (app.lesson_reward_cents). */
+export function lessonRewardOf(settings: Partial<FamilySettings> | null | undefined): number {
+  const v = settings?.lesson_reward_cents;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(Math.max(Math.trunc(v), 0), 100_000) : 0;
 }
 
 /** Parts of the app a parent can switch on/off. Chores + the spending pot are always on (the core). */
@@ -136,10 +144,28 @@ export interface AskEntry {
   created_at: string;
 }
 
-/** A finished Money school lesson (`points` = XP it gave, 0 when none). */
-export interface LessonDone { member_id: string; lesson: string; done_at: string; points: number }
-/** finish_lesson answer: `first` = finished just now (not before); `points` = XP given now (0 when not a kid / points off / again). */
-export interface FinishLessonResult { lesson: string; done_at: string; first: boolean; points: number }
+/**
+ * A finished Money school lesson (`points` = XP it gave, 0 when none; `money_cents` = money it gave in the family
+ * currency, at the finish or later as a reward for an earlier lesson; 0 when none or undone).
+ */
+export interface LessonDone { member_id: string; lesson: string; done_at: string; points: number; money_cents: number }
+/**
+ * finish_lesson answer: `first` = finished just now (not before); `points` = XP given now (0 when not a kid / points off /
+ * again); `money_cents` = money put in the Wallet now (0 when not a kid / no reward set / again).
+ */
+export interface FinishLessonResult { lesson: string; done_at: string; first: boolean; points: number; money_cents: number }
+
+/** One kid's lessons that never got the Money school reward (e.g. finished before there was a value). */
+export interface LessonRewardsDueKid {
+  member_id: string;
+  count: number;
+  lessons: { lesson: string; title: string; done_at: string }[];
+  /** Today's value per lesson. */
+  cents_each: number;
+  total_cents: number;
+}
+/** lesson_rewards_due (managers): per kid, plus the totals at today's value. */
+export interface LessonRewardsDue { cents_each: number; count: number; total_cents: number; kids: LessonRewardsDueKid[] }
 
 /** A real bank-account balance typed in by a parent or the kid (information only, not part of the app ledger). */
 export interface BankBalance {
@@ -283,7 +309,7 @@ export interface Initiative {
 /**
  * One kid on the pay-out overview (payout_summary, managers only). All amounts in family-currency cents.
  * The cycle runs since the latest pay-out that was not undone;
- * start + allowance + rewards + consequences + loan + other = wallet.
+ * start + allowance + rewards + consequences + loan + lessons + other = wallet.
  */
 export interface PayoutRow {
   member_id: string;
@@ -299,14 +325,24 @@ export interface PayoutRow {
   /** Carried over from before the cycle. */
   start_cents: number;
   allowance_cents: number;
-  /** Tasks done, rewards, prizes, gifts, excused fines. */
+  /** Tasks done, rewards, prizes, gifts, excused fines (not the Money school rewards: those are lessons_cents). */
   rewards_cents: number;
   /** Fines, missed tasks (≤ 0). */
   consequences_cents: number;
   /** Loan repayments, net of undos: ≤ 0, or > 0 when only undos of earlier repayments fall in this cycle. */
   loan_cents: number;
+  /** Money school rewards (one per lesson finished), net of undos. */
+  lessons_cents: number;
   /** Spent with OK, moved to or from savings. */
   other_cents: number;
+  /** Money school rewards in this cycle that were not undone. */
+  lessons_count: number;
+  /** Their one amount per lesson (null when there are none, amounts differ, or one was undone in this cycle). */
+  lessons_each_cents: number | null;
+  /** Lessons finished (as a kid) in this cycle. */
+  lessons_finished: number;
+  /** Lessons finished as a kid that never got the Money school reward (any time). */
+  lessons_unrewarded: number;
   /** The active loan: what is still to pay, and what it was for (null without one). */
   loan_outstanding_cents: number | null;
   loan_purpose: string | null;

@@ -7,7 +7,7 @@ import { useFeatures } from '../../lib/features';
 import { formatWhen } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Currency, Transaction } from '../../lib/types';
-import { clip, isStale, moneyError, useDelayed, whenText, whoName } from './moneyUtils';
+import { clip, fromMoneySchool, isStale, moneyError, useDelayed, whenText, whoName } from './moneyUtils';
 import { Delta, PhotoSheet, QuickChips, SheetActions, SkeletonRows, TxPhoto } from './parts';
 import { CURRENCY_META, POTS, TONE_SOFT, labelMeta, txMeta, txTone } from './txMeta';
 
@@ -68,7 +68,7 @@ export function TxRow({ tx, cur, viewerId, onOpen, photoSrc, className }: TxRowP
         </span>
         {hasReason(tx) && <span className="block text-[15px] leading-snug [overflow-wrap:anywhere]">{tx.reason}</span>}
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
-          <span>{whoName(tx.created_by, membersById, viewerId)} · {whenText(tx.effective_at, tz, now())}</span>
+          <span>{fromMoneySchool(tx) ? <>Money school <span aria-hidden="true">🎓</span></> : whoName(tx.created_by, membersById, viewerId)} · {whenText(tx.effective_at, tz, now())}</span>
           {pot && <Badge><span aria-hidden="true">{pot.emoji}</span>{pot.label}</Badge>}
           {lbl && <Badge><span aria-hidden="true">{lbl.emoji}</span>{lbl.label}</Badge>}
           {reversed && <Badge tone="neutral" icon="reset">Undone</Badge>}
@@ -246,7 +246,7 @@ function TxDetailSheet({ tx, cur, viewerId, ownerName, onClose, onUndo, onPhoto 
         {hasReason(tx) && <p className="rounded-2xl bg-surface-2 px-4 py-3 text-lg leading-snug [overflow-wrap:anywhere]">{tx.reason}</p>}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[15px]">
           <dt className="font-semibold text-muted">Who</dt>
-          <dd>{whoName(tx.created_by, membersById, viewerId)}{!tx.created_by && ' (the app’s weekly rules)'}</dd>
+          <dd>{fromMoneySchool(tx) ? <MoneySchoolWho tx={tx} by={whoName(tx.created_by, membersById, viewerId)} /> : <>{whoName(tx.created_by, membersById, viewerId)}{!tx.created_by && ' (the app’s weekly rules)'}</>}</dd>
           <dt className="font-semibold text-muted">When</dt>
           <dd>{formatWhen(tx.effective_at, tz, now())}</dd>
           <dt className="font-semibold text-muted">Whose</dt>
@@ -336,4 +336,10 @@ function ReverseSheet({ tx, cur, ownerName, onClose, onChanged }: {
       </div>
     </Sheet>
   );
+}
+
+/** A Money school reward (or lesson XP): from the Money school; "given by" the parent who rewarded earlier lessons. */
+function MoneySchoolWho({ tx, by }: { tx: Transaction; by: string }) {
+  const other = tx.created_by && tx.created_by !== tx.member_id;
+  return <>Money school <span aria-hidden="true">🎓</span>{other && ` (given by ${by === 'You' ? 'you' : by})`}</>;
 }

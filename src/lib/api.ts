@@ -4,7 +4,7 @@ import { backend } from './backend';
 import type {
   AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Initiative,
   InitiativeDecision, Invite,
-  InvitePreview, LessonDone, LoginDevice, Loan, LoanRequestInput, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role,
+  InvitePreview, LessonDone, LessonRewardsDue, LoginDevice, Loan, LoanRequestInput, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role,
   SpotInput, Target, TargetInput,
   Task, TaskInput,
   TaskInstance, TickResult, Transaction, Wallet,
@@ -142,8 +142,19 @@ export const api = {
   // ---- Money school (lessons) ----
   /** Finished lessons: managers see the whole family's, others only their own. Newest first. */
   listLessonsDone: () => rpc<LessonDone[]>('list_lessons_done'),
-  /** Mark a lesson finished (once). Kids get +10 XP the first time when points are switched on. */
+  /**
+   * Mark a lesson finished (once). The first time, kids get +5 XP when points are switched on, and the family's
+   * Money school reward (settings.lesson_reward_cents) in their Wallet when it is above 0.
+   */
   finishLesson: (lesson: string) => rpc<FinishLessonResult>('finish_lesson', { p_lesson: lesson }),
+  /** Managers: lessons kids finished that never got the Money school reward, at today's value. */
+  lessonRewardsDue: () => rpc<LessonRewardsDue>('lesson_rewards_due'),
+  /**
+   * Managers: reward those lessons now (into this pay-out). expectedCents = the total shown; when it changed meanwhile
+   * → wrong_status (reload and show the new amounts). memberId = only that kid.
+   */
+  rewardPastLessons: (expectedCents: number, memberId?: string | null) =>
+    rpc<{ rewarded: number; total_cents: number }>('reward_past_lessons', { p_expected_cents: expectedCents, p_member: memberId ?? null }),
 
   // ---- What we need (grown-ups only; kids get not_allowed) ----
   /** 'active' = open + someone is getting it (oldest first); 'done' = bought in the last year (newest first). */

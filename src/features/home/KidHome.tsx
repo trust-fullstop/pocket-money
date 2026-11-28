@@ -5,7 +5,7 @@ import { useFeatures, type FeatureApi } from '../../lib/features';
 import { minutes, money, plural, points } from '../../lib/format';
 import { useApp, useLoad, type LoadResult } from '../../lib/session';
 import { characterOf, levelFromPoints } from '../../lib/theme';
-import type { Balances, EventOccurrence, Initiative, Member, TaskInstance, Wallet } from '../../lib/types';
+import { lessonRewardOf, type Balances, type EventOccurrence, type Initiative, type Member, type TaskInstance, type Wallet } from '../../lib/types';
 import { VerseOfTheDay } from '../faith/VerseCard';
 import { monthLabel, opensLabel } from '../help/learn/series';
 import { useLessonsDone } from '../help/learn/useProgress';
@@ -347,6 +347,20 @@ function GoalCard({ wallet, meId, currency }: { wallet: LoadResult<Wallet>; meId
   );
 }
 
+/** Kids only (grown-ups never see money promises): the family's Money school reward for a new lesson. */
+function LessonPrize() {
+  const { family, me } = useApp();
+  const cents = me?.role === 'kid' ? lessonRewardOf(family?.settings) : 0;
+  if (cents <= 0) return null;
+  const currency = family?.currency ?? 'EUR';
+  return (
+    <p className="mt-3 text-[15px] font-semibold text-good">
+      <span aria-hidden="true">💰 </span>Finish a new lesson and get {money(cents, currency, { whole: true, sign: true })}.
+      {' '}<FxNote cents={cents} currency={currency} />
+    </p>
+  );
+}
+
 function MoneySchoolCard() {
   const lessons = useLessonsDone();
   const { count, total, next } = lessons.progress;
@@ -392,6 +406,7 @@ function MoneySchoolCard() {
             label={`${fresh.series.title}: lessons done`} valueText={`${fresh.count} of ${fresh.total} done`}
           />
           <p className="mt-1 text-[15px] font-semibold tabular-nums">{fresh.count} of {fresh.total} done · {fresh.series.title}</p>
+          <LessonPrize />
           <LinkButton to={`/help/learn/${n.id}`} block className="mt-3">
             {fresh.count === 0 ? 'Start' : 'Continue'}: {n.title}
           </LinkButton>
@@ -434,6 +449,7 @@ function MoneySchoolCard() {
         </div>
         {bar}
         <p className="mt-1 text-[15px] font-semibold tabular-nums">{count} of {total} done</p>
+        <LessonPrize />
         <LinkButton to={`/help/learn/${next.id}`} block className="mt-3">
           {count === 0 ? 'Start' : 'Continue'}: {next.title}
         </LinkButton>

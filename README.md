@@ -94,6 +94,8 @@ Plus a themed series that opens on a date. **December: Borrowing and insurance**
 
 Parents can see which lessons each child has finished.
 
+**Money school reward** (Family rules): set an amount per lesson and each child gets it once for every lesson they finish for the first time. It goes into their Wallet and shows as its own line in the Pay-out ("Money school (3 lessons × €2)"). Lessons finished before there was a reward can be rewarded with one tap, so they count in this pay-out.
+
 <p><img src="docs/images/interest-lesson.png" alt="The interest calculator: no interest, the family's savings bonus and a real bank side by side" width="240"></p>
 
 ## 👨‍👩‍👧‍👦 How it works, day to day

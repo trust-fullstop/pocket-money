@@ -1,6 +1,6 @@
 // Money school contract: lesson shapes shared by the lesson screens (help/learn), the faith reflections
 // (features/faith) and the server whitelist (app.lessons() / app.lesson_opens(), latest in migration 20261116002400).
-import type { FamilySettings, FeatureKey } from '../../../lib/types';
+import { lessonRewardOf, type FamilySettings, type FeatureKey } from '../../../lib/types';
 
 /** Core lessons — the basics, always open. */
 export const CORE_LESSON_IDS = ['purpose', 'earn', 'why-save', 'how-save', 'interest', 'goals'] as const;
@@ -12,7 +12,8 @@ export const SERIES_LESSON_IDS = [
 export type SeriesLessonId = (typeof SERIES_LESSON_IDS)[number];
 /**
  * Tracked lessons (core + series): a quiz that must be all right, finished on the server (finish_lesson), +5 XP once for
- * kids when points are on. Keep in sync with app.lessons() (latest: migration 20261116002400).
+ * kids when points are on, plus the family's Money school reward in the Wallet when it is set (migration 20261116002500).
+ * Keep in sync with app.lessons() (latest: migration 20261116002400).
  */
 export const TRACKED_LESSON_IDS = [...CORE_LESSON_IDS, ...SERIES_LESSON_IDS] as const;
 export type TrackedLessonId = CoreLessonId | SeriesLessonId;
@@ -27,6 +28,12 @@ export const isTracked = (kind: LessonKind): boolean => kind === 'core' || kind 
 
 /** XP a kid gets the first time they finish a tracked lesson (server: same number). */
 export const LESSON_XP = 5;
+
+/**
+ * Money a kid gets for finishing a tracked lesson for the first time (family-currency cents; family rule "Money school
+ * reward"). 0 when there is none or the reader isn't a kid: grown-ups never see money promises.
+ */
+export const kidLessonReward = (ctx: Pick<LessonCtx, 'isKid' | 'settings'>): number => (ctx.isKid ? lessonRewardOf(ctx.settings) : 0);
 
 /** Everything a lesson may use to talk in the family's own numbers. */
 export interface LessonCtx {

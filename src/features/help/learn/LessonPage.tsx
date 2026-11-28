@@ -3,7 +3,7 @@
 // day: a friendly locked page for kids and relatives, a preview for managers (the server says 'not_open' too).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router';
-import { Button, Card, EmptyState, Icon, LinkButton, PageHeader, ProgressBar } from '../../../components/ui';
+import { Button, Card, EmptyState, FxNote, Icon, LinkButton, PageHeader, ProgressBar } from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { friendlyError, toAppError } from '../../../lib/errors';
 import { useApp } from '../../../lib/session';
@@ -55,7 +55,7 @@ type Finish =
   | { s: 'idle' }
   | { s: 'saving' }
   | { s: 'error'; msg: string }
-  | { s: 'done'; points: number; first: boolean };
+  | { s: 'done'; points: number; money: number; first: boolean };
 
 const FALLBACK_TALK = [
   'What was new for you today?',
@@ -97,7 +97,7 @@ function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: Les
     setFin({ s: 'saving' });
     try {
       const r = await api.finishLesson(lesson.id);
-      setFin({ s: 'done', points: r.points, first: r.first });
+      setFin({ s: 'done', points: r.points, money: r.money_cents ?? 0, first: r.first });
       focusDone();
       void refresh();
     } catch (e) {
@@ -173,6 +173,12 @@ function LessonView({ lesson, ctx, series, preview }: { lesson: Lesson; ctx: Les
             {fin.s === 'done' && (
               <Card tone="good" role="status" className="space-y-3 text-center">
                 <h3 ref={doneRef} tabIndex={-1} className="text-2xl font-extrabold outline-none">Lesson done! 🎉</h3>
+                {fin.money > 0 && (
+                  <p className="text-xl font-extrabold text-good">
+                    +{ctx.m(fin.money)} into your Wallet <span aria-hidden="true">🎉</span>
+                    <FxNote cents={fin.money} currency={ctx.currency} className="block text-[15px] font-semibold" />
+                  </p>
+                )}
                 {fin.points > 0 && <p className="text-xl font-extrabold text-good">+{fin.points} XP</p>}
                 {!fin.first && <p className="text-[15px] text-muted">You finished this one before. Great to do it again!</p>}
                 <div className="space-y-2 pt-1">

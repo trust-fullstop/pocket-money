@@ -7,7 +7,10 @@
 // Loans: a "🤝 Loan" panel per child (what was lent, paid back, still to go, and what the next pocket money will
 // repay), loan requests waiting for an answer, "Record a loan", and in the top card what is still owed in total.
 // The loan list is loaded next to the summary; without it the page falls back to the summary's loan fields.
-// Outstanding debt is never part of the wallet breakdown: start + allowance + rewards + consequences + loan + other = wallet.
+// Money school rewards (one per lesson a child finished) have their own line, and a nudge shows lessons that never got
+// one (set a value / reward them in Family rules → 🎓 Money school reward).
+// Outstanding debt is never part of the wallet breakdown:
+// start + allowance + rewards + consequences + loan + lessons + other = wallet.
 import { useRef, useState } from 'react';
 import {
   Avatar, Button, Card, EmptyState, Icon, IconButton, LinkButton, PageHeader, ProgressBar, Sheet, Spinner, cx, useToast,
@@ -19,6 +22,7 @@ import { FX_ENTRY_MAX_AGE_MS, approxMoney, currencyWord, rateHeadline, toQuote, 
 import { addDays, dateInTz, formatDate, money, nextPayDate, todayISO } from '../../lib/format';
 import { useApp, useLoad } from '../../lib/session';
 import type { Loan, Member, PayoutRow } from '../../lib/types';
+import { lessonRewardOf } from '../../lib/types';
 import { isOpenLoan } from '../money/moneyUtils';
 
 const CHANGED = 'The amount just changed. Here’s the new amount.';
@@ -214,11 +218,37 @@ function TopCard({ total, totalSecond, owed, cur, fx, second, stale, kids, payab
   );
 }
 
-function Line({ label, cents, cur, strong }: { label: string; cents: number; cur: string; strong?: boolean }) {
+function Line({ label, cents, cur, strong, emoji }: { label: string; cents: number; cur: string; strong?: boolean; emoji?: string }) {
   return (
     <div className={cx('flex items-baseline justify-between gap-3', strong && 'font-bold')}>
-      <dt className="min-w-0">{label}</dt>
+      <dt className="min-w-0">{emoji && <span aria-hidden="true">{emoji} </span>}{label}</dt>
       <dd className="whitespace-nowrap tabular-nums">{signed(cents, cur)}</dd>
+    </div>
+  );
+}
+
+/** "Money school (3 lessons × €2)" when every lesson got the same amount, else "Money school (3 lessons)". */
+function lessonsLabel(row: PayoutRow, cur: string): string {
+  const n = row.lessons_count;
+  if (n <= 0) return 'Money school';
+  const what = `${n} lesson${n === 1 ? '' : 's'}`;
+  return row.lessons_each_cents != null ? `Money school (${what} × ${whole(row.lessons_each_cents, cur)})` : `Money school (${what})`;
+}
+
+/** Lessons this child finished that never got the Money school reward: set a value, or reward them (Family rules). */
+function LessonNudge({ name, count, reward, cur }: { name: string; count: number; reward: number; cur: string }) {
+  const what = `${count} lesson${count === 1 ? '' : 's'}`;
+  return (
+    <div className="mt-3 rounded-2xl bg-accent-soft px-3 pt-2 text-base">
+      <p className="[overflow-wrap:anywhere]">
+        <span aria-hidden="true">🎓 </span>
+        {reward > 0
+          ? `${count} earlier ${count === 1 ? 'lesson' : 'lessons'} not rewarded yet (${whole(reward, cur)} each).`
+          : `${name} finished ${what}. Set a reward per lesson in Family rules.`}
+      </p>
+      <LinkButton to="/family/settings#lesson-reward" variant="ghost" size="sm" className="-ml-3.5">
+        {reward > 0 ? 'Reward them' : 'Set a reward'}<span className="sr-only"> for Money school lessons</span>
+      </LinkButton>
     </div>
   );
 }
@@ -230,9 +260,11 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
   onPay: () => void;
 }) {
   const features = useFeatures();
+  const { family } = useApp();
+  const lessonReward = lessonRewardOf(family?.settings);
   const name = kid.display_name;
   const titleId = `payout-${row.member_id}`;
-  const extra = row.rewards_cents + row.consequences_cents + row.loan_cents + row.other_cents;
+  const extra = row.rewards_cents + row.consequences_cents + row.loan_cents + row.lessons_cents + row.other_cents;
   const hasSchedule = features.on('allowance') && (row.allowance_cents_per_period ?? 0) > 0;
   const next = hasSchedule ? nextPayDate(row.allowance_period, row.allowance_day, addDays(today, 1)) : null;
   const since = row.last_payout_at ? `Since the last pay-out on ${formatDate(dateInTz(row.last_payout_at, tz))}` : 'Since joining';
@@ -247,6 +279,7 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
     row.consequences_cents !== 0 && 'consequences',
     row.loan_cents < 0 && 'a loan repayment',
     row.loan_cents > 0 && 'an undone loan repayment',
+    row.lessons_cents !== 0 && 'Money school lessons',
     row.other_cents !== 0 && 'spending',
   ].filter((w): w is string => !!w);
   const because = why.length ? `, because of ${why.length > 1 ? `${why.slice(0, -1).join(', ')} and ${why[why.length - 1]}` : why[0]}` : '';
@@ -277,6 +310,9 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
         <Line label="Rewards and tasks" cents={row.rewards_cents} cur={cur} />
         <Line label="Consequences" cents={row.consequences_cents} cur={cur} />
         {row.loan_cents !== 0 && <Line label={row.loan_cents > 0 ? 'Loan repayment undone' : 'Loan repayment'} cents={row.loan_cents} cur={cur} />}
+        {(row.lessons_cents !== 0 || row.lessons_count > 0) && (
+          <Line emoji="🎓" label={lessonsLabel(row, cur)} cents={row.lessons_cents} cur={cur} />
+        )}
         {row.other_cents !== 0 && <Line label="Spent with OK / moved to savings" cents={row.other_cents} cur={cur} />}
         <div className="!mt-2 flex flex-wrap items-baseline justify-between gap-x-3 border-t border-line pt-2">
           <dt className="font-bold">In the wallet now</dt>
@@ -293,6 +329,9 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
 
       {versus && <p className={cx('mt-1 text-[15px] font-semibold', versus.tone)}>{versus.text}</p>}
       {pocket && <p className="mt-1 text-[14px] text-muted">{pocket}</p>}
+      {features.on('learn') && (lessonReward > 0
+        ? row.lessons_unrewarded > 0 && <LessonNudge name={name} count={row.lessons_unrewarded} reward={lessonReward} cur={cur} />
+        : row.lessons_finished > 0 && <LessonNudge name={name} count={row.lessons_finished} reward={0} cur={cur} />)}
 
       {active ? (
         <LoanPanel loan={active} row={row} name={name} cur={cur} tz={tz} second={second} />

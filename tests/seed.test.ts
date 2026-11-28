@@ -128,6 +128,23 @@ describe('demo seed', () => {
     expect((await as(db, DEMO(5))<any>('get_state')).counts.initiatives).toBe(1);
     expect((await as(db, DEMO(6))<any>('get_state')).counts.initiatives).toBe(0);
   });
+
+  it('has Money school rewards: €1 a lesson, Sam got 3, Mia’s 2 earlier lessons wait to be rewarded', async () => {
+    const dad = as(db, DEMO(1));
+    const st = await dad<any>('get_state');
+    expect(st.family.settings.lesson_reward_cents).toBe(100);
+    const sam = st.members.find((m: any) => m.display_name === 'Sam');
+    const mia = st.members.find((m: any) => m.display_name === 'Mia');
+    const due = await dad<any>('lesson_rewards_due');
+    expect(due).toMatchObject({ cents_each: 100, count: 2, total_cents: 200 });
+    expect(due.kids.map((k: any) => [k.member_id, k.count])).toEqual([[mia.id, 2]]);
+    const done = await dad<any[]>('list_lessons_done');
+    expect(done.filter((r) => r.member_id === sam.id).map((r) => r.money_cents)).toEqual([100, 100, 100]);
+    const payout = await dad<any[]>('payout_summary');
+    const p = payout.find((r) => r.member_id === sam.id);
+    expect(p).toMatchObject({ lessons_cents: 300, lessons_count: 3, lessons_each_cents: 100, lessons_unrewarded: 0 });
+    expect(payout.find((r) => r.member_id === mia.id)).toMatchObject({ lessons_cents: 0, lessons_unrewarded: 2 });
+  });
 });
 
 describe('demo seed works at any time of the week', () => {
