@@ -151,6 +151,8 @@ export function clip(s: string, n: number): string {
 
 /** A row the Money school paid (a lesson reward or lesson XP): shown as from "Money school 🎓", not the kid or parent. */
 export const fromMoneySchool = (tx: { source_type: string | null }): boolean => tx.source_type === 'lesson';
+/** A Bible time surprise (a kid opened the Bible App from Sow & Grow): shown as from "Sow & Grow 📖", not the kid. */
+export const fromBibleTime = (tx: { source_type: string | null }): boolean => tx.source_type === 'bible';
 
 /** Who made a change: "You", the member's name, "Automatic" (timed rules) or "Someone" (removed member). */
 export function whoName(createdBy: string | null, membersById: Record<string, Member>, viewerId: string | null | undefined): string {

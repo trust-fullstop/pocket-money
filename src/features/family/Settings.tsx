@@ -14,9 +14,10 @@ import { useApp, useLoad } from '../../lib/session';
 import { useHoldUpdates } from '../../lib/updates';
 import { BUILD_COMMIT, BUILD_TIME, versionName } from '../../lib/version';
 import {
-  familySpotRules, lessonRewardOf, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules,
+  bibleRewardOf, familySpotRules, lessonRewardOf, type Evidence, type Family, type FamilySettings, type SpotAmount, type SpotRules,
 } from '../../lib/types';
 import { describeAudit, type AuditEntry } from './audit';
+import { BibleOpensLine } from './BibleOpens';
 import { PastLessonRewards } from './LessonRewards';
 
 const CURRENCIES: { code: string; label: string }[] = [
@@ -42,6 +43,8 @@ interface Draft {
   spotRules: SpotRules;
   /** Money school reward per lesson, family-currency cents (0 = off). */
   lessonReward: number;
+  /** Bible time surprise per day, family-currency cents (0 = off). */
+  bibleReward: number;
 }
 type FieldKey = keyof FamilySettings | 'name' | 'currency' | 'timezone';
 
@@ -62,6 +65,7 @@ const draftFrom = (f: Family): Draft => ({
   evidence: f.settings.default_evidence ?? 'photo_or_note',
   spotRules: spotRulesOf(f),
   lessonReward: lessonRewardOf(f.settings),
+  bibleReward: bibleRewardOf(f.settings),
 });
 
 /** Parses a number field; returns [value, error]. */
@@ -132,6 +136,7 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
     if (d.evidence !== fs.default_evidence) s.default_evidence = d.evidence;
     if (JSON.stringify(d.spotRules) !== JSON.stringify(spotRulesOf(family))) s.spot_rules = d.spotRules;
     if (d.lessonReward !== lessonRewardOf(fs)) s.lesson_reward_cents = d.lessonReward;
+    if (d.bibleReward !== bibleRewardOf(fs)) s.bible_reward_cents = d.bibleReward;
     // "Same as the family currency" (or the same code) = off
     const spend = d.spendCurrency && d.spendCurrency !== d.currency ? d.spendCurrency : null;
     if (spend !== (spendCurrencyOf(family) ?? null) || (spend === null && fs.spend_currency)) s.spend_currency = spend;
@@ -191,6 +196,9 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
   const showLearn = features.on('learn');
   const savedReward = lessonRewardOf(family.settings);
   const rewardChanged = d.lessonReward !== savedReward;
+  const showFaith = features.on('faith');
+  const savedBible = bibleRewardOf(family.settings);
+  const bibleChanged = d.bibleReward !== savedBible;
   const setRule = (dir: keyof SpotRules, patch: Partial<SpotAmount>) =>
     set({ spotRules: { ...d.spotRules, [dir]: { ...d.spotRules[dir], ...patch } } });
   const someHidden = !(showInterest && showSaverRules && showChallengeCap && showEmergency);
@@ -338,6 +346,32 @@ function SettingsForm({ family, isOwner, refresh, signOut }: {
               {rewardChanged && <span className="text-muted"> · not saved yet</span>}
             </p>
             <PastLessonRewards saved={savedReward} changed={rewardChanged} />
+          </SettingsCard>
+        )}
+
+        {showFaith && (
+          <SettingsCard id="bible-reward" title="Bible time surprise 🥚" emoji="📖">
+            <p className="text-[15px] text-muted">
+              Each child gets this once a day when they tap a Bible App link in Sow &amp; Grow (“Read in the Bible App” with a
+              verse, or “Open the Bible App” in Help). The kids aren’t told — it’s a surprise. Opening the Bible App straight
+              from the phone can’t be seen, a child who switched the verses off has no links, and a tap only shows that the
+              app was opened.
+            </p>
+            <AmountInput
+              kind="money" label="Surprise per day" value={d.bibleReward || null} onChange={(v) => set({ bibleReward: v ?? 0 })}
+              max={100_000} chips={[]} fxEntry hint="A small family gift, not payment for believing. Empty or 0 = off."
+              error={serverErr.bible_reward_cents}
+            />
+            <p className="text-[15px]">
+              {d.bibleReward > 0 ? (
+                <>
+                  Once a day: <strong className="tabular-nums">+{money(d.bibleReward, family.currency, { whole: true })}</strong>{' '}
+                  <FxNote cents={d.bibleReward} currency={family.currency} />
+                </>
+              ) : 'Off: opening the Bible App gives no money.'}
+              {bibleChanged && <span className="text-muted"> · not saved yet</span>}
+            </p>
+            <BibleOpensLine saved={savedBible} />
           </SettingsCard>
         )}
 

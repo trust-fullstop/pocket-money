@@ -1,8 +1,10 @@
 // Faith verse UI (feature 'faith'): the verse of the day card and a compact verse line for lessons and pages.
-// Texts come only from verses.ts (World English Bible, public domain); links open the verse in the Bible App.
+// Texts come only from verses.ts (World English Bible, public domain); links open the verse in the Bible App (a kid's tap
+// is counted for the Bible time surprise, see bibleTrack.ts; the link itself is never delayed).
 import { useId } from 'react';
 import { Icon, LinkButton, buttonClass, cardClass, cx } from '../../components/ui';
 import { useApp } from '../../lib/session';
+import { useTrackBibleOpen } from './bibleTrack';
 import { VERSES_SETTING_PATH, useVersesShown } from './prefs';
 import { TRANSLATION, VERSE_BY_ID, bibleAppUrl, verseOfTheDay, type Verse } from './verses';
 
@@ -25,6 +27,7 @@ export function VerseOfTheDay({ className }: { className?: string }) {
   const shown = useVersesShown();
   const { state } = useApp();
   const titleId = useId();
+  const track = useTrackBibleOpen();
   if (!shown || !state) return null;
   const v = verseOfTheDay(state.today);
   return (
@@ -41,7 +44,7 @@ export function VerseOfTheDay({ className }: { className?: string }) {
         </figcaption>
       </figure>
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <a href={bibleAppUrl(v)} {...linkProps} className={buttonClass('secondary', 'sm')}>
+        <a href={bibleAppUrl(v)} {...linkProps} onClick={() => track(v.ref)} className={buttonClass('secondary', 'sm')}>
           <Icon name="external" size={18} />
           <span>Read<span className="sr-only"> {v.ref}</span> in the Bible App</span>
         </a>
@@ -56,6 +59,7 @@ export function VerseOfTheDay({ className }: { className?: string }) {
 /** One verse in a short paragraph: text, "— Ref (WEB)" and a small Bible App link. Nothing when verses are hidden or the id is unknown. */
 export function VerseLine({ id, className }: { id: string; className?: string }) {
   const shown = useVersesShown();
+  const track = useTrackBibleOpen();
   const v = VERSE_BY_ID[id];
   if (!shown || !v) return null;
   return (
@@ -64,7 +68,8 @@ export function VerseLine({ id, className }: { id: string; className?: string })
       <figcaption className="inline whitespace-nowrap text-[14px] font-semibold text-muted">
         <span aria-hidden="true">—&nbsp;</span><Ref v={v} />
         <a
-          href={bibleAppUrl(v)} {...linkProps} aria-label={`Read ${v.ref} in the Bible App`} title="Read in the Bible App"
+          href={bibleAppUrl(v)} {...linkProps} onClick={() => track(v.ref)} aria-label={`Read ${v.ref} in the Bible App`}
+          title="Read in the Bible App"
           className="-my-3 inline-grid size-11 place-items-center rounded-full align-middle text-accent-ink transition hover:bg-accent-soft"
         >
           <Icon name="external" size={16} />

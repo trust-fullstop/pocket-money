@@ -4,6 +4,7 @@ import { AppLock } from './components/AppLock';
 import { AppShell } from './components/AppShell';
 import { UpdateBar } from './components/UpdateBar';
 import { Button, EmptyState, LinkButton, UIProvider } from './components/ui';
+import { useBibleOpenFlush } from './features/faith/bibleTrack';
 import { backend } from './lib/backend';
 import { cloudConfigured, switchMode } from './lib/backend/select';
 import { AppProvider, useApp } from './lib/session';
@@ -46,7 +47,7 @@ function Root() {
         <Route path="/welcome/*" element={<GuestOnly><Welcome /></GuestOnly>} />
         <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
         <Route path="/join/:code?" element={<Join />} />
-        <Route element={<RequireMember><AppShell /></RequireMember>}>
+        <Route element={<RequireMember><BibleOpenFlush /><AppShell /></RequireMember>}>
           <Route index element={<Home />} />
           <Route path="tasks/*" element={<Tasks />} />
           <Route path="money/*" element={<Money />} />
@@ -66,6 +67,12 @@ function RequireMember({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (!state) return <Navigate to="/welcome" replace state={{ from: location.pathname }} />;
   return children;
+}
+
+/** A kid's Bible App tap that didn't get through is sent again (same day), and a surprise that came meanwhile shown. */
+function BibleOpenFlush() {
+  useBibleOpenFlush();
+  return null;
 }
 
 /** Signed-in visitors of /welcome or /login go home. Only checked on arrival: after create/login the

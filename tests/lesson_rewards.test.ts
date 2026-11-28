@@ -31,7 +31,7 @@ const allMoney = (family: string) =>
 const summaryRow = async (f: Fam, member: string) =>
   (await f.owner.rpc<Row[]>('payout_summary')).find((r) => r.member_id === member)!;
 const parts = (r: Row) =>
-  r.start_cents + r.allowance_cents + r.rewards_cents + r.consequences_cents + r.loan_cents + r.lessons_cents + r.other_cents;
+  r.start_cents + r.allowance_cents + r.rewards_cents + r.consequences_cents + r.loan_cents + r.lessons_cents + r.bible_cents + r.other_cents;
 
 describe('the setting lesson_reward_cents', () => {
   let f: Fam;

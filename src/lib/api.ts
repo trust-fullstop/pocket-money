@@ -2,7 +2,8 @@
 // Each function maps 1:1 to a public SQL function in supabase/migrations (param names prefixed p_).
 import { backend } from './backend';
 import type {
-  AppState, AskEntry, Balances, BankBalance, Device, DeviceInput, EventInput, EventOccurrence, Family, FinishLessonResult, Goal, Initiative,
+  AppState, AskEntry, Balances, BankBalance, BibleOpened, BibleOpensSummary, Device, DeviceInput, EventInput, EventOccurrence, Family,
+  FinishLessonResult, Goal, Initiative,
   InitiativeDecision, Invite,
   InvitePreview, LessonDone, LessonRewardsDue, LoginDevice, Loan, LoanRequestInput, MoneyRequest, Need, PayoutResult, PayoutRow, Pot, RequestKind, Role,
   SpotInput, Target, TargetInput,
@@ -155,6 +156,16 @@ export const api = {
    */
   rewardPastLessons: (expectedCents: number, memberId?: string | null) =>
     rpc<{ rewarded: number; total_cents: number }>('reward_past_lessons', { p_expected_cents: expectedCents, p_member: memberId ?? null }),
+
+  // ---- Faith: Bible time surprise ----
+  /**
+   * A kid tapped one of the app's own Bible App links: counted once per family-local day; the first open of the day
+   * pays the family's Bible time surprise (settings.bible_reward_cents, managers only see it). A quiet no-op for
+   * grown-ups, with faith off or verses hidden. `ref` = which link (a verse reference or 'home'), clipped to 40.
+   */
+  bibleOpened: (ref: string | null) => rpc<BibleOpened>('bible_opened', { p_ref: ref }),
+  /** Managers: per active kid, the days they opened the Bible App from Sow & Grow (this month, last 7 days). */
+  bibleOpensSummary: () => rpc<BibleOpensSummary>('bible_opens_summary'),
 
   // ---- What we need (grown-ups only; kids get not_allowed) ----
   /** 'active' = open + someone is getting it (oldest first); 'done' = bought in the last year (newest first). */

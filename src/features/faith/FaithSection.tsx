@@ -1,9 +1,12 @@
 // "Faith, hope and love" section for the Help page (feature 'faith'): why faith is part of our family app, the faith
-// reflections in Money school and the Bible App. Invited, never tested: nothing here is scored or tracked.
+// reflections in Money school and the Bible App. Invited, never tested: no quiz, score or XP, and beliefs are never
+// evaluated. Parents may choose a small surprise gift for a kid who opens the Bible App from one of our links, like the
+// one here (bibleTrack.ts); a tap only shows that the app was opened.
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Card, ListRow, Section } from '../../components/ui';
 import { useFeatures } from '../../lib/features';
+import { useTrackBibleOpen } from './bibleTrack';
 import { VERSES_SETTING_PATH, useVersesShown } from './prefs';
 import { FAITH_LESSONS } from './reflections';
 import { VerseLine } from './VerseCard';
@@ -13,6 +16,7 @@ const BIBLE_APP_HOME = 'https://www.bible.com/';
 export function FaithSection() {
   const shown = useVersesShown();
   const { on } = useFeatures();
+  const track = useTrackBibleOpen();
   if (!shown) return null;
   const learn = on('learn');
 
@@ -58,7 +62,7 @@ export function FaithSection() {
 
       <Card padded={false} className="overflow-hidden">
         <ListRow
-          href={BIBLE_APP_HOME} title="Open the Bible App" subtitle="Read the whole Bible, reading plans and more"
+          href={BIBLE_APP_HOME} onClick={() => track('home')} title="Open the Bible App" subtitle="Read the whole Bible, reading plans and more"
           left={<span className="grid size-10 place-items-center rounded-full bg-accent-soft text-xl" aria-hidden="true">📖</span>}
         />
       </Card>

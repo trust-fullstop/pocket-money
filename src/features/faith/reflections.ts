@@ -1,4 +1,5 @@
-// Faith reflections for Money school (feature 'faith'): kind 'faith', no quiz, nothing tracked or scored.
+// Faith reflections for Money school (feature 'faith'): kind 'faith', no quiz, score or XP, not a tracked lesson, and
+// beliefs are never evaluated.
 // Faith is invited, never tested. Stewardship and gratitude, not prosperity: God gives what we need, giving is free
 // and glad (never a deal to get more back), and family verses always go both ways. Other churches and faiths are
 // described accurately and kindly ("Christians believe… / Muslims believe…"), numbers are approximate.

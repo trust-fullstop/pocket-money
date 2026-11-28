@@ -14,7 +14,7 @@ type Row = Record<string, any>;
 const summary = (f: Fam) => f.owner.rpc<Row[]>('payout_summary');
 const kid = (rows: Row[], id: string) => rows.find((r) => r.member_id === id)!;
 const parts = (r: Row) => r.start_cents + r.allowance_cents + r.rewards_cents + r.consequences_cents + r.loan_cents
-  + r.lessons_cents + r.other_cents;
+  + r.lessons_cents + r.bible_cents + r.other_cents;
 const payouts = (member: string) =>
   q(db, `select id, currency, pot, amount, kind, label, reason, source_type, source_id, source_key, created_by, reversed_by
            from public.transactions where member_id = $1 and kind = 'payout' order by created_at`, [member]);

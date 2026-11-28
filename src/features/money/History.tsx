@@ -7,7 +7,7 @@ import { useFeatures } from '../../lib/features';
 import { formatWhen } from '../../lib/format';
 import { useApp } from '../../lib/session';
 import type { Currency, Transaction } from '../../lib/types';
-import { clip, fromMoneySchool, isStale, moneyError, useDelayed, whenText, whoName } from './moneyUtils';
+import { clip, fromBibleTime, fromMoneySchool, isStale, moneyError, useDelayed, whenText, whoName } from './moneyUtils';
 import { Delta, PhotoSheet, QuickChips, SheetActions, SkeletonRows, TxPhoto } from './parts';
 import { CURRENCY_META, POTS, TONE_SOFT, labelMeta, txMeta, txTone } from './txMeta';
 
@@ -29,12 +29,19 @@ function extraLabel(tx: Pick<Transaction, 'kind' | 'label'>) {
   return g;
 }
 
-const hasReason = (tx: Pick<Transaction, 'reason' | 'kind' | 'masked'>) =>
-  !!tx.reason && tx.reason !== tx.kind && !tx.masked;
+const hasReason = (tx: Pick<Transaction, 'reason' | 'kind' | 'masked' | 'source_type'>) =>
+  !!tx.reason && tx.reason !== tx.kind && !tx.masked && !fromBibleTime(tx);
 
 /** Kind meta for one row: a loan repayment seen by someone outside the kid and the parents reads "Pocket money adjustment". */
-const rowMeta = (tx: Pick<Transaction, 'kind' | 'masked'>) =>
-  tx.masked ? { emoji: '👛', label: 'Pocket money adjustment', tone: 'neutral' as const } : txMeta(tx.kind);
+const rowMeta = (tx: Pick<Transaction, 'kind' | 'masked' | 'source_type'>) =>
+  tx.masked ? { emoji: '👛', label: 'Pocket money adjustment', tone: 'neutral' as const }
+    : fromBibleTime(tx) ? { emoji: '📖', label: 'Bible time', tone: 'plus' as const }
+      : txMeta(tx.kind);
+
+/** A Bible time surprise is from the app itself, not from the kid who opened the Bible App. */
+function BibleTimeWho() {
+  return <>Sow &amp; Grow <span aria-hidden="true">📖</span></>;
+}
 
 export interface TxRowProps {
   tx: Transaction;
@@ -68,7 +75,8 @@ export function TxRow({ tx, cur, viewerId, onOpen, photoSrc, className }: TxRowP
         </span>
         {hasReason(tx) && <span className="block text-[15px] leading-snug [overflow-wrap:anywhere]">{tx.reason}</span>}
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
-          <span>{fromMoneySchool(tx) ? <>Money school <span aria-hidden="true">🎓</span></> : whoName(tx.created_by, membersById, viewerId)} · {whenText(tx.effective_at, tz, now())}</span>
+          <span>{fromMoneySchool(tx) ? <>Money school <span aria-hidden="true">🎓</span></>
+            : fromBibleTime(tx) ? <BibleTimeWho /> : whoName(tx.created_by, membersById, viewerId)} · {whenText(tx.effective_at, tz, now())}</span>
           {pot && <Badge><span aria-hidden="true">{pot.emoji}</span>{pot.label}</Badge>}
           {lbl && <Badge><span aria-hidden="true">{lbl.emoji}</span>{lbl.label}</Badge>}
           {reversed && <Badge tone="neutral" icon="reset">Undone</Badge>}
@@ -246,7 +254,9 @@ function TxDetailSheet({ tx, cur, viewerId, ownerName, onClose, onUndo, onPhoto 
         {hasReason(tx) && <p className="rounded-2xl bg-surface-2 px-4 py-3 text-lg leading-snug [overflow-wrap:anywhere]">{tx.reason}</p>}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[15px]">
           <dt className="font-semibold text-muted">Who</dt>
-          <dd>{fromMoneySchool(tx) ? <MoneySchoolWho tx={tx} by={whoName(tx.created_by, membersById, viewerId)} /> : <>{whoName(tx.created_by, membersById, viewerId)}{!tx.created_by && ' (the app’s weekly rules)'}</>}</dd>
+          <dd>{fromMoneySchool(tx) ? <MoneySchoolWho tx={tx} by={whoName(tx.created_by, membersById, viewerId)} />
+            : fromBibleTime(tx) ? <BibleTimeWho />
+              : <>{whoName(tx.created_by, membersById, viewerId)}{!tx.created_by && ' (the app’s weekly rules)'}</>}</dd>
           <dt className="font-semibold text-muted">When</dt>
           <dd>{formatWhen(tx.effective_at, tz, now())}</dd>
           <dt className="font-semibold text-muted">Whose</dt>

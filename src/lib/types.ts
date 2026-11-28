@@ -69,6 +69,11 @@ export interface FamilySettings {
   spot_rules?: SpotRules;          // fixed Spotted amounts (Family rules → Spotted); missing on old data = defaults
   /** Money school reward: family-currency cents a kid gets for each lesson finished the first time (0/missing = off). */
   lesson_reward_cents?: number;
+  /**
+   * Bible time surprise: family-currency cents a kid gets once a day for opening the Bible App from Sow & Grow
+   * (0/missing = off). Only managers receive it: get_state leaves the key out for kids and grandparents.
+   */
+  bible_reward_cents?: number;
   features: Features;               // which parts of the app are switched on (parent admin → Features)
 }
 
@@ -92,6 +97,12 @@ export function familySpotRules(settings: Partial<FamilySettings> | null | undef
 /** The Money school reward per lesson in family-currency cents (0 = off), read like the server does (app.lesson_reward_cents). */
 export function lessonRewardOf(settings: Partial<FamilySettings> | null | undefined): number {
   const v = settings?.lesson_reward_cents;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(Math.max(Math.trunc(v), 0), 100_000) : 0;
+}
+
+/** The Bible time surprise in family-currency cents (0 = off or not visible to you), like app.bible_reward_cents. */
+export function bibleRewardOf(settings: Partial<FamilySettings> | null | undefined): number {
+  const v = settings?.bible_reward_cents;
   return typeof v === 'number' && Number.isFinite(v) ? Math.min(Math.max(Math.trunc(v), 0), 100_000) : 0;
 }
 
@@ -166,6 +177,26 @@ export interface LessonRewardsDueKid {
 }
 /** lesson_rewards_due (managers): per kid, plus the totals at today's value. */
 export interface LessonRewardsDue { cents_each: number; count: number; total_cents: number; kids: LessonRewardsDueKid[] }
+
+/**
+ * bible_opened answer: `counted` = this tap was counted (a kid with faith and verses on); `first_today` = the first open
+ * of the family-local day; `rewarded_cents` = the Bible time surprise put in the Wallet just now (0 when none).
+ */
+export interface BibleOpened { counted: boolean; first_today?: boolean; rewarded_cents: number }
+/** One active kid in bible_opens_summary: days they opened the Bible App from Sow & Grow. */
+export interface BibleOpensKid {
+  member_id: string;
+  /** Days in this family-local month. */
+  days_month: number;
+  /** Days in the last 7 days (today included). */
+  days_7: number;
+  /** Family-local YYYY-MM-DD of the last open (null = never). */
+  last_day: string | null;
+  /** Bible time money this month, not undone. */
+  rewarded_month_cents: number;
+}
+/** bible_opens_summary (managers): the current value and one row per active kid. */
+export interface BibleOpensSummary { cents_each: number; today: string; month_start: string; kids: BibleOpensKid[] }
 
 /** A real bank-account balance typed in by a parent or the kid (information only, not part of the app ledger). */
 export interface BankBalance {
@@ -309,7 +340,7 @@ export interface Initiative {
 /**
  * One kid on the pay-out overview (payout_summary, managers only). All amounts in family-currency cents.
  * The cycle runs since the latest pay-out that was not undone;
- * start + allowance + rewards + consequences + loan + lessons + other = wallet.
+ * start + allowance + rewards + consequences + loan + lessons + bible + other = wallet.
  */
 export interface PayoutRow {
   member_id: string;
@@ -325,7 +356,7 @@ export interface PayoutRow {
   /** Carried over from before the cycle. */
   start_cents: number;
   allowance_cents: number;
-  /** Tasks done, rewards, prizes, gifts, excused fines (not the Money school rewards: those are lessons_cents). */
+  /** Tasks done, rewards, prizes, gifts, excused fines (not Money school or Bible time: lessons_cents, bible_cents). */
   rewards_cents: number;
   /** Fines, missed tasks (≤ 0). */
   consequences_cents: number;
@@ -343,6 +374,12 @@ export interface PayoutRow {
   lessons_finished: number;
   /** Lessons finished as a kid that never got the Money school reward (any time). */
   lessons_unrewarded: number;
+  /** Bible time surprises (one per day the kid opened the Bible App from Sow & Grow), net of undos. */
+  bible_cents: number;
+  /** Bible time surprises in this cycle that were not undone. */
+  bible_days: number;
+  /** Their one amount per day (null when there are none, amounts differ, or one was undone in this cycle). */
+  bible_each_cents: number | null;
   /** The active loan: what is still to pay, and what it was for (null without one). */
   loan_outstanding_cents: number | null;
   loan_purpose: string | null;

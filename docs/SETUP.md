@@ -12,7 +12,7 @@ One copy of the app is for **one family**. After you create your family, nobody 
 
 1. Go to https://supabase.com, choose **New project** and pick the **Free** plan and a region near you (e.g. **EU (Frankfurt)**). Save the database password somewhere safe.
 2. Load the database. Choose one option:
-   - **Option A (no tools):** open **SQL Editor** and run **every** file in `supabase/migrations/` **in filename order**, from `…000000_schema.sql` to the last one. Skip none: later files replace earlier functions.
+   - **Option A (no tools):** open **SQL Editor** and run **every** file in `supabase/migrations/` **in filename order**, from `…000000_schema.sql` to the last one (at the moment `…002600_bible_surprise.sql`). Skip none: later files replace earlier functions. [DEVELOPMENT.md](DEVELOPMENT.md#database-migrations) lists what each file adds.
    - **Option B (command line):** `npx supabase login`, then `npx supabase link --project-ref <your-ref>`, then `npx supabase db push`.
 3. **Authentication → Sign In / Providers:** turn on
    - **Allow anonymous sign-ins** (joining with a QR code needs it)
@@ -25,7 +25,7 @@ One copy of the app is for **one family**. After you create your family, nobody 
 6. **Don't turn on CAPTCHA yet.** The app doesn't support it yet, and switching it on (Authentication → Attack Protection) stops everyone from joining or signing in. Bot protection is on the to-do list.
 7. Copy the **Project URL** and the **publishable (anon) key** from **Project Settings → API**.
 
-> `…000950_supabase_only.sql` creates the private `photos` bucket and its access rules, and runs the timed rules (missed tasks, pocket money, interest, prizes) every 15 minutes with `pg_cron`. If cron isn't available, the app runs them whenever someone opens it.
+> `…000950_supabase_only.sql` creates the private `photos` bucket and its access rules, and runs the timed rules (missed tasks, pocket money and loan repayments, interest, prizes) every 15 minutes with `pg_cron`. If cron isn't available, the app runs them whenever someone opens it.
 
 ### 1b. "Ask Pocket" helper (optional, uses Claude)
 
@@ -66,9 +66,9 @@ Limits: 20 questions per person per day and 150 per family per day. The helper s
 2. On your phone, open the site, choose **I have a QR code / join code** and type the short code. You're now the owner. Choose **Add to Home Screen** so it opens like an app.
 3. **Me → Sign-in & devices:** set a username and password (or link Google), so you can never lose access.
 4. **Family → Add member** for each person: show them the QR code and they scan it with their phone camera.
-5. **Family → Features:** start with **Start small** and switch more on as your family gets used to it. Switch on **Faith, hope and love** if you'd like the Bible verses and reflections.
-6. **Family → Family rules:** the currency (and an optional second currency), the Spotted amounts, the savings interest and so on.
-7. **Money → (child) → Pocket money:** an amount every week or every month.
+5. **Family → Features:** start with **Start small** and switch more on as your family gets used to it. Switch on **Faith, hope and love** if you'd like the Bible verses and reflections. **Loans** and **Ask Pocket** stay off until you switch them on.
+6. **Family → Family rules:** the currency (and **Also show money in**, an optional second currency), the time zone, the Spotted amounts, the savings interest, an optional **Money school reward** per lesson and, with faith on, an optional **Bible time surprise**. **About this app** near the bottom shows the version and when it came out.
+7. **Money → (child) → Pocket money:** an amount every week or every month, on a day you choose.
 
 > The short code expired before you used it? Your family already exists, so make a fresh code for the owner in **SQL Editor**:
 >
@@ -78,6 +78,14 @@ Limits: 20 questions per person per day and 150 per family per day. The helper s
 > from public.members where role = 'owner'
 > returning short_code;
 > ```
+
+## Updating your copy
+
+New versions come out now and then. Update the database first, then the website:
+
+1. **Database:** load the new files in `supabase/migrations/`. With Option B, run `npx supabase db push` again from an up-to-date copy of the code. With Option A, run only the files that are newer than the last one you ran, in filename order.
+2. **Website:** bring your fork up to date (on GitHub: **Sync fork**). Cloudflare Pages redeploys by itself.
+3. **Phones** get the new version the next time the app is opened; nobody needs to reinstall. Parents can check the date in **Family → Family rules → About this app**.
 
 ## Free-plan notes
 

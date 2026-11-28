@@ -10,7 +10,7 @@ export interface ListRowProps {
   subtitle?: ReactNode;
   /** Value / badge / button on the right. */
   right?: ReactNode;
-  /** Makes the row a button. */
+  /** Makes the row a button. With href: also runs when the link is clicked (the link still opens). */
   onClick?: () => void;
   /** Makes the row a router link. */
   to?: string;
@@ -43,7 +43,7 @@ export function ListRow({ left, title, subtitle, right, onClick, to, href, chevr
     className,
   );
   if (to) return <Link to={to} className={cls}>{body}</Link>;
-  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>{body}</a>;
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={cls}>{body}</a>;
   if (onClick) return <button type="button" onClick={onClick} className={cls}>{body}</button>;
   return <div className={cls}>{body}</div>;
 }

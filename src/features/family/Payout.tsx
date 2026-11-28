@@ -8,9 +8,10 @@
 // repay), loan requests waiting for an answer, "Record a loan", and in the top card what is still owed in total.
 // The loan list is loaded next to the summary; without it the page falls back to the summary's loan fields.
 // Money school rewards (one per lesson a child finished) have their own line, and a nudge shows lessons that never got
-// one (set a value / reward them in Family rules → 🎓 Money school reward).
+// one (set a value / reward them in Family rules → 🎓 Money school reward). The Bible time surprise (once a day a kid
+// opened the Bible App from Sow & Grow) has its own line too.
 // Outstanding debt is never part of the wallet breakdown:
-// start + allowance + rewards + consequences + loan + lessons + other = wallet.
+// start + allowance + rewards + consequences + loan + lessons + bible + other = wallet.
 import { useRef, useState } from 'react';
 import {
   Avatar, Button, Card, EmptyState, Icon, IconButton, LinkButton, PageHeader, ProgressBar, Sheet, Spinner, cx, useToast,
@@ -235,6 +236,14 @@ function lessonsLabel(row: PayoutRow, cur: string): string {
   return row.lessons_each_cents != null ? `Money school (${what} × ${whole(row.lessons_each_cents, cur)})` : `Money school (${what})`;
 }
 
+/** "Bible time (5 days × €0.50)" when every day got the same amount, else "Bible time (5 days)". */
+function bibleLabel(row: PayoutRow, cur: string): string {
+  const n = row.bible_days;
+  if (n <= 0) return 'Bible time';
+  const what = `${n} day${n === 1 ? '' : 's'}`;
+  return row.bible_each_cents != null ? `Bible time (${what} × ${whole(row.bible_each_cents, cur)})` : `Bible time (${what})`;
+}
+
 /** Lessons this child finished that never got the Money school reward: set a value, or reward them (Family rules). */
 function LessonNudge({ name, count, reward, cur }: { name: string; count: number; reward: number; cur: string }) {
   const what = `${count} lesson${count === 1 ? '' : 's'}`;
@@ -264,7 +273,7 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
   const lessonReward = lessonRewardOf(family?.settings);
   const name = kid.display_name;
   const titleId = `payout-${row.member_id}`;
-  const extra = row.rewards_cents + row.consequences_cents + row.loan_cents + row.lessons_cents + row.other_cents;
+  const extra = row.rewards_cents + row.consequences_cents + row.loan_cents + row.lessons_cents + row.bible_cents + row.other_cents;
   const hasSchedule = features.on('allowance') && (row.allowance_cents_per_period ?? 0) > 0;
   const next = hasSchedule ? nextPayDate(row.allowance_period, row.allowance_day, addDays(today, 1)) : null;
   const since = row.last_payout_at ? `Since the last pay-out on ${formatDate(dateInTz(row.last_payout_at, tz))}` : 'Since joining';
@@ -280,6 +289,7 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
     row.loan_cents < 0 && 'a loan repayment',
     row.loan_cents > 0 && 'an undone loan repayment',
     row.lessons_cents !== 0 && 'Money school lessons',
+    row.bible_cents !== 0 && 'Bible time',
     row.other_cents !== 0 && 'spending',
   ].filter((w): w is string => !!w);
   const because = why.length ? `, because of ${why.length > 1 ? `${why.slice(0, -1).join(', ')} and ${why[why.length - 1]}` : why[0]}` : '';
@@ -312,6 +322,9 @@ function KidCard({ row, kid, cur, tz, today, second, loans, onPay }: {
         {row.loan_cents !== 0 && <Line label={row.loan_cents > 0 ? 'Loan repayment undone' : 'Loan repayment'} cents={row.loan_cents} cur={cur} />}
         {(row.lessons_cents !== 0 || row.lessons_count > 0) && (
           <Line emoji="🎓" label={lessonsLabel(row, cur)} cents={row.lessons_cents} cur={cur} />
+        )}
+        {(row.bible_cents !== 0 || row.bible_days > 0) && (
+          <Line emoji="📖" label={bibleLabel(row, cur)} cents={row.bible_cents} cur={cur} />
         )}
         {row.other_cents !== 0 && <Line label="Spent with OK / moved to savings" cents={row.other_cents} cur={cur} />}
         <div className="!mt-2 flex flex-wrap items-baseline justify-between gap-x-3 border-t border-line pt-2">

@@ -74,8 +74,9 @@ export function TalliesCard({ wallet, self, name, cur, loans }: { wallet: Wallet
 
   // Lines (and their explanations) only for the parts that are switched on (Family → Features).
   const earnedFrom = andList([
-    'Tasks', ...(on('spotted') ? ['bonuses', 'gifts'] : []), ...(on('targets') ? ['prizes'] : []),
-    // Money school rewards are bonuses in the wallet (counted in Earned).
+    // Money school rewards and other bonuses (e.g. a surprise from the app) are counted in Earned too: with Spotted off
+    // they are "rewards", so the line stays true without naming every source.
+    'Tasks', ...(on('spotted') ? ['bonuses', 'gifts'] : ['rewards']), ...(on('targets') ? ['prizes'] : []),
     ...(on('learn') ? ['lessons'] : []), ...(on('allowance') ? ['pocket money'] : []),
   ]);
   const moneyLines: Line[] = [
